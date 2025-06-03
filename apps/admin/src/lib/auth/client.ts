@@ -2,8 +2,8 @@
 
 import type { User, Role } from '@/types/user';
 
-// Get API URL from environment variables with fallback
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
+// All API calls go through the Next.js API proxy
+const API_URL = '/api';
 
 // Types based on the auth.proto definition
 interface AuthResponse {
@@ -89,7 +89,7 @@ class AuthClient {
       (headers as unknown as any)['Authorization'] = `Bearer ${token}`;
     }
 
-    const apiUrl = `/api${path}`;
+    const apiUrl = `${API_URL}${path}`;
 
     console.log(`Making ${options.method || 'GET'} request to: ${apiUrl}`);
 

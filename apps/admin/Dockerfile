@@ -1,66 +1,85 @@
-# Stage 1: Base
 FROM node:lts-alpine AS base
-WORKDIR /app
+
+# Development stage with hot reload
+FROM base AS development
+
 RUN apk update
+RUN apk add --no-cache libc6-compat
 
-# Stage 2: Install dependencies 
-FROM base AS deps
 WORKDIR /app
-
-# Copy package.json files
-COPY apps/admin/package.json ./apps/admin/
-COPY apps/admin/yarn.lock ./apps/admin/
-
-# Create directory structure for workspaces
-RUN mkdir -p apps/admin
 
 # Install dependencies
+COPY package.json yarn.lock ./
+COPY apps/admin/package.json ./apps/admin/package.json
+COPY packages/ ./packages/
 RUN yarn install
 
-# Stage 3: Builder
-FROM base AS builder
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-
-# Copy all project files
-COPY . .
-
-# Only build the admin package
+# Install dependencies in the app directory
 WORKDIR /app/apps/admin
-# Set environment variables for build
-ENV NODE_ENV=production
-ENV SKIP_TYPE_CHECK=true
-ENV NEXT_DISABLE_ESLINT=1
+RUN yarn install
 
-# Use yarn to run the build command
-RUN yarn build
-
-# Stage 4: Production image
-FROM base AS runner
-WORKDIR /app
-
-# Set environment variables
-ENV NODE_ENV=production
-# Make Next.js runtime env vars configurable at container start
-ENV NEXT_PUBLIC_API_URL=""
-
-# Create a non-root user for security
+# Don't run as root in development (but keep current user for volume mounts)
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
-
-# Copy built app
-COPY --from=builder /app/apps/admin/.next/standalone ./
-COPY --from=builder /app/apps/admin/.next/static ./apps/admin/.next/static
-COPY --from=builder /app/apps/admin/public ./apps/admin/public
-
-# Set proper permissions
 RUN chown -R nextjs:nodejs /app
+# USER nextjs  # Commented out for development to match host user
 
-# Switch to the non-root user
+# Expose port
+EXPOSE 3001
+
+# Start development server with hot reload
+CMD ["sh", "-c", "yarn dev"]
+
+FROM base AS builder
+
+RUN apk update
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+RUN yarn global add turbo
+
+COPY . .
+
+RUN turbo prune --scope="@bitsacco/admin" --docker
+
+# Add lockfile and package.json's of isolated subworkspace
+FROM base AS installer
+
+RUN apk update
+RUN apk add --no-cache libc6-compat
+
+WORKDIR /app
+
+# First install the dependencies (as they change less often)
+COPY --from=builder /app/out/json/ .
+RUN yarn install
+
+# Build the project
+COPY --from=builder /app/out/full/ .
+
+# Set environment variables for build
+ENV NODE_ENV=production
+
+RUN yarn turbo build --filter=@bitsacco/admin...
+
+FROM base AS runner
+
+WORKDIR /app
+
+# Don't run production as root
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
 USER nextjs
 
-# Expose the port that Next.js runs on
-EXPOSE 3000
+# Automatically leverage output traces to reduce image size
+# https://nextjs.org/docs/advanced-features/output-file-tracing
+COPY --from=installer --chown=nextjs:nodejs /app/apps/admin/.next/standalone ./
+COPY --from=installer --chown=nextjs:nodejs /app/apps/admin/.next/static ./apps/admin/.next/static
+COPY --from=installer --chown=nextjs:nodejs /app/apps/admin/public ./apps/admin/public
 
-# Set the proper command to run the app
+ENV NODE_ENV=production
+ENV PORT=3001
+
+EXPOSE 3001
+
 CMD ["node", "apps/admin/server.js"]

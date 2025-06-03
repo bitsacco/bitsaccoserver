@@ -8,15 +8,16 @@ module.exports = {
     require.resolve('@vercel/style-guide/eslint/react'),
     require.resolve('@vercel/style-guide/eslint/next'),
   ],
-  parser: "@typescript-eslint/parser",
+  parser: '@typescript-eslint/parser',
   parserOptions: {
-    project: "./tsconfig.json",
+    project: './tsconfig.json',
   },
   settings: {
     'import/resolver': {
       typescript: {
-        project: "./tsconfig.json",
+        project: './tsconfig.json',
       },
+      node: true,
     },
   },
   rules: {
@@ -34,6 +35,7 @@ module.exports = {
     '@typescript-eslint/consistent-type-imports': 'off',
     'no-console': 'off',
     'react-hooks/rules-of-hooks': 'off',
+    'import/no-cycle': 'off',
 
     // Original rules - kept for reference
     '@typescript-eslint/no-empty-interface': [

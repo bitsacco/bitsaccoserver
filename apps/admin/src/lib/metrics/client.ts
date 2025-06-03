@@ -27,7 +27,7 @@ export async function fetchMetrics(
     });
   }
 
-  const url = `/api/metrics?${queryParams.toString()}`;
+  const url = `/metrics?${queryParams.toString()}`;
 
   try {
     const response = await fetchWithAuth(url);

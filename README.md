@@ -1,22 +1,21 @@
-# Bitsacco Open Source
+# Bitsacco Server
 
-[Bitsacco Open Source](https://github.com/bitsacco/opensource) is home to services and components powering the [Bitsacco](https://bitsacco.com) platform.
-
+[Bitsacco Server](https://github.com/minmoto/bitsaccoserver) is an open source model for running Savings and Credit Cooperatives (SACCO) on Bitcoin
 
 ## Contributing
 
-| Read more contribution docs at [contributing.md](https://github.com/bitsacco/opensource/blob/main/docs/contributing.md)
+| Read more contribution docs at [contributing.md](https://github.com/minmoto/bitsaccoserver/blob/main/docs/contributing.md)
 
 ## Resources
 
 Check out a few resources that may come in handy when working services and components in this project:
 
-- Read the architecture documentation at [architecture.md](https://github.com/bitsacco/opensource/blob/main/docs/architecture.md).
+- Read the architecture documentation at [architecture.md](https://github.com/minmoto/bitsaccoserver/blob/main/docs/architecture.md).
 - For questions and support, please visit our [Discord channel](https://discord.gg/r2ZW377ADS).
 
 ## Support
 
-Bitsacco Open Source is MIT-licensed. We grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://bitsacco.com/opensource).
+Bitsacco Server is MIT-licensed. We grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://bitsacco.com/opensource).
 
 ## Stay in touch
 
@@ -26,4 +25,4 @@ Bitsacco Open Source is MIT-licensed. We grow thanks to the sponsors and support
 
 ## License
 
-Bitsacco Open Source is [MIT licensed](https://github.com/bitsacco/opensource/blob/main/LICENSE).
+Bitsacco Server is [MIT licensed](https://github.com/minmoto/bitsaccoserver/blob/main/LICENSE).

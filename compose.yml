@@ -1,62 +1,28 @@
-services:
+services: 
   admin:
     container_name: admin
     build:
       context: .
       dockerfile: ./apps/admin/Dockerfile
       target: development
-    command: sh -c "cd /app/apps/admin && bun run dev"
-    restart: always
-    depends_on:
-      - server
+    restart: unless-stopped
     env_file:
-      - ./apps/admin/.dev.env
+      - ./apps/admin/.env.local
     ports:
-      - '3000:3000'
+      - "3000:3000"
     volumes:
-      - .:/app
-
-  server:
-    container_name: server
-    build:
-      context: .
-      dockerfile: ./apps/server/Dockerfile
-      target: development
-    command: bun dev server
-    restart: always
-    depends_on:
-      - mongodb
-      - redis
-    env_file:
-      - ./apps/server/.dev.env
-    ports:
-      - '4000:4000'
-    volumes:
-      - .:/usr/src/app
-
-  swap:
-    container_name: swap
-    build:
-      context: .
-      dockerfile: ./apps/swap/Dockerfile
-      target: development
-    command: [
-        "sh",
-        "-c",
-        "bun dev swap"
-      ]
-    restart: always
-    depends_on:
-      - clientd
-      - mongodb
-      - redis
-    env_file:
-      - ./apps/swap/.dev.env
-    ports:
-      - '4040:4040'
-      - '4042:4042'
-    volumes:
-      - .:/usr/src/app
+      # Mount source code for hot reload
+      - ./apps/admin:/app/apps/admin
+      - ./packages:/app/packages
+      - ./package.json:/app/package.json
+      - ./yarn.lock:/app/yarn.lock
+      - ./turbo.json:/app/turbo.json
+      # Exclude node_modules to prevent conflicts
+      - /app/node_modules
+      - /app/apps/admin/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
 
   mongodb:
     image: mongo:7.0-jammy
