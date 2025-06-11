@@ -1,22 +1,22 @@
-name: publish-admin
+name: publish-server
 
 on:
   push:
     paths:
       - package.json
       - yarn.lock
-      - apps/admin/**
+      - apps/server/**
       - packages/**
-      - .github/workflows/publish-admin.yml
+      - .github/workflows/publish-server.yml
 
 jobs:
   build:
     uses: ./.github/workflows/docker-build-push.yml
     with:
-      dockerfile_path: ./apps/admin/Dockerfile
+      dockerfile_path: ./apps/server/Dockerfile
       docker_repository: bitsaccoserver-admin
-      image_name: admin
-      readme_path: ./apps/admin/README.md
+      image_name: server
+      readme_path: ./apps/server/README.md
     secrets:
       DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       DOCKER_HUB_PUBLISH_TOKEN: ${{ secrets.DOCKER_HUB_PUBLISH_TOKEN }}

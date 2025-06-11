@@ -40,7 +40,7 @@ RUN yarn global add turbo
 
 COPY . .
 
-RUN turbo prune --scope="@bitsacco/admin" --docker
+RUN turbo prune --scope="@bitsaccoserver/admin" --docker
 
 # Add lockfile and package.json's of isolated subworkspace
 FROM base AS installer
@@ -60,7 +60,7 @@ COPY --from=builder /app/out/full/ .
 # Set environment variables for build
 ENV NODE_ENV=production
 
-RUN yarn turbo build --filter=@bitsacco/admin...
+RUN yarn turbo build --filter=@bitsaccoserver/admin...
 
 FROM base AS runner
 
