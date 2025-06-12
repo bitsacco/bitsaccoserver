@@ -3,6 +3,8 @@ import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
 export enum TransactionType {
   API_REQUEST = 'api_request',
+  SMS = 'sms',
+  AUTH = 'auth',
   BILLING_CHARGE = 'billing_charge',
   BILLING_CREDIT = 'billing_credit',
   LIMIT_EXCEEDED = 'limit_exceeded',

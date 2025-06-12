@@ -74,6 +74,25 @@ export class AuthService {
     );
   }
 
+  // Helper method to ensure Keycloak is configured before making API calls
+  private ensureKeycloakConfigured(methodName: string): void {
+    if (!this.isKeycloakConfigured()) {
+      this.logger.error(`${methodName}: Keycloak is not configured`);
+      throw new HttpException(
+        'Authentication service is not available. Please contact support.',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
+  }
+
+  // Get authentication service status
+  getServiceStatus(): { configured: boolean; provider: string | null } {
+    return {
+      configured: this.isKeycloakConfigured(),
+      provider: this.isKeycloakConfigured() ? 'Keycloak' : null,
+    };
+  }
+
   // Legacy JWT methods for backward compatibility
   async validateUser(email: string, userId: string): Promise<any> {
     // This would typically validate against Keycloak
@@ -552,6 +571,8 @@ export class AuthService {
 
   // Private helper methods
   private async getAdminAccessToken(): Promise<string> {
+    this.ensureKeycloakConfigured('getAdminAccessToken');
+
     try {
       const tokenData = {
         grant_type: 'client_credentials',
@@ -588,6 +609,8 @@ export class AuthService {
     email: string,
     password: string,
   ): Promise<KeycloakTokenResponse> {
+    this.ensureKeycloakConfigured('authenticateWithKeycloak');
+
     const tokenData = {
       grant_type: 'password',
       username: email,

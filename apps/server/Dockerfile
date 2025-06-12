@@ -12,11 +12,18 @@ RUN apk add --no-cache curl
 # Copy workspace root files
 COPY package.json yarn.lock ./
 
+# Copy packages for dependency resolution
+COPY packages/types/package.json ./packages/types/package.json
+
 # Copy bitsacco server package.json for dependency resolution
 COPY apps/server/package.json ./apps/server/package.json
 
 # Install all dependencies (including dev dependencies)
 RUN yarn install
+
+# Copy and build packages
+COPY packages ./packages
+RUN yarn workspace @bitsaccoserver/types build
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
@@ -46,11 +53,18 @@ WORKDIR /workspace
 # Copy workspace root files
 COPY package.json yarn.lock ./
 
+# Copy packages for dependency resolution
+COPY packages/types/package.json ./packages/types/package.json
+
 # Copy bitsacco server package.json for dependency resolution
 COPY apps/server/package.json ./apps/server/package.json
 
 # Install dependencies for the entire workspace
 RUN yarn install --frozen-lockfile
+
+# Copy and build packages
+COPY packages ./packages
+RUN yarn workspace @bitsaccoserver/types build
 
 # Copy bitsacco server source code
 COPY apps/server ./apps/server

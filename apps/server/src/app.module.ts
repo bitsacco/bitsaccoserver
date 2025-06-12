@@ -11,6 +11,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ManagerModule } from './manager/manager.module';
 import { AuthModule } from './auth/auth.module';
+import { SmsModule } from './sms/sms.module';
 
 @Module({
   imports: [
@@ -49,6 +50,12 @@ import { AuthModule } from './auth/auth.module';
         KEYCLOAK_REALM: Joi.string().required(),
         KEYCLOAK_CLIENT_ID: Joi.string().required(),
         KEYCLOAK_CLIENT_SECRET: Joi.string().required(),
+
+        // SMS
+        SMS_AT_API_KEY: Joi.string(),
+        SMS_AT_USERNAME: Joi.string(),
+        SMS_AT_FROM: Joi.string(),
+        SMS_AT_KEYWORD: Joi.string(),
 
         // CORS
         CORS_ORIGIN: Joi.string().default('*'),
@@ -98,6 +105,7 @@ import { AuthModule } from './auth/auth.module';
     // Feature modules
     AuthModule,
     ManagerModule,
+    SmsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -23,6 +23,7 @@
     "dev": "nest start --watch"
   },
   "dependencies": {
+    "@bitsaccoserver/types": "*",
     "@nestjs/axios": "^3.0.1",
     "@nestjs/cache-manager": "^2.3.0",
     "@nestjs/common": "^10.0.0",
@@ -34,6 +35,7 @@
     "@nestjs/platform-express": "^10.0.0",
     "@nestjs/swagger": "^7.1.17",
     "@nestjs/throttler": "^5.0.1",
+    "africastalking": "^0.7.0",
     "axios": "^1.6.2",
     "bcrypt": "^5.1.1",
     "cache-manager": "^5.2.4",
