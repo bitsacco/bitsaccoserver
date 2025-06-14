@@ -12,6 +12,7 @@ import { AppService } from './app.service';
 import { ManagerModule } from './manager/manager.module';
 import { AuthModule } from './auth/auth.module';
 import { SmsModule } from './sms/sms.module';
+import { SharesModule } from './shares/shares.module';
 
 @Module({
   imports: [
@@ -106,6 +107,7 @@ import { SmsModule } from './sms/sms.module';
     AuthModule,
     ManagerModule,
     SmsModule,
+    SharesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

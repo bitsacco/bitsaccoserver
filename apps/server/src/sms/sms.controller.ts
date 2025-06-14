@@ -12,7 +12,7 @@ import { SmsService } from './sms.service';
 @ApiTags('sms')
 @ApiBearerAuth()
 @UseGuards(UnifiedAuthGuard)
-@Controller('organizations')
+@Controller('sms')
 export class SmsController {
   private readonly logger = new Logger(SmsController.name);
 
