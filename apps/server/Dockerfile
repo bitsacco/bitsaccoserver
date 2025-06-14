@@ -88,9 +88,7 @@ RUN adduser -S nestjs -u 1001
 # Copy only the built application and necessary files
 COPY --from=builder --chown=nestjs:nodejs /workspace/apps/server/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /workspace/apps/server/package.json ./package.json
-
-# Install only production dependencies directly in production stage
-RUN npm install --omit=dev
+COPY --from=builder --chown=nestjs:nodejs /workspace/node_modules ./node_modules
 
 # Expose port
 EXPOSE 4000

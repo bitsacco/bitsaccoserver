@@ -1,6 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { JwtService } from '@nestjs/jwt';
+import { getModelToken } from '@nestjs/mongoose';
 import { SmsController } from './sms.controller';
 import { SmsService } from './sms.service';
+import { ApiKeyDocument } from '@/common/schemas/api-key.schema';
+import { OrganizationMember } from '@/common/schemas/organization.schema';
+import { OrganizationServiceDocument } from '@/common/schemas/service.schema';
 
 describe('SmsController', () => {
   let smsController: SmsController;
@@ -15,6 +20,41 @@ describe('SmsController', () => {
           useValue: {
             sendSms: jest.fn(),
             sendBulkSms: jest.fn(),
+          },
+        },
+        {
+          provide: JwtService,
+          useValue: {
+            decode: jest.fn(),
+            sign: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
+        {
+          provide: getModelToken(ApiKeyDocument.name),
+          useValue: {
+            findOne: jest.fn(),
+            find: jest.fn(),
+            create: jest.fn(),
+            findOneAndUpdate: jest.fn(),
+          },
+        },
+        {
+          provide: getModelToken(OrganizationMember.name),
+          useValue: {
+            findOne: jest.fn(),
+            find: jest.fn(),
+            create: jest.fn(),
+            findOneAndUpdate: jest.fn(),
+          },
+        },
+        {
+          provide: getModelToken(OrganizationServiceDocument.name),
+          useValue: {
+            findOne: jest.fn(),
+            find: jest.fn(),
+            create: jest.fn(),
+            findOneAndUpdate: jest.fn(),
           },
         },
       ],
