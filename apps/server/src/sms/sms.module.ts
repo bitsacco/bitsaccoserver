@@ -1,15 +1,15 @@
 import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 
 import { CommonModule, UsageTrackingMiddleware } from '@/common';
-import { ManagerController } from './manager.controller';
-import { OrganizationModule } from './organization.module';
+import { SmsController } from './sms.controller';
+import { SmsService } from './sms.service';
 
 @Module({
-  imports: [CommonModule, OrganizationModule],
-  providers: [],
-  controllers: [ManagerController],
+  imports: [CommonModule],
+  providers: [SmsService],
+  controllers: [SmsController],
 })
-export class ManagerModule implements NestModule {
+export class SmsModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(UsageTrackingMiddleware).forRoutes('*'); // Apply to all routes
   }

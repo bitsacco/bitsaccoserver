@@ -9,7 +9,7 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{js,jsx,mjs,ts,tsx,mdx}\" --cache --ignore-path ../../.gitignore",
-    "test": "jest",
+    "test": "jest --passWithNoTests",
     "clean": "rm -rf .next dist"
   },
   "dependencies": {

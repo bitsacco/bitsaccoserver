@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(ls:*)",
+      "Bash(rm:*)",
+      "Bash(yarn workspace @bitsaccoserver/types:*)",
+      "Bash(yarn turbo build:*)",
+      "Bash(yarn start:*)",
+      "Bash(grep:*)",
+      "Bash(yarn test)",
+      "Bash(find:*)",
+      "Bash(npx tsc:*)"
+    ],
+    "deny": []
+  }
+}

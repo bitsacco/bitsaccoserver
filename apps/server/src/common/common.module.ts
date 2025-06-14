@@ -7,6 +7,8 @@ import { OrganizationService } from './organization.service';
 import { ApiKeyService } from './api-key.service';
 import { UnifiedAuthGuard } from './guards/unified-auth.guard';
 import { RBACGuard } from './guards/rbac.guard';
+import { UsageTrackingMiddleware } from './usage-tracking.middleware';
+import { MetricsService } from './metrics.service';
 import {
   OrganizationDocument,
   OrganizationSchema,
@@ -45,12 +47,21 @@ import {
     }),
   ],
   controllers: [ApiKeyController],
-  providers: [ApiKeyService, OrganizationService, UnifiedAuthGuard, RBACGuard],
+  providers: [
+    ApiKeyService,
+    OrganizationService,
+    UnifiedAuthGuard,
+    RBACGuard,
+    UsageTrackingMiddleware,
+    MetricsService,
+  ],
   exports: [
     ApiKeyService,
     OrganizationService,
     UnifiedAuthGuard,
     RBACGuard,
+    UsageTrackingMiddleware,
+    MetricsService,
     MongooseModule,
     JwtModule,
   ],
