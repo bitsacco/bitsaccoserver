@@ -43,6 +43,22 @@ export interface AuthMetricData {
   userId?: string;
 }
 
+export interface SharesMetricData {
+  userId: string;
+  offerId?: string;
+  quantity: number;
+  success: boolean;
+  duration: number;
+  errorType?: string;
+}
+
+export interface SharesOwnershipMetricData {
+  userId: string;
+  quantity: number;
+  percentageOfTotal: number;
+  limitReached: boolean;
+}
+
 @Injectable()
 export class MetricsService {
   private readonly logger = new Logger(MetricsService.name);
@@ -276,6 +292,165 @@ export class MetricsService {
     } catch (error) {
       this.logger.error('Failed to fetch metrics:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Record shares subscription metrics
+   * Note: Shares are managed globally, not by organizations
+   */
+  async recordSharesSubscriptionMetric(
+    data: SharesMetricData,
+    organizationId?: string,
+    apiKeyId?: string,
+  ): Promise<void> {
+    try {
+      const logData = {
+        organizationId,
+        apiKeyId,
+        serviceId: 'shares',
+        type: TransactionType.API_REQUEST,
+        status: data.success
+          ? TransactionStatus.COMPLETE
+          : TransactionStatus.FAILED,
+        endpoint: '/shares/subscribe',
+        method: 'POST',
+        statusCode: data.success ? 200 : 400,
+        responseTime: data.duration,
+        requestSize: 0,
+        responseSize: 0,
+        timestamp: new Date(),
+        metadata: {
+          userId: data.userId,
+          offerId: data.offerId,
+          quantity: data.quantity,
+          errorType: data.errorType,
+        },
+      };
+
+      await this.transactionLogModel.create(logData);
+      this.logger.debug(
+        `Shares subscription metric recorded for user ${data.userId}`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to record shares subscription metric:', error);
+    }
+  }
+
+  /**
+   * Record shares transfer metrics
+   * Note: Shares are managed globally, not by organizations
+   */
+  async recordSharesTransferMetric(
+    data: SharesMetricData & { fromUserId: string; toUserId: string },
+    organizationId?: string,
+    apiKeyId?: string,
+  ): Promise<void> {
+    try {
+      const logData = {
+        organizationId,
+        apiKeyId,
+        serviceId: 'shares',
+        type: TransactionType.API_REQUEST,
+        status: data.success
+          ? TransactionStatus.COMPLETE
+          : TransactionStatus.FAILED,
+        endpoint: '/shares/transfer',
+        method: 'POST',
+        statusCode: data.success ? 200 : 400,
+        responseTime: data.duration,
+        requestSize: 0,
+        responseSize: 0,
+        timestamp: new Date(),
+        metadata: {
+          fromUserId: data.fromUserId,
+          toUserId: data.toUserId,
+          quantity: data.quantity,
+          errorType: data.errorType,
+        },
+      };
+
+      await this.transactionLogModel.create(logData);
+      this.logger.debug(
+        `Shares transfer metric recorded from ${data.fromUserId} to ${data.toUserId}`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to record shares transfer metric:', error);
+    }
+  }
+
+  /**
+   * Record shares ownership metrics
+   * Note: Shares are managed globally, not by organizations
+   */
+  async recordSharesOwnershipMetric(
+    data: SharesOwnershipMetricData,
+    organizationId?: string,
+    apiKeyId?: string,
+  ): Promise<void> {
+    try {
+      const logData = {
+        organizationId,
+        apiKeyId,
+        serviceId: 'shares',
+        type: TransactionType.API_REQUEST,
+        status: TransactionStatus.COMPLETE,
+        endpoint: '/shares/ownership',
+        method: 'POST',
+        statusCode: 200,
+        responseTime: 0,
+        requestSize: 0,
+        responseSize: 0,
+        timestamp: new Date(),
+        metadata: {
+          userId: data.userId,
+          quantity: data.quantity,
+          percentageOfTotal: data.percentageOfTotal,
+          limitReached: data.limitReached,
+        },
+      };
+
+      await this.transactionLogModel.create(logData);
+      this.logger.debug(
+        `Shares ownership metric recorded for user ${data.userId}: ${data.percentageOfTotal}%`,
+      );
+    } catch (error) {
+      this.logger.error('Failed to record shares ownership metric:', error);
+    }
+  }
+
+  /**
+   * Record generic metric (backwards compatibility)
+   */
+  async recordMetric(
+    metricType: string,
+    data: Record<string, any>,
+    organizationId?: string,
+    apiKeyId?: string,
+  ): Promise<void> {
+    try {
+      const logData = {
+        organizationId,
+        apiKeyId,
+        serviceId: 'generic',
+        type: TransactionType.API_REQUEST,
+        status: data.success
+          ? TransactionStatus.COMPLETE
+          : TransactionStatus.FAILED,
+        endpoint: `/${metricType}`,
+        method: 'POST',
+        statusCode: data.success ? 200 : 500,
+        responseTime: data.duration || 0,
+        requestSize: 0,
+        responseSize: 0,
+        timestamp: new Date(),
+        metadata: data,
+      };
+
+      await this.transactionLogModel.create(logData);
+      this.logger.debug(`Generic metric recorded for ${metricType}`);
+    } catch (error) {
+      this.logger.error('Failed to record generic metric:', error);
     }
   }
 
