@@ -1,11 +1,6 @@
 import { Document } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import {
-  ServiceRole,
-  GroupRole,
-  Permission,
-  PermissionScope,
-} from '../sacco-types';
+import { ServiceRole, GroupRole, Permission, PermissionScope } from '../types';
 
 /**
  * Maker-Checker Workflow Schema

@@ -5,7 +5,7 @@ import {
   TransactionLogDocument,
   TransactionType,
   TransactionStatus,
-} from './schemas';
+} from '../schemas';
 
 export interface SmsMetricData {
   receiver: string;

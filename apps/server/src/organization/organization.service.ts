@@ -4,18 +4,18 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import {
-  CreateOrganizationDto,
-  UpdateOrganizationDto,
-} from './organization.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { GroupRole } from '../common';
 import {
   OrganizationDocument,
   OrganizationMember,
   OrganizationMemberDocument,
-} from './schemas/organization.schema';
-import { UserRole } from './types';
+} from './organization.schema';
+import {
+  CreateOrganizationDto,
+  UpdateOrganizationDto,
+} from './organization.dto';
 
 @Injectable()
 export class OrganizationService {
@@ -61,7 +61,7 @@ export class OrganizationService {
       await this.addMember(
         savedOrg._id.toString(),
         userId,
-        UserRole.ADMIN,
+        GroupRole.SACCO_ADMIN,
         userId,
       );
     } catch (error) {
@@ -140,7 +140,7 @@ export class OrganizationService {
   async addMember(
     organizationId: string,
     userId: string,
-    role: UserRole,
+    role: GroupRole,
     invitedBy: string,
   ): Promise<OrganizationMember> {
     this.logger.debug(
@@ -208,7 +208,7 @@ export class OrganizationService {
   async updateMemberRole(
     organizationId: string,
     userId: string,
-    role: UserRole,
+    role: GroupRole,
   ): Promise<OrganizationMember> {
     const member = await this.organizationMemberModel.findOneAndUpdate(
       { organizationId, userId, isActive: true },

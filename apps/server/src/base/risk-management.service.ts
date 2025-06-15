@@ -3,21 +3,21 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   TransactionLimit,
   TransactionLimitDocument,
   RiskLevel,
-  SACCOAuthenticatedUser,
+  AuthenticatedUser,
   Permission,
   PermissionScope,
   ServiceRole,
   GroupRole,
+  AuditService,
 } from '../common';
 import { ComplianceService } from './compliance.service';
-import { AuditService } from './audit.service';
 
 export interface RiskAssessment {
   riskScore: number; // 0-100
@@ -88,7 +88,7 @@ export class RiskManagementService {
    * Assess transaction risk
    */
   async assessTransactionRisk(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     transactionData: TransactionRisk,
     scope: PermissionScope,
     organizationId?: string,
@@ -190,7 +190,7 @@ export class RiskManagementService {
    * Check transaction limits
    */
   async checkTransactionLimits(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     amount: number,
     currency: string,
     operationType: string,
@@ -289,7 +289,7 @@ export class RiskManagementService {
    * Create transaction limit
    */
   async createTransactionLimit(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     limitData: {
       limitName: string;
       scope: PermissionScope;
@@ -359,7 +359,7 @@ export class RiskManagementService {
    * Update transaction limit
    */
   async updateTransactionLimit(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     limitId: string,
     updateData: Partial<TransactionLimit>,
   ): Promise<TransactionLimitDocument> {
@@ -403,7 +403,7 @@ export class RiskManagementService {
    * Get transaction limits
    */
   async getTransactionLimits(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     scope?: PermissionScope,
     organizationId?: string,
     chamaId?: string,
@@ -876,7 +876,7 @@ export class RiskManagementService {
   }
 
   private async getApplicableLimits(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     scope: PermissionScope,
     organizationId?: string,
     chamaId?: string,
@@ -917,7 +917,7 @@ export class RiskManagementService {
   }
 
   private async checkPeriodicLimits(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     amount: number,
     limit: TransactionLimitDocument,
     _scope: PermissionScope,
@@ -997,7 +997,7 @@ export class RiskManagementService {
   }
 
   private validateLimitCreationPermissions(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     scope: PermissionScope,
   ): boolean {
     if (user.serviceRole === ServiceRole.SYSTEM_ADMIN) return true;
@@ -1011,7 +1011,7 @@ export class RiskManagementService {
   }
 
   private validateLimitUpdatePermissions(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     scope: PermissionScope,
   ): boolean {
     return this.validateLimitCreationPermissions(user, scope);

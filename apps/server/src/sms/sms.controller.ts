@@ -6,12 +6,12 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { Body, Controller, Logger, Post, UseGuards } from '@nestjs/common';
-import { SendBulkSmsDto, SendSmsDto, UnifiedAuthGuard } from '@/common';
+import { SendBulkSmsDto, SendSmsDto, AuthGuard } from '@/common';
 import { SmsService } from './sms.service';
 
 @ApiTags('sms')
 @ApiBearerAuth()
-@UseGuards(UnifiedAuthGuard)
+@UseGuards(AuthGuard)
 @Controller('sms')
 export class SmsController {
   private readonly logger = new Logger(SmsController.name);

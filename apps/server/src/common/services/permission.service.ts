@@ -5,10 +5,10 @@ import {
   Permission,
   PermissionScope,
   GroupMembership,
-  SACCOAuthenticatedUser,
+  AuthenticatedUser,
   ROLE_PERMISSIONS,
   ROLE_HIERARCHY,
-} from '../common';
+} from '..';
 
 /**
  * Service for managing and resolving SACCO permissions
@@ -82,7 +82,7 @@ export class PermissionService {
    * Resolve all effective permissions for a user in a specific context
    */
   resolveUserPermissions(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     scope: PermissionScope,
     organizationId?: string,
     chamaId?: string,
@@ -148,7 +148,7 @@ export class PermissionService {
    * Check if user has specific permission in given scope
    */
   userHasPermission(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     permission: Permission,
     scope: PermissionScope,
     organizationId?: string,
@@ -167,7 +167,7 @@ export class PermissionService {
    * Check if user has all required permissions in given scope
    */
   userHasAllPermissions(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     permissions: Permission[],
     scope: PermissionScope,
     organizationId?: string,
@@ -188,7 +188,7 @@ export class PermissionService {
    * Check if user has any of the required permissions in given scope
    */
   userHasAnyPermission(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     permissions: Permission[],
     scope: PermissionScope,
     organizationId?: string,
@@ -209,7 +209,7 @@ export class PermissionService {
    * Get user's effective role in a specific context
    */
   getUserEffectiveRole(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     scope: PermissionScope,
     organizationId?: string,
     chamaId?: string,

@@ -1,17 +1,17 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import {
   ComplianceEvent,
   ComplianceEventDocument,
   RegulatoryReport,
   RegulatoryReportDocument,
   RiskLevel,
-  SACCOAuthenticatedUser,
+  AuthenticatedUser,
   PermissionScope,
+  AuditService,
 } from '../common';
-import { AuditService } from './audit.service';
 
 export interface ComplianceEventData {
   eventType: string;
@@ -112,7 +112,7 @@ export class ComplianceService {
    * Get compliance events with filtering
    */
   async getComplianceEvents(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     filters: {
       eventType?: string;
       severity?: RiskLevel;
@@ -166,7 +166,7 @@ export class ComplianceService {
    * Update compliance event status
    */
   async updateEventStatus(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     eventId: string,
     update: {
       status: 'open' | 'investigating' | 'resolved' | 'false_positive';
@@ -221,17 +221,14 @@ export class ComplianceService {
     const startDate = this.getStartDate(timeRange);
 
     // Get compliance events for the period
-    const { events } = await this.getComplianceEvents(
-      {} as SACCOAuthenticatedUser,
-      {
-        scope,
-        organizationId,
-        chamaId,
-        startDate,
-        endDate,
-        limit: 10000, // Get all events for metrics
-      },
-    );
+    const { events } = await this.getComplianceEvents({} as AuthenticatedUser, {
+      scope,
+      organizationId,
+      chamaId,
+      startDate,
+      endDate,
+      limit: 10000, // Get all events for metrics
+    });
 
     // Calculate KYC compliance (mock data for demo)
     const kycCompliance = {
@@ -307,7 +304,7 @@ export class ComplianceService {
    * Generate regulatory report
    */
   async generateRegulatoryReport(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     reportType: string,
     regulator: string,
     reportingPeriod: {
@@ -368,7 +365,7 @@ export class ComplianceService {
    * Submit regulatory report
    */
   async submitRegulatoryReport(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     reportId: string,
   ): Promise<RegulatoryReportDocument> {
     const report = await this.regulatoryReportModel.findById(reportId);
@@ -415,7 +412,7 @@ export class ComplianceService {
    * Get regulatory reports
    */
   async getRegulatoryReports(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     filters: {
       reportType?: string;
       regulator?: string;
@@ -482,15 +479,12 @@ export class ComplianceService {
     const recommendations = [];
 
     // Check recent compliance events
-    const { events } = await this.getComplianceEvents(
-      {} as SACCOAuthenticatedUser,
-      {
-        scope,
-        organizationId,
-        chamaId,
-        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
-      },
-    );
+    const { events } = await this.getComplianceEvents({} as AuthenticatedUser, {
+      scope,
+      organizationId,
+      chamaId,
+      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
+    });
 
     const criticalEvents = events.filter(
       (e) => e.severity === RiskLevel.CRITICAL,

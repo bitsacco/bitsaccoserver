@@ -3,19 +3,19 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { InjectModel } from '@nestjs/mongoose';
 import {
+  AuditService,
+  GroupRole,
   SegregationRule,
   SegregationRuleDocument,
-  SACCOAuthenticatedUser,
+  AuthenticatedUser,
+  ServiceRole,
   Permission,
   PermissionScope,
-  ServiceRole,
-  GroupRole,
 } from '../common';
-import { AuditService } from './audit.service';
 
 export interface SoDViolation {
   ruleId: string;
@@ -74,7 +74,7 @@ export class SegregationService {
    * Check if an operation violates segregation of duties
    */
   async checkSegregationViolation(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     operationContext: Omit<OperationContext, 'timestamp'>,
   ): Promise<SoDViolation[]> {
     const context: OperationContext = {
@@ -125,7 +125,7 @@ export class SegregationService {
    * Create a new segregation rule
    */
   async createSegregationRule(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     ruleData: {
       ruleName: string;
       description: string;
@@ -187,7 +187,7 @@ export class SegregationService {
    * Update segregation rule
    */
   async updateSegregationRule(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     ruleId: string,
     updateData: Partial<SegregationRule>,
   ): Promise<SegregationRuleDocument> {
@@ -222,7 +222,7 @@ export class SegregationService {
    * Get all segregation rules
    */
   async getSegregationRules(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     scope?: PermissionScope,
     isActive?: boolean,
   ): Promise<SegregationRuleDocument[]> {
@@ -247,7 +247,7 @@ export class SegregationService {
    * Activate/deactivate segregation rule
    */
   async toggleSegregationRule(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     ruleId: string,
     isActive: boolean,
   ): Promise<SegregationRuleDocument> {
@@ -282,7 +282,7 @@ export class SegregationService {
    * Get segregation violations for a specific time period
    */
   async getViolationReport(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     startDate: Date,
     endDate: Date,
     scope?: PermissionScope,

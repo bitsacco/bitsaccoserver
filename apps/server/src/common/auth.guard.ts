@@ -8,8 +8,8 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import {
-  SACCOAuthenticatedRequest,
-  SACCOAuthenticatedUser,
+  AuthenticatedRequest,
+  AuthenticatedUser,
   Permission,
   PermissionScope,
   ServiceRole,
@@ -17,22 +17,20 @@ import {
   GroupMembership,
   ROLE_PERMISSIONS,
   ROLE_HIERARCHY,
-} from '../sacco-types';
+} from './types';
 
 /**
  * Enhanced SACCO authentication and authorization guard
  * Supports dual-scope permissions: service-level and group-level
  */
 @Injectable()
-export class SACCOAuthGuard implements CanActivate {
+export class AuthGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
-    const request = context
-      .switchToHttp()
-      .getRequest<SACCOAuthenticatedRequest>();
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user;
 
     if (!user) {
@@ -95,8 +93,8 @@ export class SACCOAuthGuard implements CanActivate {
    */
   private enhanceUserContext(
     user: any,
-    request: SACCOAuthenticatedRequest,
-  ): SACCOAuthenticatedUser {
+    request: AuthenticatedRequest,
+  ): AuthenticatedUser {
     // Determine current context from request
     const organizationId =
       request.params?.organizationId ||
@@ -126,6 +124,7 @@ export class SACCOAuthGuard implements CanActivate {
 
     return {
       userId: user.sub || user.userId,
+      sub: user.sub || user.userId,
       email: user.email,
       authMethod: user.authMethod,
       serviceRole: user.serviceRole || ServiceRole.MEMBER,
@@ -135,6 +134,7 @@ export class SACCOAuthGuard implements CanActivate {
       currentScope,
       groupMemberships,
       contextPermissions,
+      permissions: contextPermissions, // Legacy alias
     };
   }
 
@@ -202,7 +202,7 @@ export class SACCOAuthGuard implements CanActivate {
    * Check if user has required role in the specified scope
    */
   private hasRole(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     requiredRole: ServiceRole | GroupRole,
     scope: PermissionScope,
   ): boolean {
@@ -256,7 +256,7 @@ export class SACCOAuthGuard implements CanActivate {
    * Check if user has all required permissions in the specified scope
    */
   private hasPermissions(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     requiredPermissions: Permission[],
     _scope: PermissionScope,
   ): boolean {

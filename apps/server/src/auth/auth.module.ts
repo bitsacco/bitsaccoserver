@@ -10,12 +10,7 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { User, UserSchema } from './user.schema';
-import {
-  ServiceDocument,
-  ServiceSchema,
-  CommonModule,
-  RateLimitInterceptor,
-} from '@/common';
+import { ServiceDocument, ServiceSchema, RateLimitInterceptor } from '@/common';
 
 @Module({
   imports: [
@@ -57,9 +52,6 @@ import {
         logLevels: ['verbose'],
       }),
     }),
-
-    // Common Module (contains OrganizationService)
-    CommonModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, RateLimitInterceptor],

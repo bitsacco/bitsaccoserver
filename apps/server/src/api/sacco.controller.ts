@@ -1,7 +1,6 @@
 import { Controller, Get, Post, Put, Body, Param, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import {
-  ServiceContext,
   CurrentUser,
   OrganizationId,
   ChamaId,
@@ -12,17 +11,16 @@ import {
   CrossScope,
   RequiresApproval,
   FinancialOperation,
-  SACCOAuthenticatedUser,
+  AuthenticatedUser,
   Permission,
   PermissionScope,
-} from '../common';
-import {
+  Context,
+  SaccoService,
+  ServiceContext,
   FinancialService,
-  SharesService,
-  LoanService,
-  ServiceContext as IServiceContext,
-  SACCOOrganizationService,
-} from '.';
+} from '../common';
+import { LoanService } from '../loans';
+import { SharesService } from '../shares';
 
 /**
  * SACCO Controller - Context-aware API endpoints
@@ -30,12 +28,12 @@ import {
  */
 @ApiTags('SACCO Operations')
 @Controller('sacco')
-export class SACCOController {
+export class SaccoController {
   constructor(
+    private saccoService: SaccoService,
     private financialService: FinancialService,
     private sharesService: SharesService,
     private loanService: LoanService,
-    private organizationService: SACCOOrganizationService,
   ) {}
 
   // Financial Operations
@@ -52,8 +50,8 @@ export class SACCOController {
   )
   @ApiOperation({ summary: 'Get balance for current context' })
   async getBalance(
-    @ServiceContext() context: IServiceContext,
-    @CurrentUser() _user: SACCOAuthenticatedUser,
+    @Context() context: ServiceContext,
+    @CurrentUser() _user: AuthenticatedUser,
   ) {
     return await this.financialService.executeOperation(
       'viewBalance',
@@ -68,7 +66,7 @@ export class SACCOController {
   @ApiOperation({ summary: 'Deposit to organization account' })
   @ApiParam({ name: 'organizationId', description: 'Organization ID' })
   async depositToOrganization(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @OrganizationId() organizationId: string,
     @Body()
     depositData: { amount: number; currency: string; description?: string },
@@ -86,7 +84,7 @@ export class SACCOController {
   @ApiOperation({ summary: 'Deposit to chama account' })
   @ApiParam({ name: 'chamaId', description: 'Chama ID' })
   async depositToChama(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @ChamaId() chamaId: string,
     @Body()
     depositData: { amount: number; currency: string; description?: string },
@@ -107,7 +105,7 @@ export class SACCOController {
   @FinancialOperation(50000, 10000)
   @ApiOperation({ summary: 'Withdraw from organization account' })
   async withdrawFromOrganization(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @OrganizationId() organizationId: string,
     @Body() withdrawData: { amount: number; currency: string; reason: string },
   ) {
@@ -127,7 +125,7 @@ export class SACCOController {
   @FinancialOperation(25000, 5000)
   @ApiOperation({ summary: 'Withdraw from chama account' })
   async withdrawFromChama(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @ChamaId() chamaId: string,
     @Body() withdrawData: { amount: number; currency: string; reason: string },
   ) {
@@ -145,7 +143,7 @@ export class SACCOController {
   @RequiresApproval(['treasurer', 'admin'], [Permission.FINANCE_APPROVE])
   @ApiOperation({ summary: 'Transfer funds between accounts' })
   async transferFunds(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @Body()
     transferData: {
       fromAccount: string;
@@ -168,7 +166,7 @@ export class SACCOController {
   @OrganizationScope([Permission.SHARES_READ])
   @ApiOperation({ summary: 'Get organization shares' })
   async getOrganizationShares(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @OrganizationId() _organizationId: string,
   ) {
     return await this.sharesService.executeOperation('viewShares', context, {});
@@ -178,7 +176,7 @@ export class SACCOController {
   @OrganizationScope([Permission.SHARES_TRADE])
   @ApiOperation({ summary: 'Purchase organization shares' })
   async purchaseShares(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @OrganizationId() organizationId: string,
     @Body() purchaseData: { quantity: number; price: number },
   ) {
@@ -194,7 +192,7 @@ export class SACCOController {
   @RequiresApproval(['sacco_admin'], [Permission.SHARES_APPROVE])
   @ApiOperation({ summary: 'Sell organization shares' })
   async sellShares(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @OrganizationId() organizationId: string,
     @Body() sellData: { quantity: number; price: number },
   ) {
@@ -210,7 +208,7 @@ export class SACCOController {
   @RequiresApproval(['sacco_owner', 'sacco_admin'], [Permission.SHARES_APPROVE])
   @ApiOperation({ summary: 'Create shares offering' })
   async createSharesOffer(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @OrganizationId() organizationId: string,
     @Body()
     offerData: {
@@ -240,7 +238,7 @@ export class SACCOController {
   )
   @ApiOperation({ summary: 'Get loans for current context' })
   async getLoans(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @Query('status') status?: string,
     @Query('limit') limit?: number,
   ) {
@@ -258,7 +256,7 @@ export class SACCOController {
   )
   @ApiOperation({ summary: 'Apply for organization loan' })
   async applyForOrganizationLoan(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @OrganizationId() organizationId: string,
     @Body()
     loanData: {
@@ -283,7 +281,7 @@ export class SACCOController {
   )
   @ApiOperation({ summary: 'Apply for chama loan' })
   async applyForChamaLoan(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @ChamaId() chamaId: string,
     @Body()
     loanData: {
@@ -305,7 +303,7 @@ export class SACCOController {
   @RequiresApproval(['chama_leader', 'sacco_admin'], [Permission.LOAN_APPROVE])
   @ApiOperation({ summary: 'Apply for personal loan' })
   async applyForPersonalLoan(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @Body()
     loanData: {
       amount: number;
@@ -330,7 +328,7 @@ export class SACCOController {
   @ApiOperation({ summary: 'Approve loan application' })
   @ApiParam({ name: 'loanId', description: 'Loan ID' })
   async approveLoan(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @Param('loanId') loanId: string,
     @Body()
     approvalData: {
@@ -350,7 +348,7 @@ export class SACCOController {
   @OrganizationScope([Permission.LOAN_DISBURSE])
   @ApiOperation({ summary: 'Disburse approved loan' })
   async disburseLoan(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @Param('loanId') loanId: string,
     @Body()
     disbursementData: {
@@ -375,7 +373,7 @@ export class SACCOController {
   )
   @ApiOperation({ summary: 'Repay loan installment' })
   async repayLoan(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @Param('loanId') loanId: string,
     @Body()
     repaymentData: {
@@ -395,7 +393,7 @@ export class SACCOController {
   @OrganizationScope([Permission.ORG_READ])
   @ApiOperation({ summary: 'Get organization details' })
   async getOrganization(@OrganizationId() organizationId: string) {
-    return await this.organizationService.getSACCO(organizationId);
+    return await this.saccoService.getSacco(organizationId);
   }
 
   @Get('organization/:organizationId/structure')
@@ -404,23 +402,21 @@ export class SACCOController {
     summary: 'Get organization structure with chamas and members',
   })
   async getOrganizationStructure(@OrganizationId() organizationId: string) {
-    return await this.organizationService.getOrganizationStructure(
-      organizationId,
-    );
+    return await this.saccoService.getOrganizationStructure(organizationId);
   }
 
   @Get('chama/:chamaId')
   @ChamaScope([Permission.CHAMA_READ])
   @ApiOperation({ summary: 'Get chama details' })
   async getChama(@ChamaId() chamaId: string) {
-    return await this.organizationService.getChama(chamaId);
+    return await this.saccoService.getChama(chamaId);
   }
 
   @Post('organization/:organizationId/chamas')
   @OrganizationScope([Permission.CHAMA_CREATE])
   @ApiOperation({ summary: 'Create new chama under organization' })
   async createChama(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @OrganizationId() organizationId: string,
     @Body()
     chamaData: {
@@ -430,7 +426,7 @@ export class SACCOController {
       governance?: any;
     },
   ) {
-    return await this.organizationService.createChama({
+    return await this.saccoService.createChama({
       ...chamaData,
       parentSACCOId: organizationId,
       chamaType: 'sacco_affiliated',
@@ -441,7 +437,7 @@ export class SACCOController {
   @OrganizationScope([Permission.USER_INVITE])
   @ApiOperation({ summary: 'Add member to organization' })
   async addOrganizationMember(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @OrganizationId() organizationId: string,
     @Body()
     memberData: {
@@ -450,7 +446,7 @@ export class SACCOController {
       customPermissions?: string[];
     },
   ) {
-    return await this.organizationService.addOrganizationMember(
+    return await this.saccoService.addOrganizationMember(
       organizationId,
       memberData.userId,
       memberData.role as any,
@@ -463,7 +459,7 @@ export class SACCOController {
   @ChamaScope([Permission.CHAMA_INVITE])
   @ApiOperation({ summary: 'Add member to chama' })
   async addChamaMember(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @ChamaId() chamaId: string,
     @Body()
     memberData: {
@@ -472,7 +468,7 @@ export class SACCOController {
       customPermissions?: string[];
     },
   ) {
-    return await this.organizationService.addChamaMember(
+    return await this.saccoService.addChamaMember(
       chamaId,
       memberData.userId,
       memberData.role as any,
@@ -487,7 +483,7 @@ export class SACCOController {
   @OrganizationScope([Permission.REPORTS_READ])
   @ApiOperation({ summary: 'Get organization financial report' })
   async getOrganizationFinancialReport(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @OrganizationId() organizationId: string,
     @Query('period') period: string = 'monthly',
     @Query('format') format: string = 'json',
@@ -503,7 +499,7 @@ export class SACCOController {
   @ChamaScope([Permission.REPORTS_READ])
   @ApiOperation({ summary: 'Get chama contribution report' })
   async getChamaContributionReport(
-    @ServiceContext() context: IServiceContext,
+    @Context() context: ServiceContext,
     @ChamaId() chamaId: string,
     @Query('period') period: string = 'monthly',
   ) {

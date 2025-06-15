@@ -6,7 +6,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { UserRole } from './types';
+import { GroupRole } from '@/common';
 
 export class CreateOrganizationDto {
   @ApiProperty({ description: 'Organization name' })
@@ -48,9 +48,9 @@ export class AddMemberDto {
 
   @ApiProperty({
     description: 'Role to assign to the user',
-    enum: UserRole,
-    example: UserRole.DEVELOPER,
+    enum: GroupRole,
+    example: GroupRole.SACCO_ADMIN,
   })
-  @IsEnum(UserRole)
-  role: UserRole;
+  @IsEnum(GroupRole)
+  role: GroupRole;
 }

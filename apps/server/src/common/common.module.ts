@@ -1,19 +1,11 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
+import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ApiKeyController } from './api-key.controller';
-import { OrganizationService } from './organization.service';
-import { ApiKeyService } from './api-key.service';
-import { UnifiedAuthGuard } from './guards/unified-auth.guard';
-import { RBACGuard } from './guards/rbac.guard';
+
 import { UsageTrackingMiddleware } from './usage-tracking.middleware';
-import { MetricsService } from './metrics.service';
+import { ApiKeyService, MetricsService } from './services';
 import {
-  OrganizationDocument,
-  OrganizationSchema,
-  OrganizationMember,
-  OrganizationMemberSchema,
   TransactionLogDocument,
   TransactionLogSchema,
   ApiKeyDocument,
@@ -25,8 +17,6 @@ import {
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: OrganizationDocument.name, schema: OrganizationSchema },
-      { name: OrganizationMember.name, schema: OrganizationMemberSchema },
       { name: TransactionLogDocument.name, schema: TransactionLogSchema },
       { name: ApiKeyDocument.name, schema: ApiKeySchema },
       {
@@ -46,20 +36,10 @@ import {
       }),
     }),
   ],
-  controllers: [ApiKeyController],
-  providers: [
-    ApiKeyService,
-    OrganizationService,
-    UnifiedAuthGuard,
-    RBACGuard,
-    UsageTrackingMiddleware,
-    MetricsService,
-  ],
+  controllers: [],
+  providers: [ApiKeyService, UsageTrackingMiddleware, MetricsService],
   exports: [
     ApiKeyService,
-    OrganizationService,
-    UnifiedAuthGuard,
-    RBACGuard,
     UsageTrackingMiddleware,
     MetricsService,
     MongooseModule,

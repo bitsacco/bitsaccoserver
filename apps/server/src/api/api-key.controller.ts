@@ -5,15 +5,15 @@ import {
   ApiResponse,
   ApiSecurity,
 } from '@nestjs/swagger';
-import { AuthenticatedRequest } from './types';
-import { UnifiedAuthGuard } from './guards/unified-auth.guard';
+import { AuthenticatedRequest, AuthGuard } from '../common';
+
 @ApiTags('auth')
 @Controller('auth')
 export class ApiKeyController {
   constructor() {}
 
   @Post('validate')
-  @UseGuards(UnifiedAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiSecurity('api-key')
   @ApiOperation({ summary: 'Validate API key' })
   @ApiResponse({ status: 200, description: 'API key is valid' })

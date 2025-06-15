@@ -1,4 +1,3 @@
-import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNotEmpty,
   IsNumber,
@@ -7,6 +6,7 @@ import {
   IsDateString,
   Min,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { SharesTxStatus } from '../schemas';
 
 export class OfferSharesDto {
@@ -34,7 +34,7 @@ export class OfferSharesDto {
   availableTo?: string;
 }
 
-export class SubscribeSharesDto {
+export class BuySharesDto {
   @ApiProperty({
     description: 'User ID subscribing to shares',
     example: 'user123',

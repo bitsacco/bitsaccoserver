@@ -4,8 +4,6 @@ import { JwtService } from '@nestjs/jwt';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { UserRole } from '@/common';
-import { OrganizationService } from '@/common';
 import { LoginDto, RegisterDto } from './auth.dto';
 
 export interface KeycloakTokenResponse {
@@ -38,7 +36,6 @@ export class AuthService {
     private jwtService: JwtService,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
-    private readonly organizationService: OrganizationService,
   ) {
     this.keycloakBaseUrl = this.configService.get<string>(
       'KEYCLOAK_AUTH_SERVER_URL',
@@ -185,34 +182,10 @@ export class AuthService {
       // Send email verification
       await this.sendEmailVerification(userId, adminToken);
 
-      let organizationId: string | null = null;
-
-      // Create organization if requested
-      if (registerDto.createOrganization && registerDto.organizationName) {
-        try {
-          const organization = await this.organizationService.create(
-            {
-              name: registerDto.organizationName,
-              description: `${registerDto.firstName}'s organization`,
-              country: registerDto.country || 'KE',
-            },
-            userId,
-            registerDto.email,
-          );
-          organizationId = (organization as any)._id.toString();
-        } catch (orgError) {
-          this.logger.warn(
-            `Failed to create organization for user ${userId}: ${orgError.message}`,
-          );
-          // Don't fail registration if organization creation fails
-        }
-      }
-
       return {
         message:
           'User registered successfully. Please check your email for verification.',
         userId,
-        organizationId,
       };
     } catch (error) {
       this.logger.error(`Registration failed: ${error.message}`, error.stack);
@@ -267,13 +240,6 @@ export class AuthService {
       );
       this.logger.debug(`User info extracted: ${userInfo.email}`);
 
-      // Get user organizations
-      this.logger.debug(`Getting organizations for user: ${userInfo.sub}`);
-      const organizations = await this.getUserOrganizations(userInfo.sub);
-      this.logger.debug(
-        `Organizations retrieved: ${organizations.length} found`,
-      );
-
       return {
         access_token: tokenResponse.access_token,
         refresh_token: tokenResponse.refresh_token,
@@ -286,7 +252,6 @@ export class AuthService {
           lastName: userInfo.family_name,
           emailVerified: userInfo.email_verified,
         },
-        organizations,
       };
     } catch (error) {
       this.logger.error(`Login failed: ${error.message}`, error.stack);
@@ -550,7 +515,6 @@ export class AuthService {
       );
 
       const user = userResponse.data;
-      const organizations = await this.getUserOrganizations(userId);
 
       return {
         id: user.id,
@@ -558,7 +522,6 @@ export class AuthService {
         firstName: user.firstName,
         lastName: user.lastName,
         emailVerified: user.emailVerified,
-        organizations,
       };
     } catch (error) {
       this.logger.error(`Get user info failed: ${error.message}`, error.stack);
@@ -702,21 +665,6 @@ export class AuthService {
         `Failed to extract user info from token: ${error.message}`,
       );
       throw new HttpException('Invalid access token', HttpStatus.UNAUTHORIZED);
-    }
-  }
-
-  private async getUserOrganizations(userId: string) {
-    try {
-      const organizations = await this.organizationService.findAll(userId);
-      return organizations.map((org) => ({
-        id: (org as any)._id,
-        name: org.name,
-        country: org.country,
-        role: org.ownerId === userId ? UserRole.ADMIN : UserRole.DEVELOPER, // Simplified role mapping
-      }));
-    } catch (error) {
-      this.logger.warn(`Failed to get user organizations: ${error.message}`);
-      return [];
     }
   }
 

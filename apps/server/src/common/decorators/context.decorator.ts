@@ -5,25 +5,21 @@ import {
   applyDecorators,
   UseGuards,
 } from '@nestjs/common';
+import { AuthGuard, RequirePermissions, RequireScope } from '../auth.guard';
 import {
-  SACCOAuthGuard,
-  RequirePermissions,
-  RequireScope,
-} from '../guards/sacco-auth.guard';
-import {
-  SACCOAuthenticatedRequest,
-  SACCOAuthenticatedUser,
+  AuthenticatedRequest,
+  AuthenticatedUser,
   Permission,
   PermissionScope,
-} from '../sacco-types';
+} from '../types';
 
 /**
  * Decorator to extract service context from request
  * Automatically resolves scope and permissions based on request parameters
  */
-export const ServiceContext = createParamDecorator(
+export const Context = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
-    const request = ctx.switchToHttp().getRequest<SACCOAuthenticatedRequest>();
+    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
     const user = request.user;
 
     if (!user) {
@@ -60,8 +56,8 @@ export const ServiceContext = createParamDecorator(
  * Decorator to extract current user from request
  */
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): SACCOAuthenticatedUser => {
-    const request = ctx.switchToHttp().getRequest<SACCOAuthenticatedRequest>();
+  (data: unknown, ctx: ExecutionContext): AuthenticatedUser => {
+    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
     return request.user;
   },
 );
@@ -71,7 +67,7 @@ export const CurrentUser = createParamDecorator(
  */
 export const OrganizationId = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): string | undefined => {
-    const request = ctx.switchToHttp().getRequest<SACCOAuthenticatedRequest>();
+    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
     return (
       request.params?.organizationId ||
       (request.query?.organizationId as string)
@@ -84,7 +80,7 @@ export const OrganizationId = createParamDecorator(
  */
 export const ChamaId = createParamDecorator(
   (data: unknown, ctx: ExecutionContext): string | undefined => {
-    const request = ctx.switchToHttp().getRequest<SACCOAuthenticatedRequest>();
+    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
     return request.params?.chamaId || (request.query?.chamaId as string);
   },
 );
@@ -98,7 +94,7 @@ export function ContextAwareEndpoint(
   scope: PermissionScope = PermissionScope.GLOBAL,
 ) {
   return applyDecorators(
-    UseGuards(SACCOAuthGuard),
+    UseGuards(AuthGuard),
     RequirePermissions(...permissions),
     RequireScope(scope),
     SetMetadata('contextAware', true),
@@ -147,7 +143,7 @@ export function MultiScope(
     descriptor?: PropertyDescriptor,
   ) => {
     // Apply basic auth and permissions
-    UseGuards(SACCOAuthGuard)(target, propertyKey, descriptor);
+    UseGuards(AuthGuard)(target, propertyKey, descriptor);
     RequirePermissions(...permissions)(target, propertyKey, descriptor);
 
     // Set metadata for allowed scopes
@@ -171,7 +167,7 @@ export function CrossScope(
   permissions: Permission[] = [],
 ) {
   return applyDecorators(
-    UseGuards(SACCOAuthGuard),
+    UseGuards(AuthGuard),
     RequirePermissions(...permissions),
     SetMetadata('crossScope', true),
     SetMetadata('sourceScope', sourceScope),

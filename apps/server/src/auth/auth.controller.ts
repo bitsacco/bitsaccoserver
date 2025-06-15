@@ -30,7 +30,7 @@ import {
   ResetPasswordDto,
   ChangePasswordDto,
 } from './auth.dto';
-import { AuthenticatedRequest, UnifiedAuthGuard } from '@/common';
+import { AuthenticatedRequest, AuthGuard } from '@/common';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -53,7 +53,6 @@ export class AuthController {
       properties: {
         message: { type: 'string' },
         userId: { type: 'string' },
-        organizationId: { type: 'string', nullable: true },
       },
     },
   })
@@ -133,10 +132,6 @@ export class AuthController {
             lastName: { type: 'string' },
             emailVerified: { type: 'boolean' },
           },
-        },
-        organizations: {
-          type: 'array',
-          description: 'Organizations the user belongs to',
         },
       },
     },
@@ -372,7 +367,7 @@ export class AuthController {
   }
 
   @Get('user-info')
-  @UseGuards(UnifiedAuthGuard)
+  @UseGuards(AuthGuard)
   @ApiSecurity('bearer')
   @ApiOperation({
     summary: 'Get user information',
@@ -389,7 +384,6 @@ export class AuthController {
         firstName: { type: 'string' },
         lastName: { type: 'string' },
         emailVerified: { type: 'boolean' },
-        organizations: { type: 'array' },
       },
     },
   })

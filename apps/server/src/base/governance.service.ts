@@ -7,7 +7,7 @@ import {
   ServiceRole,
   Permission,
   PermissionScope,
-  SACCOAuthenticatedUser,
+  AuthenticatedUser,
 } from '../common';
 
 /**
@@ -108,7 +108,7 @@ export class GovernanceService {
    * Get system configuration (SYSTEM-ADMIN only)
    */
   async getSystemConfiguration(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     category?: string,
   ): Promise<SystemConfiguration[]> {
     this.validateSystemAdminAccess(user);
@@ -123,7 +123,7 @@ export class GovernanceService {
    * Update system configuration (SYSTEM-ADMIN only)
    */
   async updateSystemConfiguration(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     key: string,
     value: any,
     description?: string,
@@ -156,7 +156,7 @@ export class GovernanceService {
    * Create new system configuration (SYSTEM-ADMIN only)
    */
   async createSystemConfiguration(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     config: Omit<
       SystemConfiguration,
       'id' | 'lastModifiedBy' | 'lastModifiedAt' | 'version'
@@ -182,7 +182,7 @@ export class GovernanceService {
    * Register service integration (SYSTEM-ADMIN only)
    */
   async registerServiceIntegration(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     integration: Omit<
       ServiceIntegration,
       | 'id'
@@ -217,7 +217,7 @@ export class GovernanceService {
    * Get service integrations
    */
   async getServiceIntegrations(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     serviceType?: string,
   ): Promise<ServiceIntegration[]> {
     // ADMIN users can view service integrations
@@ -251,7 +251,7 @@ export class GovernanceService {
    * Update service integration status
    */
   async updateServiceIntegrationStatus(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     serviceName: string,
     isEnabled: boolean,
   ): Promise<ServiceIntegration> {
@@ -277,7 +277,7 @@ export class GovernanceService {
    * Configure telemetry settings (SYSTEM-ADMIN only)
    */
   async configureTelemetry(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     level: TelemetryConfig['level'],
     config: Omit<TelemetryConfig, 'id' | 'level'>,
   ): Promise<TelemetryConfig> {
@@ -301,7 +301,7 @@ export class GovernanceService {
    * Get telemetry configuration
    */
   async getTelemetryConfiguration(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     level?: TelemetryConfig['level'],
   ): Promise<TelemetryConfig[]> {
     // ADMIN users can view telemetry configuration
@@ -323,7 +323,7 @@ export class GovernanceService {
   /**
    * Get system health status
    */
-  async getSystemHealth(user: SACCOAuthenticatedUser): Promise<{
+  async getSystemHealth(user: AuthenticatedUser): Promise<{
     overall: 'healthy' | 'degraded' | 'down';
     server: any;
     services: any[];
@@ -361,7 +361,7 @@ export class GovernanceService {
    * Get organization-level metrics (scope-aware)
    */
   async getOrganizationMetrics(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     organizationId: string,
     timeRange: '1h' | '24h' | '7d' | '30d' = '24h',
   ): Promise<{
@@ -408,7 +408,7 @@ export class GovernanceService {
    * Get chama-level metrics (scope-aware)
    */
   async getChamaMetrics(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     chamaId: string,
     timeRange: '1h' | '24h' | '7d' | '30d' = '24h',
   ): Promise<{
@@ -445,7 +445,7 @@ export class GovernanceService {
    * Configure alerts (SYSTEM-ADMIN only)
    */
   async configureAlerts(
-    user: SACCOAuthenticatedUser,
+    user: AuthenticatedUser,
     _alertConfig: {
       type: 'system' | 'service' | 'organization' | 'chama';
       conditions: Array<{
@@ -472,7 +472,7 @@ export class GovernanceService {
 
   // Private Methods
 
-  private validateSystemAdminAccess(user: SACCOAuthenticatedUser): void {
+  private validateSystemAdminAccess(user: AuthenticatedUser): void {
     if (user.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
       throw new ForbiddenException('SYSTEM_ADMIN role required');
     }

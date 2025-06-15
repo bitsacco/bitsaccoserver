@@ -4,25 +4,32 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import {
-  SharesDocument,
-  SharesOfferDocument,
-  SharesTxStatus,
-} from '@/common/schemas';
+import { InjectModel } from '@nestjs/mongoose';
 import {
   OfferSharesDto,
-  SubscribeSharesDto,
+  BuySharesDto,
   TransferSharesDto,
   UpdateSharesDto,
   UserSharesDto,
   FindSharesTxDto,
   MetricsService,
-} from '@/common';
+  ContextAwareService,
+  SharesDocument,
+  SharesOfferDocument,
+  SharesTxStatus,
+  PermissionService,
+  SaccoService,
+  Permission,
+  PermissionScope,
+  ServiceOperation,
+  ServiceContext,
+  PaginationDto,
+  AuthenticatedUser,
+} from '../common';
 
 @Injectable()
-export class SharesService {
+export class SharesService extends ContextAwareService {
   private readonly logger = new Logger(SharesService.name);
   private readonly DEFAULT_PAGE = 1;
   private readonly DEFAULT_PAGE_SIZE = 10;
@@ -33,11 +40,162 @@ export class SharesService {
     @InjectModel(SharesOfferDocument.name)
     private readonly sharesOfferModel: Model<SharesOfferDocument>,
     private readonly metricsService: MetricsService,
+    protected permissionService: PermissionService,
+    protected saccoService: SaccoService,
   ) {
+    super(permissionService, saccoService);
     this.logger.log('SharesService created');
   }
 
-  async offerShares({ quantity, availableFrom, availableTo }: OfferSharesDto) {
+  getServiceOperations(): Record<string, ServiceOperation> {
+    return {
+      purchaseShares: {
+        name: 'purchaseShares',
+        requiredPermissions: [Permission.SHARES_TRADE],
+        allowedScopes: [PermissionScope.ORGANIZATION, PermissionScope.PERSONAL],
+        rateLimits: {
+          maxOperationsPerDay: 3,
+        },
+      },
+      sellShares: {
+        name: 'sellShares',
+        requiredPermissions: [Permission.SHARES_TRADE],
+        allowedScopes: [PermissionScope.ORGANIZATION, PermissionScope.PERSONAL],
+        requiresApproval: true,
+        rateLimits: {
+          maxOperationsPerDay: 2,
+        },
+      },
+      viewShares: {
+        name: 'viewShares',
+        requiredPermissions: [Permission.SHARES_READ],
+        allowedScopes: [
+          PermissionScope.GLOBAL,
+          PermissionScope.ORGANIZATION,
+          PermissionScope.PERSONAL,
+        ],
+      },
+      createOffer: {
+        name: 'createOffer',
+        requiredPermissions: [Permission.SHARES_CREATE],
+        allowedScopes: [PermissionScope.ORGANIZATION],
+        requiresApproval: true,
+      },
+    };
+  }
+
+  protected async performOperation<T>(
+    operationName: string,
+    context: ServiceContext,
+    operationData: any,
+  ): Promise<T> {
+    switch (operationName) {
+      case 'createOffer':
+        return this.createOffer(context, operationData) as Promise<T>;
+      case 'viewOffers':
+        return this.viewOffers(context) as Promise<T>;
+      case 'buyShares':
+        return this.buyShares(context, operationData) as Promise<T>;
+      case 'transferShares':
+        return this.transferSharesInternal(
+          context,
+          operationData,
+        ) as Promise<T>;
+      case 'updateShares':
+        return this.updateSharesInternal(context, operationData) as Promise<T>;
+      case 'viewShares':
+        return this.viewShares(context, operationData) as Promise<T>;
+      case 'viewAllShares':
+        return this.viewAllShares(context, operationData) as Promise<T>;
+      default:
+        throw new BadRequestException(
+          `Unsupported shares operation: ${operationName}`,
+        );
+    }
+  }
+
+  // Helper method to create mock context (should be replaced with real auth context)
+  private createMockContext(): ServiceContext {
+    const mockUser: AuthenticatedUser = {
+      userId: 'current-user',
+      sub: 'current-user',
+      email: 'user@example.com',
+      authMethod: 'jwt',
+      serviceRole: 'MEMBER' as any,
+      servicePermissions: [],
+      currentOrganizationId: 'current-org',
+      currentScope: PermissionScope.ORGANIZATION,
+      groupMemberships: [],
+      contextPermissions: [],
+      permissions: [],
+    };
+
+    return {
+      userId: 'current-user',
+      organizationId: 'current-org',
+      chamaId: undefined,
+      scope: PermissionScope.ORGANIZATION,
+      permissions: [],
+      user: mockUser,
+    };
+  }
+
+  // Public API methods for controller
+  async offerShares(offerData: OfferSharesDto) {
+    return this.performOperation(
+      'createOffer',
+      this.createMockContext(),
+      offerData,
+    );
+  }
+
+  async getSharesOffers() {
+    return this.performOperation('viewOffers', this.createMockContext(), {});
+  }
+
+  async subscribeShares(buyData: BuySharesDto) {
+    return this.performOperation(
+      'buyShares',
+      this.createMockContext(),
+      buyData,
+    );
+  }
+
+  async transferShares(transferData: TransferSharesDto) {
+    return this.performOperation(
+      'transferShares',
+      this.createMockContext(),
+      transferData,
+    );
+  }
+
+  async updateShares(updateData: UpdateSharesDto) {
+    return this.performOperation(
+      'updateShares',
+      this.createMockContext(),
+      updateData,
+    );
+  }
+
+  async userSharesTransactions(userData: UserSharesDto) {
+    return this.performOperation(
+      'viewShares',
+      this.createMockContext(),
+      userData,
+    );
+  }
+
+  async allSharesTransactions() {
+    return this.performOperation('viewAllShares', this.createMockContext(), {});
+  }
+
+  // Note: Making this private method accessible
+  // The private method expects different signature, so we create a new public interface
+
+  private async createOffer(
+    context: ServiceContext,
+    { quantity, availableFrom, availableTo }: OfferSharesDto,
+  ) {
     const startTime = Date.now();
     let success = false;
     let errorType: string | undefined;
@@ -60,7 +218,7 @@ export class SharesService {
       success = true;
 
       this.logger.log(`Created share offer with quantity ${quantity}`);
-      return this.getSharesOffers();
+      return this.viewOffers(context);
     } catch (error) {
       errorType = error.message || 'Unknown error';
       this.logger.error(`Error offering shares: ${errorType}`, error.stack);
@@ -75,7 +233,7 @@ export class SharesService {
     }
   }
 
-  async getSharesOffers() {
+  private async viewOffers(context: ServiceContext) {
     try {
       const offers = await this.sharesOfferModel
         .find({})
@@ -115,8 +273,11 @@ export class SharesService {
     }
   }
 
-  async subscribeShares({ userId, offerId, quantity }: SubscribeSharesDto) {
-    this.logger.debug(`Subscribing ${quantity} shares for user ${userId}`);
+  private async buyShares(
+    context: ServiceContext,
+    { userId, offerId, quantity }: BuySharesDto,
+  ) {
+    this.logger.debug(`Buying ${quantity} shares for user ${userId}`);
     const startTime = Date.now();
     let success = false;
     let errorType = '';
@@ -136,11 +297,11 @@ export class SharesService {
         );
       }
 
-      const allOffers = await this.getSharesOffers();
+      const allOffers = await this.viewOffers(context);
       const totalSharesAvailable = allOffers.totalOfferQuantity;
       const maxSharesPerUser = Math.floor(totalSharesAvailable * 0.2);
 
-      const userShares = await this.userSharesTransactions({
+      const userShares = await this.viewShares(context, {
         userId,
         pagination: { page: this.DEFAULT_PAGE, size: this.DEFAULT_PAGE_SIZE },
       });
@@ -175,7 +336,7 @@ export class SharesService {
       await sharesTx.save();
       success = true;
 
-      const result = await this.userSharesTransactions({
+      const result = await this.viewShares(context, {
         userId,
         pagination: { page: this.DEFAULT_PAGE, size: this.DEFAULT_PAGE_SIZE },
       });
@@ -198,13 +359,10 @@ export class SharesService {
     }
   }
 
-  async transferShares({
-    sharesId,
-    fromUserId,
-    toUserId,
-    quantity,
-    reason,
-  }: TransferSharesDto) {
+  private async transferSharesInternal(
+    context: ServiceContext,
+    { sharesId, fromUserId, toUserId, quantity, reason }: TransferSharesDto,
+  ) {
     const startTime = Date.now();
     let success = false;
     let errorType = '';
@@ -226,11 +384,11 @@ export class SharesService {
         throw new BadRequestException('Not enough shares to transfer');
       }
 
-      const allOffers = await this.getSharesOffers();
+      const allOffers = await this.viewOffers(context);
       const totalSharesAvailable = allOffers.totalOfferQuantity;
       const maxSharesPerUser = Math.floor(totalSharesAvailable * 0.2);
 
-      const recipientShares = await this.userSharesTransactions({
+      const recipientShares = await this.viewShares(context, {
         userId: toUserId,
         pagination: { page: this.DEFAULT_PAGE, size: this.DEFAULT_PAGE_SIZE },
       });
@@ -266,7 +424,7 @@ export class SharesService {
       await newShares.save();
       success = true;
 
-      const result = await this.userSharesTransactions({
+      const result = await this.viewShares(context, {
         userId: fromUserId,
         pagination: { page: this.DEFAULT_PAGE, size: this.DEFAULT_PAGE_SIZE },
       });
@@ -290,7 +448,10 @@ export class SharesService {
     }
   }
 
-  async updateShares({ sharesId, updates }: UpdateSharesDto) {
+  private async updateSharesInternal(
+    context: ServiceContext,
+    { sharesId, updates }: UpdateSharesDto,
+  ) {
     try {
       const originShares = await this.sharesModel.findById(sharesId).exec();
       if (!originShares) {
@@ -333,7 +494,7 @@ export class SharesService {
         }
       }
 
-      return this.userSharesTransactions({
+      return this.viewShares(context, {
         userId: updatedShares.userId,
         pagination: { page: this.DEFAULT_PAGE, size: this.DEFAULT_PAGE_SIZE },
       });
@@ -343,7 +504,10 @@ export class SharesService {
     }
   }
 
-  async userSharesTransactions({ userId, pagination }: UserSharesDto) {
+  private async viewShares(
+    context: ServiceContext,
+    { userId, pagination }: UserSharesDto,
+  ) {
     try {
       const paginationParams = pagination || {
         page: this.DEFAULT_PAGE,
@@ -370,7 +534,7 @@ export class SharesService {
         { userId },
         paginationParams,
       );
-      const offers = await this.getSharesOffers();
+      const offers = await this.viewOffers(context);
 
       return {
         userId,
@@ -384,14 +548,17 @@ export class SharesService {
     }
   }
 
-  async allSharesTransactions() {
+  private async viewAllShares(
+    context: ServiceContext,
+    { page, size }: PaginationDto,
+  ) {
     try {
       const shares = await this.getPaginatedShareTx(null, {
         page: this.DEFAULT_PAGE,
         size: this.DEFAULT_PAGE_SIZE,
       });
 
-      const offers = await this.getSharesOffers();
+      const offers = await this.viewOffers(context);
 
       return {
         shares,
@@ -489,7 +656,14 @@ export class SharesService {
           break;
       }
 
-      await this.updateShares({
+      const context: ServiceContext = {
+        userId: '',
+        scope: PermissionScope.GLOBAL,
+        permissions: [],
+        user: {} as AuthenticatedUser,
+      };
+
+      await this.updateSharesInternal(context, {
         sharesId: sharesTransactionId,
         updates: { status: sharesStatus },
       });
@@ -518,10 +692,10 @@ export class SharesService {
 
             success = true;
 
-            const allOffers = await this.getSharesOffers();
+            const allOffers = await this.viewOffers(context);
             const totalSharesAvailable = allOffers.totalOfferQuantity;
 
-            const userShares = await this.userSharesTransactions({
+            const userShares = await this.viewShares(context, {
               userId: sharesTx.userId,
               pagination: {
                 page: this.DEFAULT_PAGE,

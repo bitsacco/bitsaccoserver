@@ -20,17 +20,17 @@ import {
 } from '@nestjs/common';
 import {
   OfferSharesDto,
-  SubscribeSharesDto,
+  BuySharesDto,
   TransferSharesDto,
   UpdateSharesDto,
   PaginationDto,
-  UnifiedAuthGuard,
+  AuthGuard,
 } from '@/common';
 import { SharesService } from './shares.service';
 
 @ApiTags('shares')
 @ApiBearerAuth()
-@UseGuards(UnifiedAuthGuard)
+@UseGuards(AuthGuard)
 @Controller('shares')
 export class SharesController {
   private readonly logger = new Logger(SharesController.name);
@@ -60,8 +60,8 @@ export class SharesController {
   @ApiBearerAuth()
   @ApiCookieAuth()
   @ApiOperation({ summary: 'Subscribe to shares' })
-  @ApiBody({ type: SubscribeSharesDto })
-  async subscribeShares(@Body() req: SubscribeSharesDto) {
+  @ApiBody({ type: BuySharesDto })
+  async subscribeShares(@Body() req: BuySharesDto) {
     return this.sharesService.subscribeShares(req);
   }
 

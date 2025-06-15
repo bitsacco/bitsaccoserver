@@ -7,8 +7,8 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { ApiKeyDocument, ApiKeyStatus } from './schemas/api-key.schema';
-import { CreateApiKeyDto, UpdateApiKeyDto } from './api-key.dto';
+import { ApiKeyDocument, ApiKeyStatus } from '../schemas/api-key.schema';
+import { CreateApiKeyDto, UpdateApiKeyDto } from '../dto/api-key.dto';
 
 @Injectable()
 export class ApiKeyService {

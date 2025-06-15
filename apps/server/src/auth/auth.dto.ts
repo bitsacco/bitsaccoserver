@@ -5,7 +5,6 @@ import {
   MinLength,
   MaxLength,
   IsOptional,
-  IsBoolean,
   Matches,
 } from 'class-validator';
 
@@ -83,39 +82,6 @@ export class RegisterDto {
     message: 'Phone number must be in international format',
   })
   phoneNumber?: string;
-
-  @ApiProperty({
-    description: 'Whether to create a default organization for the user',
-    example: true,
-    required: false,
-    default: false,
-  })
-  @IsOptional()
-  @IsBoolean()
-  createOrganization?: boolean;
-
-  @ApiProperty({
-    description: 'Organization name (required if createOrganization is true)',
-    example: 'My Company',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  @MinLength(2)
-  @MaxLength(100)
-  organizationName?: string;
-
-  @ApiProperty({
-    description: 'Organization country code',
-    example: 'KE',
-    required: false,
-    default: 'KE',
-  })
-  @IsOptional()
-  @IsString()
-  @MinLength(2)
-  @MaxLength(2)
-  country?: string;
 }
 
 export class RefreshTokenDto {

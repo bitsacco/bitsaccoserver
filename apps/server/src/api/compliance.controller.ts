@@ -13,22 +13,24 @@ import {
   CurrentUser,
   GlobalScope,
   RequiresApproval,
-  SACCOAuthenticatedUser,
+  AuthenticatedUser,
   Permission,
   PermissionScope,
   ServiceRole,
   GroupRole,
-  SACCOAuthGuard,
+  AuthGuard,
   RequireRole,
   WorkflowType,
   ApprovalStatus,
   RiskLevel,
-  ServiceContext,
-} from '../common';
-import {
+  Context,
+  ApprovalRequest,
   MakerCheckerService,
   WorkflowRequest,
-  ApprovalRequest,
+  AuditQueryFilters,
+  AuditService,
+} from '../common';
+import {
   SegregationService,
   OperationContext,
   ComplianceService,
@@ -36,16 +38,14 @@ import {
   RiskManagementService,
   TransactionRisk,
   RiskAssessment,
-  AuditService,
-  AuditQueryFilters,
-} from '.';
+} from '../base';
 
 /**
  * Compliance Controller - Maker-Checker, Risk Management, and Regulatory Features
  */
 @ApiTags('Compliance & Risk Management')
 @Controller('compliance')
-@UseGuards(SACCOAuthGuard)
+@UseGuards(AuthGuard)
 export class ComplianceController {
   constructor(
     private makerCheckerService: MakerCheckerService,
@@ -61,7 +61,7 @@ export class ComplianceController {
   @GlobalScope([Permission.FINANCE_DEPOSIT, Permission.FINANCE_WITHDRAW])
   @ApiOperation({ summary: 'Initiate approval workflow' })
   async initiateWorkflow(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Body()
     workflowData: {
       workflowType: WorkflowType;
@@ -102,7 +102,7 @@ export class ComplianceController {
   @GlobalScope([Permission.FINANCE_APPROVE])
   @ApiOperation({ summary: 'Get pending workflows for approval' })
   async getPendingWorkflows(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('scope') scope?: PermissionScope,
     @Query('workflowType') workflowType?: WorkflowType,
     @Query('limit') limit?: number,
@@ -122,7 +122,7 @@ export class ComplianceController {
   @ApiOperation({ summary: 'Get workflow details' })
   @ApiParam({ name: 'workflowId', description: 'Workflow ID' })
   async getWorkflow(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('workflowId') workflowId: string,
   ) {
     return await this.makerCheckerService.getWorkflow(user, workflowId);
@@ -134,7 +134,7 @@ export class ComplianceController {
   @ApiOperation({ summary: 'Approve or reject workflow' })
   @ApiParam({ name: 'workflowId', description: 'Workflow ID' })
   async submitApproval(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('workflowId') workflowId: string,
     @Body()
     approvalData: {
@@ -163,7 +163,7 @@ export class ComplianceController {
   @ApiOperation({ summary: 'Cancel pending workflow' })
   @ApiParam({ name: 'workflowId', description: 'Workflow ID' })
   async cancelWorkflow(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('workflowId') workflowId: string,
     @Body() cancellationData: { reason: string },
   ) {
@@ -180,7 +180,7 @@ export class ComplianceController {
   @GlobalScope([Permission.SYSTEM_MONITOR])
   @ApiOperation({ summary: 'Check segregation of duties violations' })
   async checkSegregationViolation(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Body()
     operationData: {
       action: string;
@@ -216,7 +216,7 @@ export class ComplianceController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Get segregation of duties rules (ADMIN+)' })
   async getSegregationRules(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('scope') scope?: PermissionScope,
     @Query('isActive') isActive?: boolean,
   ) {
@@ -232,7 +232,7 @@ export class ComplianceController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Create segregation rule (SYSTEM-ADMIN only)' })
   async createSegregationRule(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Body()
     ruleData: {
       ruleName: string;
@@ -275,7 +275,7 @@ export class ComplianceController {
   })
   @ApiParam({ name: 'ruleId', description: 'Rule ID' })
   async toggleSegregationRule(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('ruleId') ruleId: string,
     @Body() toggleData: { isActive: boolean },
   ) {
@@ -291,7 +291,7 @@ export class ComplianceController {
   @GlobalScope([Permission.REPORTS_READ])
   @ApiOperation({ summary: 'Get segregation violations report (ADMIN+)' })
   async getViolationReport(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('scope') scope?: PermissionScope,
@@ -314,8 +314,8 @@ export class ComplianceController {
   @GlobalScope([Permission.FINANCE_READ])
   @ApiOperation({ summary: 'Assess transaction risk' })
   async assessTransactionRisk(
-    @CurrentUser() user: SACCOAuthenticatedUser,
-    @ServiceContext() context: any,
+    @CurrentUser() user: AuthenticatedUser,
+    @Context() context: any,
     @Body()
     riskData: {
       amount: number;
@@ -356,8 +356,8 @@ export class ComplianceController {
   @GlobalScope([Permission.FINANCE_READ])
   @ApiOperation({ summary: 'Check transaction limits' })
   async checkTransactionLimits(
-    @CurrentUser() user: SACCOAuthenticatedUser,
-    @ServiceContext() context: any,
+    @CurrentUser() user: AuthenticatedUser,
+    @Context() context: any,
     @Body()
     limitCheckData: {
       amount: number;
@@ -380,7 +380,7 @@ export class ComplianceController {
   @GlobalScope([Permission.FINANCE_READ])
   @ApiOperation({ summary: 'Get transaction limits' })
   async getTransactionLimits(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('scope') scope?: PermissionScope,
     @Query('organizationId') organizationId?: string,
     @Query('chamaId') chamaId?: string,
@@ -400,7 +400,7 @@ export class ComplianceController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Create transaction limit (ADMIN+)' })
   async createTransactionLimit(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Body()
     limitData: {
       limitName: string;
@@ -481,7 +481,7 @@ export class ComplianceController {
   @GlobalScope([Permission.REPORTS_READ])
   @ApiOperation({ summary: 'Get compliance events (ADMIN+)' })
   async getComplianceEvents(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('eventType') eventType?: string,
     @Query('severity') severity?: RiskLevel,
     @Query('scope') scope?: PermissionScope,
@@ -516,7 +516,7 @@ export class ComplianceController {
   @ApiOperation({ summary: 'Update compliance event status (ADMIN+)' })
   @ApiParam({ name: 'eventId', description: 'Event ID' })
   async updateEventStatus(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('eventId') eventId: string,
     @Body()
     updateData: {
@@ -575,7 +575,7 @@ export class ComplianceController {
   @GlobalScope([Permission.REPORTS_EXPORT])
   @ApiOperation({ summary: 'Generate regulatory report (ADMIN+)' })
   async generateRegulatoryReport(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Body()
     reportData: {
       reportType: string;
@@ -604,7 +604,7 @@ export class ComplianceController {
   @GlobalScope([Permission.REPORTS_READ])
   @ApiOperation({ summary: 'Get regulatory reports (ADMIN+)' })
   async getRegulatoryReports(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('reportType') reportType?: string,
     @Query('regulator') regulator?: string,
     @Query('status') status?: string,
@@ -636,7 +636,7 @@ export class ComplianceController {
   @ApiOperation({ summary: 'Submit regulatory report (ADMIN+)' })
   @ApiParam({ name: 'reportId', description: 'Report ID' })
   async submitRegulatoryReport(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Param('reportId') reportId: string,
   ) {
     return await this.complianceService.submitRegulatoryReport(user, reportId);
@@ -768,7 +768,7 @@ export class ComplianceController {
   @GlobalScope([Permission.REPORTS_EXPORT])
   @ApiOperation({ summary: 'Get compliance-ready audit report (ADMIN+)' })
   async getComplianceAuditReport(
-    @CurrentUser() user: SACCOAuthenticatedUser,
+    @CurrentUser() user: AuthenticatedUser,
     @Query('scope') scope: PermissionScope,
     @Query('organizationId') organizationId?: string,
     @Query('startDate') startDate?: string,

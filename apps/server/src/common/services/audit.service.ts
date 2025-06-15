@@ -1,7 +1,7 @@
+import { Model } from 'mongoose';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { AuditTrail, AuditTrailDocument, PermissionScope } from '../common';
+import { AuditTrail, AuditTrailDocument, PermissionScope } from '..';
 
 export interface AuditEventData {
   userId: string;
