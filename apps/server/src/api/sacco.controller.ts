@@ -98,10 +98,7 @@ export class SaccoController {
 
   @Post('organization/:organizationId/withdraw')
   @OrganizationScope([Permission.FINANCE_WITHDRAW])
-  @RequiresApproval(
-    ['sacco_treasurer', 'sacco_admin'],
-    [Permission.FINANCE_APPROVE],
-  )
+  @RequiresApproval(['org_admin'], [Permission.FINANCE_APPROVE])
   @FinancialOperation(50000, 10000)
   @ApiOperation({ summary: 'Withdraw from organization account' })
   async withdrawFromOrganization(
@@ -118,10 +115,7 @@ export class SaccoController {
 
   @Post('chama/:chamaId/withdraw')
   @ChamaScope([Permission.FINANCE_WITHDRAW])
-  @RequiresApproval(
-    ['chama_treasurer', 'chama_leader'],
-    [Permission.FINANCE_APPROVE],
-  )
+  @RequiresApproval(['chama_admin'], [Permission.FINANCE_APPROVE])
   @FinancialOperation(25000, 5000)
   @ApiOperation({ summary: 'Withdraw from chama account' })
   async withdrawFromChama(
@@ -140,7 +134,7 @@ export class SaccoController {
   @CrossScope(PermissionScope.ORGANIZATION, PermissionScope.CHAMA, [
     Permission.FINANCE_TRANSFER,
   ])
-  @RequiresApproval(['treasurer', 'admin'], [Permission.FINANCE_APPROVE])
+  @RequiresApproval(['org_admin', 'chama_admin'], [Permission.FINANCE_APPROVE])
   @ApiOperation({ summary: 'Transfer funds between accounts' })
   async transferFunds(
     @Context() context: ServiceContext,
@@ -189,7 +183,7 @@ export class SaccoController {
 
   @Post('organization/:organizationId/shares/sell')
   @OrganizationScope([Permission.SHARES_TRADE])
-  @RequiresApproval(['sacco_admin'], [Permission.SHARES_APPROVE])
+  @RequiresApproval(['org_admin'], [Permission.SHARES_APPROVE])
   @ApiOperation({ summary: 'Sell organization shares' })
   async sellShares(
     @Context() context: ServiceContext,
@@ -205,7 +199,7 @@ export class SaccoController {
 
   @Post('organization/:organizationId/shares/offer')
   @OrganizationScope([Permission.SHARES_CREATE])
-  @RequiresApproval(['sacco_owner', 'sacco_admin'], [Permission.SHARES_APPROVE])
+  @RequiresApproval(['org_admin'], [Permission.SHARES_APPROVE])
   @ApiOperation({ summary: 'Create shares offering' })
   async createSharesOffer(
     @Context() context: ServiceContext,
@@ -250,10 +244,7 @@ export class SaccoController {
 
   @Post('organization/:organizationId/loans/apply')
   @OrganizationScope([Permission.LOAN_APPLY])
-  @RequiresApproval(
-    ['sacco_admin', 'sacco_treasurer'],
-    [Permission.LOAN_APPROVE],
-  )
+  @RequiresApproval(['org_admin'], [Permission.LOAN_APPROVE])
   @ApiOperation({ summary: 'Apply for organization loan' })
   async applyForOrganizationLoan(
     @Context() context: ServiceContext,
@@ -275,10 +266,7 @@ export class SaccoController {
 
   @Post('chama/:chamaId/loans/apply')
   @ChamaScope([Permission.LOAN_APPLY])
-  @RequiresApproval(
-    ['chama_leader', 'chama_treasurer'],
-    [Permission.LOAN_APPROVE],
-  )
+  @RequiresApproval(['chama_admin'], [Permission.LOAN_APPROVE])
   @ApiOperation({ summary: 'Apply for chama loan' })
   async applyForChamaLoan(
     @Context() context: ServiceContext,
@@ -300,7 +288,7 @@ export class SaccoController {
 
   @Post('personal/loans/apply')
   @PersonalScope([Permission.LOAN_APPLY])
-  @RequiresApproval(['chama_leader', 'sacco_admin'], [Permission.LOAN_APPROVE])
+  @RequiresApproval(['chama_admin', 'org_admin'], [Permission.LOAN_APPROVE])
   @ApiOperation({ summary: 'Apply for personal loan' })
   async applyForPersonalLoan(
     @Context() context: ServiceContext,

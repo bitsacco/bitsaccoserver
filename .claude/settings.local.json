@@ -22,7 +22,8 @@
       "Bash(rg:*)",
       "mcp__ide__getDiagnostics",
       "Bash(npm test:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

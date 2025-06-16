@@ -128,10 +128,11 @@ export class ApiService {
       accessControl: {
         roles: ['SYSTEM_ADMIN', 'ADMIN', 'MANAGER', 'USER'],
         groupRoles: [
-          'SACCO_ADMIN',
-          'SACCO_MANAGER',
-          'CHAMA_LEADER',
-          'CHAMA_TREASURER',
+          'ORG_ADMIN',
+          'ORG_MEMBER',
+          'CHAMA_ADMIN',
+          'CHAMA_MEMBER',
+          'VIEWER',
         ],
         scopes: ['GLOBAL', 'ORGANIZATION', 'CHAMA', 'PERSONAL'],
         permissions: [
@@ -153,11 +154,89 @@ export class ApiService {
 
       // Compliance Features
       compliance: {
-        makerChecker: 'Approval workflows for financial operations',
+        makerChecker:
+          'Approval workflows for financial operations with configurable thresholds',
         segregationOfDuties: 'Role-based operation restrictions',
         riskManagement: 'Transaction risk assessment and limits',
         auditTrail: 'Comprehensive audit logging',
         regulatoryReporting: 'Automated compliance reporting',
+      },
+
+      // Role-Based Access Control Details
+      roleManagement: {
+        description:
+          'Simplified role hierarchy with maker-checker for elevated privileges',
+        organizationRoles: {
+          ORG_ADMIN: {
+            description:
+              'Full organization management with elevated privileges',
+            features: [
+              'Complete financial oversight',
+              'Member management',
+              'Chama creation and management',
+              'Settings configuration',
+              'All operations subject to maker-checker approval',
+            ],
+            makerCheckerRequired: true,
+          },
+          ORG_MEMBER: {
+            description: 'Basic organization participation',
+            features: [
+              'Read access to organization data',
+              'Safe transactional operations',
+              'Participation in governance',
+              'Standard deposits and shares trading',
+            ],
+            makerCheckerRequired: false,
+          },
+        },
+        chamaRoles: {
+          CHAMA_ADMIN: {
+            description: 'Full chama management with elevated privileges',
+            features: [
+              'Complete chama financial oversight',
+              'Member management within chama',
+              'Settings configuration',
+              'Loan approval and disbursement',
+              'All elevated operations subject to maker-checker approval',
+            ],
+            makerCheckerRequired: true,
+          },
+          CHAMA_MEMBER: {
+            description: 'Basic chama participation',
+            features: [
+              'Read access to chama data',
+              'Safe transactional operations',
+              'Loan applications',
+              'Standard deposits and contributions',
+            ],
+            makerCheckerRequired: false,
+          },
+        },
+        crossGroupRoles: {
+          VIEWER: {
+            description: 'Read-only access to groups',
+            features: [
+              'View organization and chama data',
+              'Access to reports and analytics',
+              'No write permissions',
+              'Audit and compliance oversight',
+            ],
+            makerCheckerRequired: false,
+          },
+        },
+        makerCheckerConfig: {
+          financialThresholds: {
+            withdrawalLimit: '100,000 KES',
+            transferLimit: '50,000 KES',
+            loanApprovalLimit: '500,000 KES',
+          },
+          approvalRequirements: {
+            minimumApprovers: 2,
+            timeoutHours: 24,
+            allowSelfApproval: false,
+          },
+        },
       },
     };
   }

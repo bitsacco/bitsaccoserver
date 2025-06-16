@@ -61,7 +61,7 @@ export class OrganizationService {
       await this.addMember(
         savedOrg._id.toString(),
         memberId,
-        GroupRole.SACCO_ADMIN,
+        GroupRole.ORG_ADMIN,
         memberId,
       );
     } catch (error) {

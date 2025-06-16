@@ -125,7 +125,7 @@ export class SaccoService {
       await this.addOrganizationMember(
         savedOrg._id.toString(),
         organizationData.ownerId,
-        GroupRole.SACCO_OWNER,
+        GroupRole.ORG_ADMIN,
         organizationData.ownerId, // self-invitation
       );
     }
@@ -221,7 +221,7 @@ export class SaccoService {
       await this.addChamaMember(
         savedChama._id.toString(),
         chamaData.leaderId,
-        GroupRole.CHAMA_LEADER,
+        GroupRole.CHAMA_ADMIN,
         chamaData.leaderId, // self-invitation
       );
     }

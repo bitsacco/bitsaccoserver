@@ -49,7 +49,7 @@ export class AddMemberDto {
   @ApiProperty({
     description: 'Role to assign to the member',
     enum: GroupRole,
-    example: GroupRole.SACCO_ADMIN,
+    example: GroupRole.ORG_ADMIN,
   })
   @IsEnum(GroupRole)
   role: GroupRole;

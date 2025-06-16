@@ -451,7 +451,7 @@ export class MakerCheckerService {
   ): Promise<any> {
     const chain = {
       requiredApprovals: 1,
-      requiredRoles: [GroupRole.CHAMA_LEADER] as (ServiceRole | GroupRole)[],
+      requiredRoles: [GroupRole.CHAMA_ADMIN] as (ServiceRole | GroupRole)[],
       requiredPermissions: [] as Permission[],
       allowSelfApproval: false,
       sequentialApproval: false,
@@ -462,29 +462,26 @@ export class MakerCheckerService {
     switch (riskLevel) {
       case RiskLevel.CRITICAL:
         chain.requiredApprovals = 3;
-        chain.requiredRoles = [ServiceRole.SYSTEM_ADMIN, GroupRole.SACCO_ADMIN];
+        chain.requiredRoles = [ServiceRole.SYSTEM_ADMIN, GroupRole.ORG_ADMIN];
         chain.allowSelfApproval = false;
         chain.sequentialApproval = true;
         chain.timeoutHours = 48;
         break;
       case RiskLevel.HIGH:
         chain.requiredApprovals = 2;
-        chain.requiredRoles = [
-          GroupRole.SACCO_ADMIN,
-          GroupRole.SACCO_TREASURER,
-        ];
+        chain.requiredRoles = [GroupRole.ORG_ADMIN, GroupRole.CHAMA_ADMIN];
         chain.allowSelfApproval = false;
         chain.timeoutHours = 24;
         break;
       case RiskLevel.MEDIUM:
         chain.requiredApprovals = 1;
-        chain.requiredRoles = [GroupRole.CHAMA_LEADER, GroupRole.SACCO_MANAGER];
+        chain.requiredRoles = [GroupRole.CHAMA_ADMIN, GroupRole.ORG_ADMIN];
         chain.allowSelfApproval = true;
         chain.timeoutHours = 12;
         break;
       case RiskLevel.LOW:
         chain.requiredApprovals = 1;
-        chain.requiredRoles = [GroupRole.CHAMA_TREASURER];
+        chain.requiredRoles = [GroupRole.CHAMA_ADMIN];
         chain.allowSelfApproval = true;
         chain.timeoutHours = 8;
         break;
@@ -643,11 +640,11 @@ export class MakerCheckerService {
 
     // Return highest privilege role
     const roleHierarchy = {
-      [GroupRole.SACCO_OWNER]: 1,
-      [GroupRole.SACCO_ADMIN]: 2,
-      [GroupRole.CHAMA_LEADER]: 3,
-      [GroupRole.CHAMA_TREASURER]: 4,
-      [GroupRole.CHAMA_MEMBER]: 5,
+      [GroupRole.ORG_ADMIN]: 1,
+      [GroupRole.CHAMA_ADMIN]: 2,
+      [GroupRole.ORG_MEMBER]: 3,
+      [GroupRole.CHAMA_MEMBER]: 4,
+      [GroupRole.VIEWER]: 5,
     };
 
     return relevantMemberships

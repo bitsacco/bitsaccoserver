@@ -619,7 +619,7 @@ export class RiskManagementService {
       {
         limitName: 'SACCO Daily Transaction Limit',
         scope: PermissionScope.ORGANIZATION,
-        applicableRoles: [GroupRole.CHAMA_MEMBER, GroupRole.CHAMA_TREASURER],
+        applicableRoles: [GroupRole.CHAMA_MEMBER],
         currency: 'KES',
         limits: {
           maxTransactionAmount: 100000,
@@ -630,7 +630,7 @@ export class RiskManagementService {
         applicableOperations: ['deposit', 'withdraw', 'transfer'],
         overrideConditions: {
           allowOverride: true,
-          overrideRoles: [GroupRole.SACCO_ADMIN, GroupRole.SACCO_TREASURER],
+          overrideRoles: [GroupRole.ORG_ADMIN, GroupRole.CHAMA_ADMIN],
           overridePermissions: [Permission.FINANCE_APPROVE],
           requiresApproval: true,
           maxOverridePercentage: 50,
@@ -653,7 +653,7 @@ export class RiskManagementService {
         applicableOperations: ['deposit', 'withdraw'],
         overrideConditions: {
           allowOverride: true,
-          overrideRoles: [GroupRole.CHAMA_LEADER, GroupRole.CHAMA_TREASURER],
+          overrideRoles: [GroupRole.CHAMA_ADMIN],
           overridePermissions: [Permission.FINANCE_APPROVE],
           requiresApproval: true,
           maxOverridePercentage: 25,

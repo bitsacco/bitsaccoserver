@@ -368,12 +368,12 @@ export class SegregationService {
               Permission.FINANCE_DEPOSIT,
               Permission.FINANCE_WITHDRAW,
             ],
-            roles: [GroupRole.CHAMA_MEMBER, GroupRole.CHAMA_TREASURER],
+            roles: [GroupRole.CHAMA_MEMBER],
           },
           operation2: {
             action: 'financial_transaction_approve',
             permissions: [Permission.FINANCE_APPROVE],
-            roles: [GroupRole.CHAMA_LEADER, GroupRole.SACCO_TREASURER],
+            roles: [GroupRole.CHAMA_ADMIN, GroupRole.ORG_ADMIN],
           },
           conflictType: 'same_member' as const,
         },
@@ -396,12 +396,12 @@ export class SegregationService {
           operation1: {
             action: 'member_create',
             permissions: [Permission.USER_CREATE],
-            roles: [ServiceRole.ADMIN, GroupRole.SACCO_ADMIN],
+            roles: [ServiceRole.ADMIN, GroupRole.ORG_ADMIN],
           },
           operation2: {
             action: 'member_role_assign',
             permissions: [Permission.USER_UPDATE],
-            roles: [ServiceRole.ADMIN, GroupRole.SACCO_ADMIN],
+            roles: [ServiceRole.ADMIN, GroupRole.ORG_ADMIN],
           },
           conflictType: 'same_member' as const,
         },
@@ -429,7 +429,7 @@ export class SegregationService {
           operation2: {
             action: 'loan_approve',
             permissions: [Permission.LOAN_APPROVE],
-            roles: [GroupRole.CHAMA_LEADER, GroupRole.CHAMA_TREASURER],
+            roles: [GroupRole.CHAMA_ADMIN],
           },
           conflictType: 'time_window' as const,
           timeWindowHours: 24,

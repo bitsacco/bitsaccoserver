@@ -71,7 +71,7 @@ export class OrganizationController {
 
   @Get(':id')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN, GroupRole.SACCO_MANAGER)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get organization by ID' })
   @ApiResponse({
     status: 200,
@@ -83,7 +83,7 @@ export class OrganizationController {
 
   @Patch(':id')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Update organization' })
   @ApiResponse({
     status: 200,
@@ -98,7 +98,7 @@ export class OrganizationController {
 
   @Delete(':id')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Delete organization' })
   @ApiResponse({
     status: 200,
@@ -110,7 +110,7 @@ export class OrganizationController {
 
   @Get(':id/members')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN, GroupRole.SACCO_MANAGER)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get organization members' })
   @ApiResponse({ status: 200, description: 'Members retrieved successfully' })
   async getMembers(@Param('id') id: string) {
@@ -119,7 +119,7 @@ export class OrganizationController {
 
   @Post(':id/members')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Add member to organization' })
   @ApiBody({
     type: AddMemberDto,
@@ -178,7 +178,7 @@ export class OrganizationController {
   // API Key Management Endpoints
   @Post(':id/api-keys')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN, GroupRole.SACCO_MANAGER)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Create a new API key for organization' })
   @ApiResponse({ status: 201, description: 'API key created successfully' })
   async createApiKey(
@@ -195,7 +195,7 @@ export class OrganizationController {
 
   @Get(':id/api-keys')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN, GroupRole.SACCO_MANAGER)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'List organization API keys' })
   @ApiResponse({ status: 200, description: 'API keys retrieved successfully' })
   async getApiKeys(@Param('id') organizationId: string) {
@@ -204,7 +204,7 @@ export class OrganizationController {
 
   @Get(':id/api-keys/:keyId')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN, GroupRole.SACCO_MANAGER)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get API key details' })
   @ApiResponse({ status: 200, description: 'API key retrieved successfully' })
   async getApiKey(
@@ -216,7 +216,7 @@ export class OrganizationController {
 
   @Delete(':id/api-keys/:keyId')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN, GroupRole.SACCO_MANAGER)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Delete/revoke API key' })
   @ApiResponse({ status: 200, description: 'API key revoked successfully' })
   async deleteApiKey(
@@ -228,7 +228,7 @@ export class OrganizationController {
 
   @Get(':id/api-keys/:keyId/usage')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN, GroupRole.SACCO_MANAGER)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get API key usage statistics' })
   @ApiResponse({
     status: 200,
@@ -244,7 +244,7 @@ export class OrganizationController {
   // Services, Usage & Billing Endpoints (moved from ManagerController)
   @Get(':id/services')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN, GroupRole.SACCO_MANAGER)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get available services for organization' })
   @ApiResponse({ status: 200, description: 'Services retrieved successfully' })
   async getOrganizationServices(@Param('id') organizationId: string) {
@@ -257,7 +257,7 @@ export class OrganizationController {
 
   @Get(':id/usage')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN, GroupRole.SACCO_MANAGER)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get organization usage statistics' })
   @ApiResponse({
     status: 200,
@@ -287,7 +287,7 @@ export class OrganizationController {
 
   @Get(':id/billing')
   @UseGuards(AuthGuard)
-  @Roles(GroupRole.SACCO_ADMIN)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get organization billing information' })
   @ApiResponse({
     status: 200,

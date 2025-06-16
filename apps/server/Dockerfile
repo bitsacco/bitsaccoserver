@@ -27,7 +27,7 @@ RUN yarn workspace @bitsaccoserver/types build
 
 # Create non-root member
 RUN addgroup -g 1001 -S nodejs
-RUN addmember -S nestjs -u 1001
+RUN adduser -S nestjs -u 1001
 
 # Change ownership of workspace
 RUN chown -R nestjs:nodejs /workspace
@@ -83,7 +83,7 @@ RUN apk add --no-cache curl
 
 # Create non-root member
 RUN addgroup -g 1001 -S nodejs
-RUN addmember -S nestjs -u 1001
+RUN adduser -S nestjs -u 1001
 
 # Copy only the built application and necessary files
 COPY --from=builder --chown=nestjs:nodejs /workspace/apps/server/dist ./dist
