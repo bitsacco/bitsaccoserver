@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { GroupRole } from '../common';
+import { GroupRole } from '@bitsaccoserver/types';
 import {
   OrganizationDocument,
   OrganizationMember,

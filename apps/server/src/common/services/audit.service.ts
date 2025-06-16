@@ -465,7 +465,7 @@ export class AuditService {
       ).length,
       failedLogins: logs.filter(
         (log) =>
-          log.action === 'USER_LOGIN' && log.responseData?.success === false,
+          log.action === 'MEMBER_LOGIN' && log.responseData?.success === false,
       ).length,
       privilegedOperations: logs.filter(
         (log) =>

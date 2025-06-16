@@ -3,7 +3,6 @@
 // Core domain types
 export * from './auth.types';
 export * from './compliance.types';
-export * from './permissions.types';
 export * from './service.types';
 export * from './member.types';
 
@@ -16,3 +15,14 @@ export * from './risk.types';
 export * from './shares.types';
 export * from './sms.types';
 export * from './workflow.types';
+
+// Selective re-export from permissions.types to avoid conflicts
+export {
+  ServiceRole,
+  GroupRole,
+  Permission,
+  PermissionScope,
+  GroupMembership,
+  ROLE_PERMISSIONS,
+  ROLE_HIERARCHY,
+} from './permissions.types';

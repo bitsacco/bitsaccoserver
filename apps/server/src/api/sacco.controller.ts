@@ -422,7 +422,7 @@ export class SaccoController {
   }
 
   @Post('organization/:organizationId/members')
-  @OrganizationScope([Permission.USER_INVITE])
+  @OrganizationScope([Permission.MEMBER_INVITE])
   @ApiOperation({ summary: 'Add member to organization' })
   async addOrganizationMember(
     @Context() context: ServiceContext,

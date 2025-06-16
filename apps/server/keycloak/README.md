@@ -28,11 +28,11 @@ This directory contains the Keycloak realm configuration for the Bitsaccoserver 
 
 The realm includes the following test members:
 
-| Email                        | Password  | Role                     | Permissions             |
-| ---------------------------- | --------- | ------------------------ | ----------------------- |
-| admin@bitsaccoserver.org     | admin123  | bitsaccoserver-admin     | Full console management |
-| developer@bitsaccoserver.org | dev123    | bitsaccoserver-developer | API keys, view usage    |
-| member@bitsaccoserver.org    | member123 | bitsaccoserver-member    | Basic access            |
+| Email                        | Password  | Role                 | Permissions             |
+| ---------------------------- | --------- | -------------------- | ----------------------- |
+| admin@bitsaccoserver.org     | admin123  | bitsaccoserver-admin | Full console management |
+| developer@bitsaccoserver.org | dev123    | bitsaccoserver-admin | API keys, view usage    |
+| member@bitsaccoserver.org    | member123 | member               | Basic access            |
 
 ## Clients
 

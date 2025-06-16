@@ -126,7 +126,7 @@ export class ApiService {
 
       // Access Control
       accessControl: {
-        roles: ['SYSTEM_ADMIN', 'ADMIN', 'MANAGER', 'USER'],
+        roles: ['SYSTEM_ADMIN', 'ADMIN', 'MANAGER', 'MEMBER'],
         groupRoles: [
           'ORG_ADMIN',
           'ORG_MEMBER',
@@ -146,7 +146,7 @@ export class ApiService {
           'LOAN_READ',
           'LOAN_APPLY',
           'ORG_READ',
-          'USER_INVITE',
+          'MEMBER_INVITE',
           'REPORTS_READ',
           'SYSTEM_CONFIG',
         ],

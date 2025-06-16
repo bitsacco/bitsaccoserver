@@ -161,7 +161,7 @@ export class AuthService {
 
       const createUserResponse = await firstValueFrom(
         this.httpService.post(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users`,
           keycloakUser,
           {
             headers: {
@@ -242,11 +242,25 @@ export class AuthService {
       const memberInfo = this.extractUserInfoFromToken(
         tokenResponse.access_token,
       );
-      this.logger.debug(`Member info extracted: ${memberInfo.email}`);
+      this.logger.debug(
+        `Member info extracted: ${memberInfo.email}, serviceRole: ${memberInfo.serviceRole}`,
+      );
+
+      // Create a server-side JWT token that abstracts away Keycloak
+      const serverToken = this.jwtService.sign({
+        sub: memberInfo.sub,
+        email: memberInfo.email,
+        firstName: memberInfo.given_name,
+        lastName: memberInfo.family_name,
+        emailVerified: memberInfo.email_verified,
+        serviceRole: memberInfo.serviceRole,
+        authMethod: 'keycloak',
+        iat: Math.floor(Date.now() / 1000),
+      });
 
       return {
-        access_token: tokenResponse.access_token,
-        refresh_token: tokenResponse.refresh_token,
+        access_token: serverToken, // Return server-generated JWT instead of Keycloak token
+        refresh_token: tokenResponse.refresh_token, // Keep Keycloak refresh token for renewals
         expires_in: tokenResponse.expires_in,
         token_type: tokenResponse.token_type,
         member: {
@@ -255,6 +269,7 @@ export class AuthService {
           firstName: memberInfo.given_name,
           lastName: memberInfo.family_name,
           emailVerified: memberInfo.email_verified,
+          serviceRole: memberInfo.serviceRole,
         },
       };
     } catch (error) {
@@ -305,7 +320,29 @@ export class AuthService {
         ),
       );
 
-      return response.data;
+      const tokenResponse = response.data;
+
+      // Extract member info from the new access token
+      const memberInfo = this.extractUserInfoFromToken(
+        tokenResponse.access_token,
+      );
+
+      // Create a server-side JWT token that abstracts away Keycloak
+      const serverToken = this.jwtService.sign({
+        sub: memberInfo.sub,
+        email: memberInfo.email,
+        firstName: memberInfo.given_name,
+        lastName: memberInfo.family_name,
+        emailVerified: memberInfo.email_verified,
+        serviceRole: memberInfo.serviceRole,
+        authMethod: 'keycloak',
+        iat: Math.floor(Date.now() / 1000),
+      });
+
+      return {
+        ...tokenResponse,
+        access_token: serverToken, // Return server-generated JWT instead of Keycloak token
+      };
     } catch (error) {
       this.logger.error(`Token refresh failed: ${error.message}`, error.stack);
       throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
@@ -360,7 +397,7 @@ export class AuthService {
       // Find member by email
       const members = await firstValueFrom(
         this.httpService.get(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members?email=${encodeURIComponent(email)}`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users?email=${encodeURIComponent(email)}`,
           {
             headers: {
               Authorization: `Bearer ${adminToken}`,
@@ -379,7 +416,7 @@ export class AuthService {
       // Send password reset email
       await firstValueFrom(
         this.httpService.put(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members/${memberId}/execute-actions-email`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users/${memberId}/execute-actions-email`,
           ['UPDATE_PASSWORD'],
           {
             headers: {
@@ -419,7 +456,7 @@ export class AuthService {
       // Set new password
       await firstValueFrom(
         this.httpService.put(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members/${memberId}/reset-password`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users/${memberId}/reset-password`,
           {
             type: 'password',
             value: newPassword,
@@ -468,7 +505,7 @@ export class AuthService {
       // Find member by email
       const members = await firstValueFrom(
         this.httpService.get(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members?email=${encodeURIComponent(email)}`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users?email=${encodeURIComponent(email)}`,
           {
             headers: {
               Authorization: `Bearer ${adminToken}`,
@@ -509,7 +546,7 @@ export class AuthService {
 
       const memberResponse = await firstValueFrom(
         this.httpService.get(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members/${memberId}`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users/${memberId}`,
           {
             headers: {
               Authorization: `Bearer ${adminToken}`,
@@ -625,7 +662,7 @@ export class AuthService {
     try {
       const response = await firstValueFrom(
         this.httpService.get(
-          `${this.keycloakBaseUrl}/realms/${this.realm}/protocol/openid-connect/memberinfo`,
+          `${this.keycloakBaseUrl}/realms/${this.realm}/protocol/openid-connect/userinfo`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -644,7 +681,16 @@ export class AuthService {
     }
   }
 
-  private extractUserInfoFromToken(accessToken: string): KeycloakUserInfo {
+  // Public method that can be called from controller
+  async extractMemberInfoFromToken(
+    accessToken: string,
+  ): Promise<KeycloakUserInfo & { serviceRole?: string }> {
+    return this.extractUserInfoFromToken(accessToken);
+  }
+
+  private extractUserInfoFromToken(
+    accessToken: string,
+  ): KeycloakUserInfo & { serviceRole?: string } {
     try {
       // Decode JWT token (we only need the payload, so we can use simple base64 decode)
       const tokenParts = accessToken.split('.');
@@ -657,15 +703,51 @@ export class AuthService {
         Buffer.from(tokenParts[1], 'base64url').toString('utf8'),
       );
 
+      this.logger.debug(`JWT payload: ${JSON.stringify(payload, null, 2)}`);
+
+      // Determine service role based on token claims
+      let serviceRole = 'member'; // default role
+
+      // If the token already has a serviceRole field (server-generated token), use it
+      if (payload.serviceRole) {
+        serviceRole = payload.serviceRole;
+      } else {
+        // For Keycloak tokens, check for realm roles
+        if (payload.realm_access?.roles) {
+          if (payload.realm_access.roles.includes('system_admin')) {
+            serviceRole = 'system_admin';
+          } else if (payload.realm_access.roles.includes('admin')) {
+            serviceRole = 'admin';
+          }
+        }
+
+        // Check for resource roles (client-specific)
+        if (payload.resource_access?.[this.clientId]?.roles) {
+          const clientRoles = payload.resource_access[this.clientId].roles;
+          if (clientRoles.includes('system_admin')) {
+            serviceRole = 'system_admin';
+          } else if (clientRoles.includes('admin')) {
+            serviceRole = 'admin';
+          }
+        }
+      }
+
+      // Log the determined service role
+      this.logger.debug(
+        `Determined service role for ${payload.email}: ${serviceRole}`,
+      );
+
       // Map token claims to KeycloakUserInfo format
+      // Handle both server-generated tokens and Keycloak tokens
       return {
         sub: payload.sub,
         email: payload.email,
-        email_verified: payload.email_verified || false,
-        given_name: payload.given_name,
-        family_name: payload.family_name,
+        email_verified: payload.email_verified || payload.emailVerified || false,
+        given_name: payload.given_name || payload.firstName,
+        family_name: payload.family_name || payload.lastName,
         preferred_username: payload.preferred_username,
         name: payload.name,
+        serviceRole,
       };
     } catch (error) {
       this.logger.error(
@@ -682,7 +764,7 @@ export class AuthService {
     try {
       await firstValueFrom(
         this.httpService.put(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members/${memberId}/execute-actions-email`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users/${memberId}/execute-actions-email`,
           ['VERIFY_EMAIL'],
           {
             headers: {
@@ -748,7 +830,7 @@ export class AuthService {
       // Update member to mark email as verified
       await firstValueFrom(
         this.httpService.put(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members/${member.id}`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users/${member.id}`,
           {
             ...member,
             emailVerified: true,

@@ -18,11 +18,13 @@ import {
   TransactionLimitDocument,
 } from '../common/schemas/compliance.schema';
 import {
-  AuthenticatedMember,
   Permission,
   PermissionScope,
   ServiceRole,
   GroupRole,
+} from '@bitsaccoserver/types';
+import {
+  AuthenticatedMember,
   RiskLevel,
   WorkflowRequest,
   ApprovalRequest,
@@ -707,14 +709,14 @@ export class MakerCheckerService {
         Permission.FINANCE_WITHDRAW,
       ],
       [WorkflowType.LOAN_APPROVAL]: [Permission.LOAN_APPLY],
-      [WorkflowType.USER_MANAGEMENT]: [
-        Permission.USER_CREATE,
-        Permission.USER_UPDATE,
+      [WorkflowType.MEMBER_MANAGEMENT]: [
+        Permission.MEMBER_CREATE,
+        Permission.MEMBER_UPDATE,
       ],
       [WorkflowType.CONFIGURATION_CHANGE]: [Permission.SYSTEM_CONFIG],
       [WorkflowType.SHARES_ISSUANCE]: [Permission.SHARES_CREATE],
-      [WorkflowType.MEMBER_ONBOARDING]: [Permission.USER_INVITE],
-      [WorkflowType.ACCOUNT_CLOSURE]: [Permission.USER_DELETE],
+      [WorkflowType.MEMBER_ONBOARDING]: [Permission.MEMBER_INVITE],
+      [WorkflowType.ACCOUNT_CLOSURE]: [Permission.MEMBER_DELETE],
       [WorkflowType.LIMIT_OVERRIDE]: [Permission.FINANCE_APPROVE],
       [WorkflowType.SYSTEM_MAINTENANCE]: [Permission.SYSTEM_CONFIG],
     };

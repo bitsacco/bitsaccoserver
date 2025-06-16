@@ -10,3 +10,4 @@ export * from './services';
 
 export * from './rate-limit.interceptor';
 export * from './usage-tracking.middleware';
+export * from './jwt-auth.middleware';

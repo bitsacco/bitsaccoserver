@@ -7,14 +7,16 @@ import { Model } from 'mongoose';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { InjectModel } from '@nestjs/mongoose';
 import {
-  AuditService,
   GroupRole,
-  SegregationRule,
-  SegregationRuleDocument,
-  AuthenticatedMember,
   ServiceRole,
   Permission,
   PermissionScope,
+} from '@bitsaccoserver/types';
+import {
+  AuditService,
+  SegregationRule,
+  SegregationRuleDocument,
+  AuthenticatedMember,
   RiskLevel,
 } from '../common';
 
@@ -395,12 +397,12 @@ export class SegregationService {
         conflictingOperations: {
           operation1: {
             action: 'member_create',
-            permissions: [Permission.USER_CREATE],
+            permissions: [Permission.MEMBER_CREATE],
             roles: [ServiceRole.ADMIN, GroupRole.ORG_ADMIN],
           },
           operation2: {
             action: 'member_role_assign',
-            permissions: [Permission.USER_UPDATE],
+            permissions: [Permission.MEMBER_UPDATE],
             roles: [ServiceRole.ADMIN, GroupRole.ORG_ADMIN],
           },
           conflictType: 'same_member' as const,

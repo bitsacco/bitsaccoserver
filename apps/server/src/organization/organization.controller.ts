@@ -17,13 +17,13 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
+import { GroupRole } from '@bitsaccoserver/types';
 import {
   ApiKeyService,
   AuthenticatedRequest,
   CreateApiKeyDto,
   Roles,
   AuthGuard,
-  GroupRole,
 } from '../common';
 import { OrganizationService } from './organization.service';
 import {
