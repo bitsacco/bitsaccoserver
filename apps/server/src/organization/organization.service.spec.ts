@@ -2,35 +2,35 @@
 class MockOrganizationService {
   constructor() {}
 
-  async create(createDto: any, userId: string, _userEmail: string) {
+  async create(createDto: any, memberId: string, _memberEmail: string) {
     return {
       _id: 'org-123',
       name: createDto.name,
       description: createDto.description,
       type: createDto.type,
       country: createDto.country,
-      createdBy: userId,
-      members: [{ userId, role: 'admin', isActive: true }],
+      createdBy: memberId,
+      members: [{ memberId, role: 'admin', isActive: true }],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
   }
 
-  async findAll(userId: string) {
+  async findAll(memberId: string) {
     return [
       {
         _id: 'org-1',
         name: 'Organization 1',
         type: 'business',
         country: 'KE',
-        members: [{ userId, role: 'admin' }],
+        members: [{ memberId, role: 'admin' }],
       },
       {
         _id: 'org-2',
         name: 'Organization 2',
         type: 'nonprofit',
         country: 'KE',
-        members: [{ userId, role: 'member' }],
+        members: [{ memberId, role: 'member' }],
       },
     ];
   }
@@ -45,9 +45,9 @@ class MockOrganizationService {
     };
   }
 
-  async addMember(organizationId: string, userId: string, role: string) {
+  async addMember(organizationId: string, memberId: string, role: string) {
     return {
-      userId,
+      memberId,
       organizationId,
       role,
       isActive: true,
@@ -78,8 +78,8 @@ describe('OrganizationService', () => {
 
       const result = await service.create(
         createDto,
-        'user-123',
-        'user@example.com',
+        'member-123',
+        'member@example.com',
       );
 
       expect(result).toHaveProperty('_id');
@@ -87,16 +87,16 @@ describe('OrganizationService', () => {
       expect(result.description).toBe(createDto.description);
       expect(result.type).toBe(createDto.type);
       expect(result.country).toBe(createDto.country);
-      expect(result.createdBy).toBe('user-123');
+      expect(result.createdBy).toBe('member-123');
       expect(result.members).toHaveLength(1);
-      expect(result.members[0].userId).toBe('user-123');
+      expect(result.members[0].memberId).toBe('member-123');
       expect(result.members[0].role).toBe('admin');
     });
   });
 
   describe('findAll', () => {
-    it('should find organizations for a user', async () => {
-      const result = await service.findAll('user-123');
+    it('should find organizations for a member', async () => {
+      const result = await service.findAll('member-123');
 
       expect(result).toBeInstanceOf(Array);
       expect(result).toHaveLength(2);
@@ -122,9 +122,9 @@ describe('OrganizationService', () => {
 
   describe('addMember', () => {
     it('should add a member to organization', async () => {
-      const result = await service.addMember('org-123', 'user-456', 'member');
+      const result = await service.addMember('org-123', 'member-456', 'member');
 
-      expect(result).toHaveProperty('userId', 'user-456');
+      expect(result).toHaveProperty('memberId', 'member-456');
       expect(result).toHaveProperty('organizationId', 'org-123');
       expect(result).toHaveProperty('role', 'member');
       expect(result).toHaveProperty('isActive', true);

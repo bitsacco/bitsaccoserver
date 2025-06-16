@@ -65,7 +65,7 @@ export class TransactionLogDocument {
   clientIp?: string;
 
   @Prop()
-  userAgent?: string;
+  memberAgent?: string;
 
   @Prop()
   errorMessage?: string;

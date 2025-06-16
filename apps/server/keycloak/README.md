@@ -22,11 +22,11 @@ This directory contains the Keycloak realm configuration for the Bitsaccoserver 
    - URL: http://localhost:8080/admin/
    - Username: `admin`
    - Password: `admin123`
-   - Check that `bitsaccoserver-dev` realm exists with users and clients
+   - Check that `bitsaccoserver-dev` realm exists with members and clients
 
 ## Test Users
 
-The realm includes the following test users:
+The realm includes the following test members:
 
 | Email                        | Password  | Role                     | Permissions             |
 | ---------------------------- | --------- | ------------------------ | ----------------------- |

@@ -52,7 +52,7 @@ export const OrganizationSchema =
 @Schema({ timestamps: true })
 export class OrganizationMember {
   @Prop({ required: true })
-  userId: string;
+  memberId: string;
 
   @Prop({ required: true })
   organizationId: string;

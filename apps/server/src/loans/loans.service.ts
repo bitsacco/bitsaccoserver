@@ -108,7 +108,7 @@ export class LoanService extends ContextAwareService {
     return {
       loanId: data.loanId,
       status: 'approved',
-      approvedBy: context.userId,
+      approvedBy: context.memberId,
     };
   }
 

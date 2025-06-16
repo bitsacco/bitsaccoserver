@@ -248,7 +248,7 @@ export const ChamaSchema = SchemaFactory.createForClass(Chama);
 @Schema({ timestamps: true })
 export class SaccoMember {
   @Prop({ required: true })
-  userId: string;
+  memberId: string;
 
   @Prop({ required: true })
   email: string;
@@ -344,7 +344,7 @@ export const SaccoMemberSchema = SchemaFactory.createForClass(SaccoMember);
 @Schema({ timestamps: true })
 export class SaccoMembership {
   @Prop({ required: true })
-  userId: string;
+  memberId: string;
 
   @Prop({ required: true })
   organizationId: string;
@@ -418,7 +418,7 @@ export const SaccoMembershipSchema =
 @Schema({ timestamps: true })
 export class ChamaMembership {
   @Prop({ required: true })
-  userId: string;
+  memberId: string;
 
   @Prop({ required: true })
   chamaId: string;

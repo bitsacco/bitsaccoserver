@@ -1,10 +1,10 @@
 // Audit and monitoring types
-import { AuthenticatedUser } from './auth.types';
+import { AuthenticatedMember } from './auth.types';
 import { PermissionScope, Permission } from './permissions.types';
 import { RiskLevel } from './compliance.types';
 
 export interface AuditEventData {
-  userId: string;
+  memberId: string;
   impersonatedBy?: string;
   action: string;
   resourceType: string;
@@ -17,7 +17,7 @@ export interface AuditEventData {
     endpoint: string;
     parameters?: Record<string, any>;
     body?: any;
-    userAgent: string;
+    memberAgent: string;
     ipAddress: string;
     sessionId?: string;
   };
@@ -54,7 +54,7 @@ export interface AuditEventData {
 }
 
 export interface AuditQueryFilters {
-  userId?: string;
+  memberId?: string;
   organizationId?: string;
   chamaId?: string;
   action?: string;
@@ -75,12 +75,12 @@ export interface AuditQueryFilters {
 }
 
 export interface ServiceContext {
-  userId: string;
+  memberId: string;
   organizationId?: string;
   chamaId?: string;
   scope: PermissionScope;
   permissions: string[];
-  user: AuthenticatedUser;
+  member: AuthenticatedMember;
   correlationId?: string;
   requestId?: string;
   timestamp?: Date;
@@ -128,9 +128,9 @@ export interface ApiMetricData {
   responseSize?: number;
   clientIp?: string;
   success: boolean;
-  userId?: string;
+  memberId?: string;
   organizationId?: string;
-  userAgent?: string;
+  memberAgent?: string;
   ipAddress?: string;
   timestamp: Date;
   apiKeyId?: string;

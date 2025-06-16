@@ -8,7 +8,7 @@ import {
   RegulatoryReport,
   RegulatoryReportDocument,
   RiskLevel,
-  AuthenticatedUser,
+  AuthenticatedMember,
   PermissionScope,
   AuditService,
 } from '../common';
@@ -17,7 +17,7 @@ export interface ComplianceEventData {
   eventType: string;
   severity: RiskLevel;
   description: string;
-  userId?: string;
+  memberId?: string;
   scope: PermissionScope;
   organizationId?: string;
   chamaId?: string;
@@ -112,7 +112,7 @@ export class ComplianceService {
    * Get compliance events with filtering
    */
   async getComplianceEvents(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     filters: {
       eventType?: string;
       severity?: RiskLevel;
@@ -166,7 +166,7 @@ export class ComplianceService {
    * Update compliance event status
    */
   async updateEventStatus(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     eventId: string,
     update: {
       status: 'open' | 'investigating' | 'resolved' | 'false_positive';
@@ -196,7 +196,7 @@ export class ComplianceService {
 
     // Log audit event
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'COMPLIANCE_EVENT_UPDATED',
       resourceType: 'compliance_event',
       resourceId: eventId,
@@ -222,14 +222,17 @@ export class ComplianceService {
     const startDate = this.getStartDate(timeRange);
 
     // Get compliance events for the period
-    const { events } = await this.getComplianceEvents({} as AuthenticatedUser, {
-      scope,
-      organizationId,
-      chamaId,
-      startDate,
-      endDate,
-      limit: 10000, // Get all events for metrics
-    });
+    const { events } = await this.getComplianceEvents(
+      {} as AuthenticatedMember,
+      {
+        scope,
+        organizationId,
+        chamaId,
+        startDate,
+        endDate,
+        limit: 10000, // Get all events for metrics
+      },
+    );
 
     // Calculate KYC compliance (mock data for demo)
     const kycCompliance = {
@@ -305,7 +308,7 @@ export class ComplianceService {
    * Generate regulatory report
    */
   async generateRegulatoryReport(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     reportType: string,
     regulator: string,
     reportingPeriod: {
@@ -344,14 +347,14 @@ export class ComplianceService {
         completenessCheck: true,
         accuracyScore: 95,
       },
-      generatedBy: user.userId,
+      generatedBy: member.memberId,
     });
 
     const savedReport = await report.save();
 
     // Log audit event
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'REGULATORY_REPORT_GENERATED',
       resourceType: 'regulatory_report',
       resourceId: savedReport._id.toString(),
@@ -367,7 +370,7 @@ export class ComplianceService {
    * Submit regulatory report
    */
   async submitRegulatoryReport(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     reportId: string,
   ): Promise<RegulatoryReportDocument> {
     const report = await this.regulatoryReportModel.findById(reportId);
@@ -384,14 +387,14 @@ export class ComplianceService {
     // Update submission status
     report.submission.status = 'submitted';
     report.submission.submittedAt = new Date();
-    report.submission.submittedBy = user.userId;
+    report.submission.submittedBy = member.memberId;
     report.submission.acknowledgmentId = `ACK-${Date.now()}`;
 
     const savedReport = await report.save();
 
     // Log audit event
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'REGULATORY_REPORT_SUBMITTED',
       resourceType: 'regulatory_report',
       resourceId: reportId,
@@ -405,7 +408,7 @@ export class ComplianceService {
       reportId: savedReport._id,
       reportType: report.reportType,
       regulator: report.regulator,
-      submittedBy: user.userId,
+      submittedBy: member.memberId,
     });
 
     return savedReport;
@@ -415,7 +418,7 @@ export class ComplianceService {
    * Get regulatory reports
    */
   async getRegulatoryReports(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     filters: {
       reportType?: string;
       regulator?: string;
@@ -482,12 +485,15 @@ export class ComplianceService {
     const recommendations = [];
 
     // Check recent compliance events
-    const { events } = await this.getComplianceEvents({} as AuthenticatedUser, {
-      scope,
-      organizationId,
-      chamaId,
-      startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
-    });
+    const { events } = await this.getComplianceEvents(
+      {} as AuthenticatedMember,
+      {
+        scope,
+        organizationId,
+        chamaId,
+        startDate: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // Last 7 days
+      },
+    );
 
     const criticalEvents = events.filter(
       (e) => e.severity === RiskLevel.CRITICAL,

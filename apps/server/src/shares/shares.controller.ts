@@ -68,7 +68,7 @@ export class SharesController {
   @Post('transfer')
   @ApiBearerAuth()
   @ApiCookieAuth()
-  @ApiOperation({ summary: 'Transfer shares between users' })
+  @ApiOperation({ summary: 'Transfer shares between members' })
   @ApiBody({ type: TransferSharesDto })
   async transferShares(@Body() req: TransferSharesDto) {
     return this.sharesService.transferShares(req);
@@ -84,11 +84,11 @@ export class SharesController {
     return this.sharesService.updateShares({ sharesId, updates });
   }
 
-  @Get('user/:userId/transactions')
+  @Get('member/:memberId/transactions')
   @ApiBearerAuth()
   @ApiCookieAuth()
-  @ApiOperation({ summary: 'Get user shares transactions' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiOperation({ summary: 'Get member shares transactions' })
+  @ApiParam({ name: 'memberId', description: 'Member ID' })
   @ApiQuery({
     name: 'page',
     required: false,
@@ -101,12 +101,12 @@ export class SharesController {
     type: Number,
     description: 'Page size',
   })
-  async userSharesTransactions(
-    @Param('userId') userId: string,
+  async memberSharesTransactions(
+    @Param('memberId') memberId: string,
     @Query() pagination: PaginationDto,
   ) {
-    return this.sharesService.userSharesTransactions({
-      userId,
+    return this.sharesService.memberSharesTransactions({
+      memberId,
       pagination: {
         page: pagination.page || 1,
         size: pagination.size || 10,

@@ -41,23 +41,23 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({
-    summary: 'Register a new user',
+    summary: 'Register a new member',
     description:
-      'Creates a new user account in Keycloak and optionally creates an organization',
+      'Creates a new member account in Keycloak and optionally creates an organization',
   })
   @ApiResponse({
     status: 201,
-    description: 'User registered successfully',
+    description: 'Member registered successfully',
     schema: {
       type: 'object',
       properties: {
         message: { type: 'string' },
-        userId: { type: 'string' },
+        memberId: { type: 'string' },
       },
     },
   })
   @ApiResponse({ status: 400, description: 'Invalid registration data' })
-  @ApiResponse({ status: 409, description: 'User already exists' })
+  @ApiResponse({ status: 409, description: 'Member already exists' })
   @ApiBody({ type: RegisterDto })
   async register(@Body() registerDto: RegisterDto) {
     try {
@@ -65,14 +65,14 @@ export class AuthController {
 
       const result = await this.authService.register(registerDto);
 
-      this.logger.log(`User registered successfully: ${result.userId}`);
+      this.logger.log(`Member registered successfully: ${result.memberId}`);
       return result;
     } catch (error) {
       this.logger.error(`Registration failed: ${error.message}`, error.stack);
 
       if (error.response?.status === 409) {
         throw new HttpException(
-          'User with this email already exists',
+          'Member with this email already exists',
           HttpStatus.CONFLICT,
         );
       }
@@ -86,9 +86,9 @@ export class AuthController {
 
   @Post('login')
   @ApiOperation({
-    summary: 'Login user',
+    summary: 'Login member',
     description:
-      'Authenticates user credentials with Keycloak and returns access tokens.\n\n' +
+      'Authenticates member credentials with Keycloak and returns access tokens.\n\n' +
       '**To use the token in Swagger:**\n' +
       '1. Copy the `access_token` from the response\n' +
       "2. Click the 'Authorize' button at the top of this page\n" +
@@ -123,7 +123,7 @@ export class AuthController {
           description: 'Type of token',
           example: 'bearer',
         },
-        user: {
+        member: {
           type: 'object',
           properties: {
             id: { type: 'string' },
@@ -144,7 +144,7 @@ export class AuthController {
 
       const result = await this.authService.login(loginDto);
 
-      this.logger.log(`Login successful for user: ${result.user.id}`);
+      this.logger.log(`Login successful for member: ${result.member.id}`);
       return result;
     } catch (error) {
       this.logger.error(`Login failed: ${error.message}`, error.stack);
@@ -191,8 +191,8 @@ export class AuthController {
 
   @Post('logout')
   @ApiOperation({
-    summary: 'Logout user',
-    description: 'Invalidates the user session and refresh token in Keycloak',
+    summary: 'Logout member',
+    description: 'Invalidates the member session and refresh token in Keycloak',
   })
   @ApiResponse({ status: 200, description: 'Logout successful' })
   @ApiBody({ type: LogoutDto })
@@ -211,10 +211,10 @@ export class AuthController {
   @Post('forgot-password')
   @ApiOperation({
     summary: 'Request password reset',
-    description: 'Sends a password reset email to the user via Keycloak',
+    description: 'Sends a password reset email to the member via Keycloak',
   })
   @ApiResponse({ status: 200, description: 'Password reset email sent' })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 404, description: 'Member not found' })
   @ApiBody({
     schema: {
       type: 'object',
@@ -227,22 +227,22 @@ export class AuthController {
   async forgotPassword(@Body() body: { email: string }) {
     try {
       await this.authService.requestPasswordReset(body.email);
-      return { message: 'Password reset email sent if user exists' };
+      return { message: 'Password reset email sent if member exists' };
     } catch (error) {
       this.logger.error(
         `Password reset request failed: ${error.message}`,
         error.stack,
       );
 
-      // Always return success for security (don't reveal if user exists)
-      return { message: 'Password reset email sent if user exists' };
+      // Always return success for security (don't reveal if member exists)
+      return { message: 'Password reset email sent if member exists' };
     }
   }
 
   @Post('reset-password')
   @ApiOperation({
     summary: 'Reset password',
-    description: 'Resets user password using a reset token from email',
+    description: 'Resets member password using a reset token from email',
   })
   @ApiResponse({ status: 200, description: 'Password reset successful' })
   @ApiResponse({ status: 400, description: 'Invalid or expired reset token' })
@@ -267,7 +267,7 @@ export class AuthController {
   @Post('change-password')
   @ApiOperation({
     summary: 'Change password',
-    description: 'Changes user password when authenticated',
+    description: 'Changes member password when authenticated',
   })
   @ApiResponse({ status: 200, description: 'Password changed successfully' })
   @ApiResponse({ status: 400, description: 'Invalid current password' })
@@ -277,9 +277,9 @@ export class AuthController {
     @Req() req: AuthenticatedRequest,
   ) {
     try {
-      // Extract user ID from JWT token in request
-      const userId = req.user?.sub;
-      if (!userId) {
+      // Extract member ID from JWT token in request
+      const memberId = req.member?.sub;
+      if (!memberId) {
         throw new HttpException(
           'Authentication required',
           HttpStatus.UNAUTHORIZED,
@@ -287,7 +287,7 @@ export class AuthController {
       }
 
       await this.authService.changePassword(
-        userId,
+        memberId,
         changePasswordDto.currentPassword,
         changePasswordDto.newPassword,
       );
@@ -309,7 +309,7 @@ export class AuthController {
   @Get('verify-email')
   @ApiOperation({
     summary: 'Verify email address',
-    description: 'Verifies user email using token from verification email',
+    description: 'Verifies member email using token from verification email',
   })
   @ApiResponse({ status: 200, description: 'Email verified successfully' })
   @ApiResponse({
@@ -339,7 +339,7 @@ export class AuthController {
   @Post('resend-verification')
   @ApiOperation({
     summary: 'Resend email verification',
-    description: 'Resends email verification to user',
+    description: 'Resends email verification to member',
   })
   @ApiResponse({ status: 200, description: 'Verification email sent' })
   @ApiBody({
@@ -362,20 +362,20 @@ export class AuthController {
       );
 
       // Always return success for security
-      return { message: 'Verification email sent if user exists' };
+      return { message: 'Verification email sent if member exists' };
     }
   }
 
-  @Get('user-info')
+  @Get('member-info')
   @UseGuards(AuthGuard)
   @ApiSecurity('bearer')
   @ApiOperation({
-    summary: 'Get user information',
-    description: 'Gets current user information from Keycloak',
+    summary: 'Get member information',
+    description: 'Gets current member information from Keycloak',
   })
   @ApiResponse({
     status: 200,
-    description: 'User information retrieved',
+    description: 'Member information retrieved',
     schema: {
       type: 'object',
       properties: {
@@ -389,35 +389,38 @@ export class AuthController {
   })
   async getUserInfo(@Req() req: AuthenticatedRequest) {
     try {
-      const userId = req.user?.sub;
-      if (!userId) {
+      const memberId = req.member?.sub;
+      if (!memberId) {
         throw new HttpException(
           'Authentication required',
           HttpStatus.UNAUTHORIZED,
         );
       }
 
-      const userInfo = await this.authService.getUserInfo(userId);
-      return userInfo;
+      const memberInfo = await this.authService.getUserInfo(memberId);
+      return memberInfo;
     } catch (error) {
-      this.logger.error(`Get user info failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Get member info failed: ${error.message}`,
+        error.stack,
+      );
 
       throw new HttpException(
-        'Failed to retrieve user information',
+        'Failed to retrieve member information',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
 
-  @Post('dev/verify-user/:email')
+  @Post('dev/verify-member/:email')
   @ApiOperation({
-    summary: 'Manually verify user email (Development Only)',
+    summary: 'Manually verify member email (Development Only)',
     description:
-      "Directly marks a user's email as verified for development purposes. Only works in development environment.",
+      "Directly marks a member's email as verified for development purposes. Only works in development environment.",
   })
   @ApiResponse({
     status: 200,
-    description: 'User email verified successfully',
+    description: 'Member email verified successfully',
     schema: {
       type: 'object',
       properties: {
@@ -426,13 +429,13 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 404, description: 'Member not found' })
   @ApiResponse({ status: 403, description: 'Not available in production' })
   async verifyUserManually(@Param('email') email: string) {
     try {
       await this.authService.markEmailAsVerifiedForDev(email);
       return {
-        message: 'User email has been marked as verified',
+        message: 'Member email has been marked as verified',
         verified: true,
       };
     } catch (error) {
@@ -446,21 +449,21 @@ export class AuthController {
       }
 
       throw new HttpException(
-        'User not found or verification failed',
+        'Member not found or verification failed',
         HttpStatus.NOT_FOUND,
       );
     }
   }
 
-  @Get('dev/user-status/:email')
+  @Get('dev/member-status/:email')
   @ApiOperation({
-    summary: 'Get user status for debugging (Development Only)',
+    summary: 'Get member status for debugging (Development Only)',
     description:
-      'Returns detailed user information for debugging login issues. Only works in development environment.',
+      'Returns detailed member information for debugging login issues. Only works in development environment.',
   })
   @ApiResponse({
     status: 200,
-    description: 'User status retrieved',
+    description: 'Member status retrieved',
     schema: {
       type: 'object',
       properties: {
@@ -476,15 +479,15 @@ export class AuthController {
       },
     },
   })
-  @ApiResponse({ status: 404, description: 'User not found' })
+  @ApiResponse({ status: 404, description: 'Member not found' })
   @ApiResponse({ status: 403, description: 'Not available in production' })
   async getUserStatus(@Param('email') email: string) {
     try {
-      const userStatus = await this.authService.getUserStatusForDev(email);
-      return userStatus;
+      const memberStatus = await this.authService.getUserStatusForDev(email);
+      return memberStatus;
     } catch (error) {
       this.logger.error(
-        `Get user status failed: ${error.message}`,
+        `Get member status failed: ${error.message}`,
         error.stack,
       );
 
@@ -492,7 +495,7 @@ export class AuthController {
         throw error;
       }
 
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      throw new HttpException('Member not found', HttpStatus.NOT_FOUND);
     }
   }
 }

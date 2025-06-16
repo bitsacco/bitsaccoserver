@@ -24,7 +24,7 @@ export class ApiKeyController {
       valid: true,
       keyId: req.apiKeyId,
       organizationId: req.organizationId,
-      permissions: req.user?.permissions || [],
+      permissions: req.member?.permissions || [],
       message: 'API key is valid',
     };
   }

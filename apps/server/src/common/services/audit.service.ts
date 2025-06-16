@@ -50,7 +50,7 @@ export class AuditService {
     const query: any = { isArchived: false };
 
     // Apply filters
-    if (filters.userId) query.userId = filters.userId;
+    if (filters.memberId) query.memberId = filters.memberId;
     if (filters.action)
       query.action = { $regex: filters.action, $options: 'i' };
     if (filters.resourceType) query.resourceType = filters.resourceType;
@@ -107,16 +107,16 @@ export class AuditService {
   }
 
   /**
-   * Get user activity audit trail
+   * Get member activity audit trail
    */
   async getUserAuditTrail(
-    userId: string,
+    memberId: string,
     startDate?: Date,
     endDate?: Date,
     limit: number = 100,
   ): Promise<AuditTrailDocument[]> {
     const query: any = {
-      userId,
+      memberId,
       isArchived: false,
     };
 
@@ -168,8 +168,8 @@ export class AuditService {
       this.auditTrailModel.find(query).exec(),
     ]);
 
-    // Calculate unique users
-    const uniqueUsers = new Set(logs.map((log) => log.userId)).size;
+    // Calculate unique members
+    const uniqueUsers = new Set(logs.map((log) => log.memberId)).size;
 
     // Calculate top actions
     const actionCounts = logs.reduce(
@@ -224,9 +224,9 @@ export class AuditService {
    */
   async searchAuditLogs(searchCriteria: {
     keyword?: string;
-    userId?: string;
+    memberId?: string;
     ipAddress?: string;
-    userAgent?: string;
+    memberAgent?: string;
     amountRange?: { min: number; max: number };
     riskLevels?: string[];
     dataClassifications?: string[];
@@ -258,14 +258,14 @@ export class AuditService {
       ];
     }
 
-    // User and session filters
-    if (searchCriteria.userId) query.userId = searchCriteria.userId;
+    // Member and session filters
+    if (searchCriteria.memberId) query.memberId = searchCriteria.memberId;
     if (searchCriteria.ipAddress) {
       query['requestData.ipAddress'] = searchCriteria.ipAddress;
     }
-    if (searchCriteria.userAgent) {
-      query['requestData.userAgent'] = {
-        $regex: searchCriteria.userAgent,
+    if (searchCriteria.memberAgent) {
+      query['requestData.memberAgent'] = {
+        $regex: searchCriteria.memberAgent,
         $options: 'i',
       };
     }
@@ -428,8 +428,8 @@ export class AuditService {
       privilegedOperations: number;
     };
     details: {
-      userActivity: Array<{
-        userId: string;
+      memberActivity: Array<{
+        memberId: string;
         eventCount: number;
         lastActivity: Date;
       }>;
@@ -475,22 +475,22 @@ export class AuditService {
     };
 
     // Generate detailed analysis
-    const userActivityMap = logs.reduce(
+    const memberActivityMap = logs.reduce(
       (acc, log) => {
-        if (!acc[log.userId]) {
-          acc[log.userId] = { eventCount: 0, lastActivity: log.createdAt };
+        if (!acc[log.memberId]) {
+          acc[log.memberId] = { eventCount: 0, lastActivity: log.createdAt };
         }
-        acc[log.userId].eventCount++;
-        if (log.createdAt > acc[log.userId].lastActivity) {
-          acc[log.userId].lastActivity = log.createdAt;
+        acc[log.memberId].eventCount++;
+        if (log.createdAt > acc[log.memberId].lastActivity) {
+          acc[log.memberId].lastActivity = log.createdAt;
         }
         return acc;
       },
       {} as Record<string, { eventCount: number; lastActivity: Date }>,
     );
 
-    const userActivity = Object.entries(userActivityMap)
-      .map(([userId, data]) => ({ userId, ...data }))
+    const memberActivity = Object.entries(memberActivityMap)
+      .map(([memberId, data]) => ({ memberId, ...data }))
       .sort((a, b) => b.eventCount - a.eventCount);
 
     const resourceAccessMap = logs.reduce(
@@ -527,7 +527,7 @@ export class AuditService {
     return {
       summary,
       details: {
-        userActivity,
+        memberActivity,
         resourceAccess,
         riskEvents,
         failedOperations,
@@ -584,7 +584,7 @@ export class AuditService {
   private convertToCSV(logs: AuditTrailDocument[]): string {
     const headers = [
       'Timestamp',
-      'User ID',
+      'Member ID',
       'Action',
       'Resource Type',
       'Resource ID',
@@ -595,12 +595,12 @@ export class AuditService {
       'Risk Level',
       'Sensitive Data',
       'IP Address',
-      'User Agent',
+      'Member Agent',
     ];
 
     const rows = logs.map((log) => [
       log.createdAt.toISOString(),
-      log.userId,
+      log.memberId,
       log.action,
       log.resourceType,
       log.resourceId || '',
@@ -611,7 +611,7 @@ export class AuditService {
       log.complianceContext?.riskLevel || '',
       log.complianceContext?.sensitiveData?.toString() || '',
       log.requestData?.ipAddress || '',
-      log.requestData?.userAgent || '',
+      log.requestData?.memberAgent || '',
     ]);
 
     return [headers, ...rows]

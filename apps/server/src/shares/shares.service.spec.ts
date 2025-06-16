@@ -112,7 +112,7 @@ describe('SharesService', () => {
       const buyData = {
         offerId: 'offer-123',
         quantity: 100,
-        userId: 'user-123',
+        memberId: 'member-123',
       };
 
       const result = await service.subscribeShares(buyData);
@@ -120,18 +120,18 @@ describe('SharesService', () => {
       expect(result).toHaveProperty('id');
       expect(result.offerId).toBe(buyData.offerId);
       expect(result.quantity).toBe(buyData.quantity);
-      expect(result.userId).toBe(buyData.userId);
+      expect(result.memberId).toBe(buyData.memberId);
       expect(result.status).toBe('pending');
       expect(result).toHaveProperty('createdAt');
     });
   });
 
   describe('transferShares', () => {
-    it('should transfer shares between users', async () => {
+    it('should transfer shares between members', async () => {
       const transferData = {
         sharesId: 'shares-123',
-        fromUserId: 'user-123',
-        toUserId: 'user-456',
+        fromMemberId: 'member-123',
+        toMemberId: 'member-456',
         quantity: 50,
         reason: 'Transfer to family member',
       };
@@ -140,8 +140,8 @@ describe('SharesService', () => {
 
       expect(result).toHaveProperty('id');
       expect(result.sharesId).toBe(transferData.sharesId);
-      expect(result.fromUserId).toBe(transferData.fromUserId);
-      expect(result.toUserId).toBe(transferData.toUserId);
+      expect(result.fromMemberId).toBe(transferData.fromMemberId);
+      expect(result.toMemberId).toBe(transferData.toMemberId);
       expect(result.quantity).toBe(transferData.quantity);
       expect(result.reason).toBe(transferData.reason);
       expect(result.status).toBe('completed');

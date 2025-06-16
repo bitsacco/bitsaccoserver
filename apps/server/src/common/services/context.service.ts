@@ -3,7 +3,7 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { PermissionScope, AuthenticatedUser } from '../types';
+import { PermissionScope, AuthenticatedMember } from '../types';
 import {
   ServiceContext,
   ServiceOperation,
@@ -42,10 +42,10 @@ export abstract class ContextAwareService {
   abstract getServiceOperations(): Record<string, ServiceOperation>;
 
   /**
-   * Create service context from authenticated user and request parameters
+   * Create service context from authenticated member and request parameters
    */
   async createServiceContext(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     organizationId?: string,
     chamaId?: string,
   ): Promise<ServiceContext> {
@@ -59,19 +59,19 @@ export abstract class ContextAwareService {
 
     // Resolve permissions for the context
     const permissions = this.permissionService.resolveUserPermissions(
-      user,
+      member,
       scope,
       organizationId,
       chamaId,
     );
 
     return {
-      userId: user.userId,
+      memberId: member.memberId,
       scope,
       organizationId,
       chamaId,
       permissions,
-      user,
+      member,
     };
   }
 
@@ -97,8 +97,8 @@ export abstract class ContextAwareService {
     }
 
     // Check permissions
-    const hasPermissions = this.permissionService.userHasAllPermissions(
-      context.user,
+    const hasPermissions = this.permissionService.memberHasAllPermissions(
+      context.member,
       operation.requiredPermissions,
       context.scope,
       context.organizationId,

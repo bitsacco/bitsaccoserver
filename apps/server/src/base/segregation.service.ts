@@ -11,7 +11,7 @@ import {
   GroupRole,
   SegregationRule,
   SegregationRuleDocument,
-  AuthenticatedUser,
+  AuthenticatedMember,
   ServiceRole,
   Permission,
   PermissionScope,
@@ -22,15 +22,15 @@ export interface SoDViolation {
   ruleId: string;
   ruleName: string;
   description: string;
-  conflictType: 'same_user' | 'same_role' | 'same_session' | 'time_window';
+  conflictType: 'same_member' | 'same_role' | 'same_session' | 'time_window';
   operation1: {
-    userId: string;
+    memberId: string;
     action: string;
     timestamp: Date;
     sessionId?: string;
   };
   operation2: {
-    userId: string;
+    memberId: string;
     action: string;
     timestamp: Date;
     sessionId?: string;
@@ -41,7 +41,7 @@ export interface SoDViolation {
 }
 
 export interface OperationContext {
-  userId: string;
+  memberId: string;
   action: string;
   permissions: Permission[];
   roles: (ServiceRole | GroupRole)[];
@@ -75,7 +75,7 @@ export class SegregationService {
    * Check if an operation violates segregation of duties
    */
   async checkSegregationViolation(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     operationContext: Omit<OperationContext, 'timestamp'>,
   ): Promise<SoDViolation[]> {
     const context: OperationContext = {
@@ -94,7 +94,7 @@ export class SegregationService {
 
         // Log the violation
         await this.auditService.logAuditEvent({
-          userId: context.userId,
+          memberId: context.memberId,
           action: 'SOD_VIOLATION_DETECTED',
           resourceType: 'segregation_rule',
           resourceId: rule._id.toString(),
@@ -127,7 +127,7 @@ export class SegregationService {
    * Create a new segregation rule
    */
   async createSegregationRule(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     ruleData: {
       ruleName: string;
       description: string;
@@ -144,7 +144,7 @@ export class SegregationService {
           roles: (ServiceRole | GroupRole)[];
         };
         conflictType:
-          | 'same_user'
+          | 'same_member'
           | 'same_role'
           | 'same_session'
           | 'time_window';
@@ -158,8 +158,8 @@ export class SegregationService {
       };
     },
   ): Promise<SegregationRuleDocument> {
-    // Validate user permissions (only SYSTEM_ADMIN can create SoD rules)
-    if (user.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    // Validate member permissions (only SYSTEM_ADMIN can create SoD rules)
+    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
       throw new ForbiddenException(
         'Only SYSTEM_ADMIN can create segregation rules',
       );
@@ -168,14 +168,14 @@ export class SegregationService {
     const rule = new this.segregationRuleModel({
       ...ruleData,
       isActive: true,
-      createdBy: user.userId,
-      lastModifiedBy: user.userId,
+      createdBy: member.memberId,
+      lastModifiedBy: member.memberId,
     });
 
     const savedRule = await rule.save();
 
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'SOD_RULE_CREATED',
       resourceType: 'segregation_rule',
       resourceId: savedRule._id.toString(),
@@ -190,11 +190,11 @@ export class SegregationService {
    * Update segregation rule
    */
   async updateSegregationRule(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     ruleId: string,
     updateData: Partial<SegregationRule>,
   ): Promise<SegregationRuleDocument> {
-    if (user.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
       throw new ForbiddenException(
         'Only SYSTEM_ADMIN can update segregation rules',
       );
@@ -202,7 +202,7 @@ export class SegregationService {
 
     const rule = await this.segregationRuleModel.findByIdAndUpdate(
       ruleId,
-      { ...updateData, lastModifiedBy: user.userId },
+      { ...updateData, lastModifiedBy: member.memberId },
       { new: true, runValidators: true },
     );
 
@@ -211,7 +211,7 @@ export class SegregationService {
     }
 
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'SOD_RULE_UPDATED',
       resourceType: 'segregation_rule',
       resourceId: ruleId,
@@ -226,14 +226,14 @@ export class SegregationService {
    * Get all segregation rules
    */
   async getSegregationRules(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     scope?: PermissionScope,
     isActive?: boolean,
   ): Promise<SegregationRuleDocument[]> {
     // ADMIN and above can view SoD rules
     if (
-      user.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
-      user.serviceRole !== ServiceRole.ADMIN
+      member.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
+      member.serviceRole !== ServiceRole.ADMIN
     ) {
       throw new ForbiddenException(
         'Insufficient permissions to view segregation rules',
@@ -251,11 +251,11 @@ export class SegregationService {
    * Activate/deactivate segregation rule
    */
   async toggleSegregationRule(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     ruleId: string,
     isActive: boolean,
   ): Promise<SegregationRuleDocument> {
-    if (user.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
       throw new ForbiddenException(
         'Only SYSTEM_ADMIN can toggle segregation rules',
       );
@@ -263,7 +263,7 @@ export class SegregationService {
 
     const rule = await this.segregationRuleModel.findByIdAndUpdate(
       ruleId,
-      { isActive, lastModifiedBy: user.userId },
+      { isActive, lastModifiedBy: member.memberId },
       { new: true },
     );
 
@@ -272,7 +272,7 @@ export class SegregationService {
     }
 
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: isActive ? 'SOD_RULE_ACTIVATED' : 'SOD_RULE_DEACTIVATED',
       resourceType: 'segregation_rule',
       resourceId: ruleId,
@@ -287,7 +287,7 @@ export class SegregationService {
    * Get segregation violations for a specific time period
    */
   async getViolationReport(
-    user: AuthenticatedUser,
+    member: AuthenticatedMember,
     startDate: Date,
     endDate: Date,
     scope?: PermissionScope,
@@ -359,7 +359,7 @@ export class SegregationService {
       {
         ruleName: 'Financial Authorization Segregation',
         description:
-          'User who initiates a financial transaction cannot approve it',
+          'Member who initiates a financial transaction cannot approve it',
         scope: PermissionScope.ORGANIZATION,
         conflictingOperations: {
           operation1: {
@@ -375,7 +375,7 @@ export class SegregationService {
             permissions: [Permission.FINANCE_APPROVE],
             roles: [GroupRole.CHAMA_LEADER, GroupRole.SACCO_TREASURER],
           },
-          conflictType: 'same_user' as const,
+          conflictType: 'same_member' as const,
         },
         enforcement: {
           blockConflicting: true,
@@ -388,22 +388,22 @@ export class SegregationService {
         lastModifiedBy: 'system',
       },
       {
-        ruleName: 'User Management Segregation',
+        ruleName: 'Member Management Segregation',
         description:
-          'User creation and role assignment must be done by different users',
+          'Member creation and role assignment must be done by different members',
         scope: PermissionScope.ORGANIZATION,
         conflictingOperations: {
           operation1: {
-            action: 'user_create',
+            action: 'member_create',
             permissions: [Permission.USER_CREATE],
             roles: [ServiceRole.ADMIN, GroupRole.SACCO_ADMIN],
           },
           operation2: {
-            action: 'user_role_assign',
+            action: 'member_role_assign',
             permissions: [Permission.USER_UPDATE],
             roles: [ServiceRole.ADMIN, GroupRole.SACCO_ADMIN],
           },
-          conflictType: 'same_user' as const,
+          conflictType: 'same_member' as const,
         },
         enforcement: {
           blockConflicting: false,
@@ -418,7 +418,7 @@ export class SegregationService {
       {
         ruleName: 'Loan Processing Segregation',
         description:
-          'Loan application and approval must be done by different users within 24 hours',
+          'Loan application and approval must be done by different members within 24 hours',
         scope: PermissionScope.CHAMA,
         conflictingOperations: {
           operation1: {
@@ -505,26 +505,26 @@ export class SegregationService {
         conflictType: conflictingOperations.conflictType,
         operation1: isOperation1
           ? {
-              userId: context.userId,
+              memberId: context.memberId,
               action: context.action,
               timestamp: context.timestamp,
               sessionId: context.sessionId,
             }
           : {
-              userId: conflictingOp.userId,
+              memberId: conflictingOp.memberId,
               action: conflictingOp.action,
               timestamp: conflictingOp.timestamp,
               sessionId: conflictingOp.sessionId,
             },
         operation2: isOperation1
           ? {
-              userId: conflictingOp.userId,
+              memberId: conflictingOp.memberId,
               action: conflictingOp.action,
               timestamp: conflictingOp.timestamp,
               sessionId: conflictingOp.sessionId,
             }
           : {
-              userId: context.userId,
+              memberId: context.memberId,
               action: context.action,
               timestamp: context.timestamp,
               sessionId: context.sessionId,
@@ -546,8 +546,8 @@ export class SegregationService {
     const { conflictType, timeWindowHours } = rule.conflictingOperations;
 
     switch (conflictType) {
-      case 'same_user':
-        return currentOp.userId === historicalOp.userId;
+      case 'same_member':
+        return currentOp.memberId === historicalOp.memberId;
 
       case 'same_role':
         return currentOp.roles.some((role) =>

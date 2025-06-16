@@ -28,7 +28,7 @@ export interface ApprovalRequest {
   status: ApprovalStatus.APPROVED | ApprovalStatus.REJECTED;
   comment?: string;
   ipAddress?: string;
-  userAgent?: string;
+  memberAgent?: string;
 }
 
 // These enums are now exported from schemas/compliance.schema.ts
@@ -38,7 +38,7 @@ export interface ComplianceEventData {
   eventType: string;
   severity: RiskLevel;
   description: string;
-  userId?: string;
+  memberId?: string;
   organizationId?: string;
   chamaId?: string;
   scope: PermissionScope;

@@ -21,12 +21,12 @@ export interface JwtPayload {
 }
 
 /**
- * Enhanced authenticated user with dual-scope context
+ * Enhanced authenticated member with dual-scope context
  */
-export interface AuthenticatedUser {
-  // Basic user info
-  userId: string;
-  sub: string; // JWT subject identifier (same as userId but from token)
+export interface AuthenticatedMember {
+  // Basic member info
+  memberId: string;
+  sub: string; // JWT subject identifier (same as memberId but from token)
   email: string;
   authMethod: 'jwt' | 'api-key';
 
@@ -50,7 +50,7 @@ export interface AuthenticatedUser {
 }
 
 export interface AuthenticatedRequest extends Request {
-  user: AuthenticatedUser;
+  member: AuthenticatedMember;
   organizationId?: string;
   chamaId?: string;
   scope: PermissionScope;
@@ -59,7 +59,7 @@ export interface AuthenticatedRequest extends Request {
 
 export interface AuthMetricData {
   action: string;
-  userId?: string;
+  memberId?: string;
   success: boolean;
   duration: number;
   errorType?: string;

@@ -9,6 +9,8 @@ import {
   MetricsService,
   AuditService,
   PermissionService,
+  SaccoService,
+  FinancialService,
 } from './services';
 import {
   TransactionLogDocument,
@@ -19,6 +21,18 @@ import {
   OrganizationServiceSchema,
   AuditTrail,
   AuditTrailSchema,
+  Sacco,
+  SaccoSchema,
+  Chama,
+  ChamaSchema,
+  SaccoMember,
+  SaccoMemberSchema,
+  SaccoMembership,
+  SaccoMembershipSchema,
+  ChamaMembership,
+  ChamaMembershipSchema,
+  GroupRelationship,
+  GroupRelationshipSchema,
 } from './schemas';
 
 @Module({
@@ -34,6 +48,12 @@ import {
         name: AuditTrail.name,
         schema: AuditTrailSchema,
       },
+      { name: Sacco.name, schema: SaccoSchema },
+      { name: Chama.name, schema: ChamaSchema },
+      { name: SaccoMember.name, schema: SaccoMemberSchema },
+      { name: SaccoMembership.name, schema: SaccoMembershipSchema },
+      { name: ChamaMembership.name, schema: ChamaMembershipSchema },
+      { name: GroupRelationship.name, schema: GroupRelationshipSchema },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -54,6 +74,8 @@ import {
     MetricsService,
     AuditService,
     PermissionService,
+    SaccoService,
+    FinancialService,
   ],
   exports: [
     ApiKeyService,
@@ -61,6 +83,8 @@ import {
     MetricsService,
     AuditService,
     PermissionService,
+    SaccoService,
+    FinancialService,
     MongooseModule,
     JwtModule,
   ],

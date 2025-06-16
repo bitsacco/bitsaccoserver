@@ -39,15 +39,15 @@ export class UpdateOrganizationDto extends PartialType(CreateOrganizationDto) {}
 
 export class AddMemberDto {
   @ApiProperty({
-    description: 'User ID to add as a member',
-    example: 'user-123-abc',
+    description: 'Member ID to add as a member',
+    example: 'member-123-abc',
   })
   @IsString()
   @IsNotEmpty()
-  userId: string;
+  memberId: string;
 
   @ApiProperty({
-    description: 'Role to assign to the user',
+    description: 'Role to assign to the member',
     enum: GroupRole,
     example: GroupRole.SACCO_ADMIN,
   })

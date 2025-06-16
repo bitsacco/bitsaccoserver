@@ -54,19 +54,19 @@ export class OrganizationController {
   ) {
     return this.organizationService.create(
       createOrganizationDto,
-      req.user.sub,
-      req.user.email,
+      req.member.sub,
+      req.member.email,
     );
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all organizations for current user' })
+  @ApiOperation({ summary: 'Get all organizations for current member' })
   @ApiResponse({
     status: 200,
     description: 'Organizations retrieved successfully',
   })
   async findAll(@Request() req: AuthenticatedRequest) {
-    return this.organizationService.findAll(req.user.sub);
+    return this.organizationService.findAll(req.member.sub);
   }
 
   @Get(':id')
@@ -129,7 +129,7 @@ export class OrganizationController {
         summary: 'Add developer member',
         description: 'Example of adding a developer to the organization',
         value: {
-          userId: 'user-123-abc',
+          memberId: 'member-123-abc',
           role: 'developer',
         },
       },
@@ -137,7 +137,7 @@ export class OrganizationController {
         summary: 'Add admin member',
         description: 'Example of adding an admin to the organization',
         value: {
-          userId: 'user-456-def',
+          memberId: 'member-456-def',
           role: 'admin',
         },
       },
@@ -149,7 +149,7 @@ export class OrganizationController {
     schema: {
       type: 'object',
       properties: {
-        userId: { type: 'string' },
+        memberId: { type: 'string' },
         organizationId: { type: 'string' },
         role: { type: 'string', enum: Object.values(GroupRole) },
         invitedBy: { type: 'string' },
@@ -161,7 +161,7 @@ export class OrganizationController {
   })
   @ApiResponse({ status: 400, description: 'Invalid request data' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  @ApiResponse({ status: 409, description: 'User is already a member' })
+  @ApiResponse({ status: 409, description: 'Member is already a member' })
   async addMember(
     @Param('id') organizationId: string,
     @Body() addMemberDto: AddMemberDto,
@@ -169,9 +169,9 @@ export class OrganizationController {
   ) {
     return this.organizationService.addMember(
       organizationId,
-      addMemberDto.userId,
+      addMemberDto.memberId,
       addMemberDto.role,
-      req.user.sub,
+      req.member.sub,
     );
   }
 
@@ -188,7 +188,7 @@ export class OrganizationController {
   ) {
     return this.apiKeyService.create(
       organizationId,
-      req.user.sub,
+      req.member.sub,
       createApiKeyDto,
     );
   }

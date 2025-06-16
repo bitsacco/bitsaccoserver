@@ -2,7 +2,7 @@
 
 export interface RiskAssessment {
   transactionId?: string;
-  userId: string;
+  memberId: string;
   organizationId: string;
   chamaId?: string;
   operationType: string;
@@ -24,7 +24,7 @@ export interface RiskAssessment {
 }
 
 export interface RiskFactor {
-  category: 'transaction' | 'user' | 'location' | 'temporal' | 'behavioral';
+  category: 'transaction' | 'member' | 'location' | 'temporal' | 'behavioral';
   name: string;
   description: string;
   weight: number; // 0-1
@@ -48,7 +48,7 @@ export interface LimitViolation {
   limitValue: number;
   currentValue: number;
   violationAmount: number;
-  userId: string;
+  memberId: string;
   organizationId: string;
   chamaId?: string;
   transactionId?: string;
@@ -63,7 +63,7 @@ export interface SoDViolation {
   ruleName: string;
   description: string;
   severity: RiskLevel;
-  userId: string;
+  memberId: string;
   organizationId: string;
   chamaId?: string;
   operationType: string;
@@ -76,14 +76,14 @@ export interface SoDViolation {
 }
 
 export interface OperationContext {
-  userId: string;
+  memberId: string;
   organizationId: string;
   chamaId?: string;
   operationType: string;
   operationData: any;
   timestamp: Date;
   ipAddress?: string;
-  userAgent?: string;
+  memberAgent?: string;
   sessionId?: string;
   requestId: string;
 }

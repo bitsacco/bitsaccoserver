@@ -259,7 +259,7 @@ export class SaccoService {
     memberData: Partial<SaccoMember>,
   ): Promise<SaccoMemberDocument> {
     const existingMember = await this.memberModel.findOne({
-      userId: memberData.userId,
+      memberId: memberData.memberId,
     });
 
     if (existingMember) {
@@ -298,10 +298,10 @@ export class SaccoService {
   }
 
   /**
-   * Get member by user ID
+   * Get member by member ID
    */
-  async getMember(userId: string): Promise<SaccoMemberDocument> {
-    const member = await this.memberModel.findOne({ userId });
+  async getMember(memberId: string): Promise<SaccoMemberDocument> {
+    const member = await this.memberModel.findOne({ memberId });
     if (!member) {
       throw new NotFoundException('Member not found');
     }
@@ -315,7 +315,7 @@ export class SaccoService {
    */
   async addOrganizationMember(
     organizationId: string,
-    userId: string,
+    memberId: string,
     role: GroupRole,
     invitedBy: string,
     customPermissions: Permission[] = [],
@@ -323,13 +323,13 @@ export class SaccoService {
     // Check if membership already exists
     const existingMembership = await this.orgMembershipModel.findOne({
       organizationId,
-      userId,
+      memberId,
     });
 
     if (existingMembership) {
       if (existingMembership.isActive) {
         throw new ConflictException(
-          'User is already a member of this organization',
+          'Member is already a member of this organization',
         );
       } else {
         // Reactivate membership
@@ -343,7 +343,7 @@ export class SaccoService {
 
     // Create new membership
     const membership = new this.orgMembershipModel({
-      userId,
+      memberId,
       organizationId,
       role,
       customPermissions,
@@ -381,7 +381,7 @@ export class SaccoService {
    */
   async addChamaMember(
     chamaId: string,
-    userId: string,
+    memberId: string,
     role: GroupRole,
     invitedBy: string,
     customPermissions: Permission[] = [],
@@ -389,12 +389,12 @@ export class SaccoService {
     // Check if membership already exists
     const existingMembership = await this.chamaMembershipModel.findOne({
       chamaId,
-      userId,
+      memberId,
     });
 
     if (existingMembership) {
       if (existingMembership.isActive) {
-        throw new ConflictException('User is already a member of this chama');
+        throw new ConflictException('Member is already a member of this chama');
       } else {
         // Reactivate membership
         existingMembership.isActive = true;
@@ -407,7 +407,7 @@ export class SaccoService {
 
     // Create new membership
     const membership = new this.chamaMembershipModel({
-      userId,
+      memberId,
       chamaId,
       role,
       customPermissions,
@@ -448,14 +448,14 @@ export class SaccoService {
   }
 
   /**
-   * Get user's group memberships for permission resolution
+   * Get member's group memberships for permission resolution
    */
-  async getUserGroupMemberships(userId: string): Promise<GroupMembership[]> {
+  async getUserGroupMemberships(memberId: string): Promise<GroupMembership[]> {
     const memberships: GroupMembership[] = [];
 
     // Get organization memberships
     const orgMemberships = await this.orgMembershipModel.find({
-      userId,
+      memberId,
       isActive: true,
     });
     for (const membership of orgMemberships) {
@@ -476,7 +476,7 @@ export class SaccoService {
 
     // Get chama memberships
     const chamaMemberships = await this.chamaMembershipModel.find({
-      userId,
+      memberId,
       isActive: true,
     });
     for (const membership of chamaMemberships) {
@@ -503,13 +503,13 @@ export class SaccoService {
    */
   async updateOrganizationMemberRole(
     organizationId: string,
-    userId: string,
+    memberId: string,
     newRole: GroupRole,
     _updatedBy: string,
   ): Promise<SaccoMembershipDocument> {
     const membership = await this.orgMembershipModel.findOne({
       organizationId,
-      userId,
+      memberId,
       isActive: true,
     });
 
@@ -526,10 +526,10 @@ export class SaccoService {
    */
   async removeOrganizationMember(
     organizationId: string,
-    userId: string,
+    memberId: string,
   ): Promise<void> {
     await this.orgMembershipModel.findOneAndUpdate(
-      { organizationId, userId },
+      { organizationId, memberId },
       { isActive: false },
     );
   }
@@ -537,9 +537,9 @@ export class SaccoService {
   /**
    * Remove member from chama
    */
-  async removeChamaMember(chamaId: string, userId: string): Promise<void> {
+  async removeChamaMember(chamaId: string, memberId: string): Promise<void> {
     await this.chamaMembershipModel.findOneAndUpdate(
-      { chamaId, userId },
+      { chamaId, memberId },
       { isActive: false, 'membershipDetails.exitDate': new Date() },
     );
 
@@ -583,7 +583,7 @@ export class SaccoService {
       this.getSaccoChamas(organizationId),
       this.orgMembershipModel
         .find({ organizationId, isActive: true })
-        .populate('userId'),
+        .populate('memberId'),
     ]);
 
     return {

@@ -7,7 +7,7 @@
 // Service-level roles (system-wide)
 export enum ServiceRole {
   SYSTEM_ADMIN = 'system_admin', // Full configuration access
-  ADMIN = 'admin', // User management, service configuration
+  ADMIN = 'admin', // Member management, service configuration
   MEMBER = 'member', // Basic service access
 }
 
@@ -45,12 +45,12 @@ export enum Permission {
   SYSTEM_MONITOR = 'system:monitor',
   SYSTEM_BACKUP = 'system:backup',
 
-  // User management
-  USER_CREATE = 'user:create',
-  USER_READ = 'user:read',
-  USER_UPDATE = 'user:update',
-  USER_DELETE = 'user:delete',
-  USER_INVITE = 'user:invite',
+  // Member management
+  USER_CREATE = 'member:create',
+  USER_READ = 'member:read',
+  USER_UPDATE = 'member:update',
+  USER_DELETE = 'member:delete',
+  USER_INVITE = 'member:invite',
 
   // Organization management
   ORG_CREATE = 'org:create',

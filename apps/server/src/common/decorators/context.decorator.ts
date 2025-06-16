@@ -8,7 +8,7 @@ import {
 import { AuthGuard, RequirePermissions, RequireScope } from '../auth.guard';
 import {
   AuthenticatedRequest,
-  AuthenticatedUser,
+  AuthenticatedMember,
   Permission,
   PermissionScope,
 } from '../types';
@@ -20,9 +20,9 @@ import {
 export const Context = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
-    const user = request.user;
+    const member = request.member;
 
-    if (!user) {
+    if (!member) {
       return null;
     }
 
@@ -42,23 +42,23 @@ export const Context = createParamDecorator(
     }
 
     return {
-      userId: user.userId,
-      user,
+      memberId: member.memberId,
+      member,
       scope,
       organizationId,
       chamaId,
-      permissions: user.contextPermissions || [],
+      permissions: member.contextPermissions || [],
     };
   },
 );
 
 /**
- * Decorator to extract current user from request
+ * Decorator to extract current member from request
  */
 export const CurrentUser = createParamDecorator(
-  (data: unknown, ctx: ExecutionContext): AuthenticatedUser => {
+  (data: unknown, ctx: ExecutionContext): AuthenticatedMember => {
     const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
-    return request.user;
+    return request.member;
   },
 );
 

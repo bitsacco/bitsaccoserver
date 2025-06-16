@@ -21,7 +21,8 @@
       "Bash(yarn lint:*)",
       "Bash(rg:*)",
       "mcp__ide__getDiagnostics",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }

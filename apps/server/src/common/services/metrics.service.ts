@@ -126,7 +126,7 @@ export class MetricsService {
         requestSize: data.requestSize || 0,
         responseSize: data.responseSize || 0,
         clientIp: data.clientIp,
-        userAgent: data.userAgent,
+        memberAgent: data.memberAgent,
         timestamp: new Date(),
         metadata: {},
       };
@@ -164,7 +164,7 @@ export class MetricsService {
         timestamp: new Date(),
         metadata: {
           action: data.action,
-          userId: data.userId,
+          memberId: data.memberId,
           errorType: data.errorType,
         },
       };
@@ -277,7 +277,7 @@ export class MetricsService {
         responseSize: 0,
         timestamp: new Date(),
         metadata: {
-          userId: data.userId,
+          memberId: data.memberId,
           offerId: data.offerId,
           quantity: data.quantity,
           errorType: data.errorType,
@@ -286,7 +286,7 @@ export class MetricsService {
 
       await this.transactionLogModel.create(logData);
       this.logger.debug(
-        `Shares subscription metric recorded for user ${data.userId}`,
+        `Shares subscription metric recorded for member ${data.memberId}`,
       );
     } catch (error) {
       this.logger.error('Failed to record shares subscription metric:', error);
@@ -298,7 +298,7 @@ export class MetricsService {
    * Note: Shares are managed globally, not by organizations
    */
   async recordSharesTransferMetric(
-    data: SharesMetricData & { fromUserId: string; toUserId: string },
+    data: SharesMetricData & { fromMemberId: string; toMemberId: string },
     organizationId?: string,
     apiKeyId?: string,
   ): Promise<void> {
@@ -319,8 +319,8 @@ export class MetricsService {
         responseSize: 0,
         timestamp: new Date(),
         metadata: {
-          fromUserId: data.fromUserId,
-          toUserId: data.toUserId,
+          fromMemberId: data.fromMemberId,
+          toMemberId: data.toMemberId,
           quantity: data.quantity,
           errorType: data.errorType,
         },
@@ -328,7 +328,7 @@ export class MetricsService {
 
       await this.transactionLogModel.create(logData);
       this.logger.debug(
-        `Shares transfer metric recorded from ${data.fromUserId} to ${data.toUserId}`,
+        `Shares transfer metric recorded from ${data.fromMemberId} to ${data.toMemberId}`,
       );
     } catch (error) {
       this.logger.error('Failed to record shares transfer metric:', error);
@@ -359,7 +359,7 @@ export class MetricsService {
         responseSize: 0,
         timestamp: new Date(),
         metadata: {
-          userId: data.userId,
+          memberId: data.memberId,
           quantity: data.quantity,
           percentageOfTotal: data.percentageOfTotal,
           limitReached: data.limitReached,
@@ -368,7 +368,7 @@ export class MetricsService {
 
       await this.transactionLogModel.create(logData);
       this.logger.debug(
-        `Shares ownership metric recorded for user ${data.userId}: ${data.percentageOfTotal}%`,
+        `Shares ownership metric recorded for member ${data.memberId}: ${data.percentageOfTotal}%`,
       );
     } catch (error) {
       this.logger.error('Failed to record shares ownership metric:', error);

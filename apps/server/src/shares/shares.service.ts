@@ -11,7 +11,7 @@ import {
   BuySharesDto,
   TransferSharesDto,
   UpdateSharesDto,
-  UserSharesDto,
+  MemberSharesDto,
   FindSharesTxDto,
   MetricsService,
   ContextAwareService,
@@ -25,7 +25,7 @@ import {
   ServiceOperation,
   ServiceContext,
   PaginationDto,
-  AuthenticatedUser,
+  AuthenticatedMember,
   RiskLevel,
 } from '../common';
 
@@ -123,10 +123,10 @@ export class SharesService extends ContextAwareService {
 
   // Helper method to create mock context (should be replaced with real auth context)
   private createMockContext(): ServiceContext {
-    const mockUser: AuthenticatedUser = {
-      userId: 'current-user',
-      sub: 'current-user',
-      email: 'user@example.com',
+    const mockMember: AuthenticatedMember = {
+      memberId: 'current-member',
+      sub: 'current-member',
+      email: 'member@example.com',
       authMethod: 'jwt',
       serviceRole: 'MEMBER' as any,
       servicePermissions: [],
@@ -138,12 +138,12 @@ export class SharesService extends ContextAwareService {
     };
 
     return {
-      userId: 'current-user',
+      memberId: 'current-member',
       organizationId: 'current-org',
       chamaId: undefined,
       scope: PermissionScope.ORGANIZATION,
       permissions: [],
-      user: mockUser,
+      member: mockMember,
     };
   }
 
@@ -184,11 +184,11 @@ export class SharesService extends ContextAwareService {
     );
   }
 
-  async userSharesTransactions(userData: UserSharesDto) {
+  async memberSharesTransactions(memberData: MemberSharesDto) {
     return this.performOperation(
       'viewShares',
       this.createMockContext(),
-      userData,
+      memberData,
     );
   }
 
@@ -282,9 +282,9 @@ export class SharesService extends ContextAwareService {
 
   private async buyShares(
     context: ServiceContext,
-    { userId, offerId, quantity }: BuySharesDto,
+    { memberId, offerId, quantity }: BuySharesDto,
   ) {
-    this.logger.debug(`Buying ${quantity} shares for user ${userId}`);
+    this.logger.debug(`Buying ${quantity} shares for member ${memberId}`);
     const startTime = Date.now();
     let success = false;
     let errorType = '';
@@ -308,18 +308,18 @@ export class SharesService extends ContextAwareService {
       const totalSharesAvailable = allOffers.totalOfferQuantity;
       const maxSharesPerUser = Math.floor(totalSharesAvailable * 0.2);
 
-      const userShares = await this.viewShares(context, {
-        userId,
+      const memberShares = await this.viewShares(context, {
+        memberId,
         pagination: { page: this.DEFAULT_PAGE, size: this.DEFAULT_PAGE_SIZE },
       });
 
-      const currentHoldings = userShares.shareHoldings;
+      const currentHoldings = memberShares.shareHoldings;
       const totalAfterSubscription = currentHoldings + quantity;
 
       const percentageOfTotal =
         (totalAfterSubscription / totalSharesAvailable) * 100;
       this.metricsService.recordSharesOwnershipMetric({
-        userId,
+        memberId,
         quantity: currentHoldings,
         percentageOfTotal,
         limitReached: percentageOfTotal >= 15,
@@ -328,13 +328,13 @@ export class SharesService extends ContextAwareService {
       if (totalAfterSubscription > maxSharesPerUser) {
         errorType = 'OWNERSHIP_LIMIT_EXCEEDED';
         throw new BadRequestException(
-          `Subscription exceeds maximum allowed shares per user (20% of total). ` +
+          `Subscription exceeds maximum allowed shares per member (20% of total). ` +
             `Current: ${currentHoldings}, Requested: ${quantity}, Maximum: ${maxSharesPerUser}`,
         );
       }
 
       const sharesTx = new this.sharesModel({
-        userId,
+        memberId,
         offerId,
         quantity,
         status: SharesTxStatus.PROPOSED,
@@ -344,7 +344,7 @@ export class SharesService extends ContextAwareService {
       success = true;
 
       const result = await this.viewShares(context, {
-        userId,
+        memberId,
         pagination: { page: this.DEFAULT_PAGE, size: this.DEFAULT_PAGE_SIZE },
       });
 
@@ -356,7 +356,7 @@ export class SharesService extends ContextAwareService {
     } finally {
       const duration = Date.now() - startTime;
       this.metricsService.recordSharesSubscriptionMetric({
-        userId,
+        memberId,
         offerId,
         quantity,
         success,
@@ -368,7 +368,7 @@ export class SharesService extends ContextAwareService {
 
   private async transferSharesInternal(
     context: ServiceContext,
-    { sharesId, fromUserId, toUserId, quantity, reason }: TransferSharesDto,
+    { sharesId, fromMemberId, toMemberId, quantity, reason }: TransferSharesDto,
   ) {
     const startTime = Date.now();
     let success = false;
@@ -396,7 +396,7 @@ export class SharesService extends ContextAwareService {
       const maxSharesPerUser = Math.floor(totalSharesAvailable * 0.2);
 
       const recipientShares = await this.viewShares(context, {
-        userId: toUserId,
+        memberId: toMemberId,
         pagination: { page: this.DEFAULT_PAGE, size: this.DEFAULT_PAGE_SIZE },
       });
 
@@ -406,12 +406,12 @@ export class SharesService extends ContextAwareService {
       if (totalAfterTransfer > maxSharesPerUser) {
         errorType = 'OWNERSHIP_LIMIT_EXCEEDED';
         throw new BadRequestException(
-          `Transfer exceeds maximum allowed shares per user (20% of total). ` +
+          `Transfer exceeds maximum allowed shares per member (20% of total). ` +
             `Recipient Current: ${currentHoldings}, Transfer: ${quantity}, Maximum: ${maxSharesPerUser}`,
         );
       }
 
-      const transfer = { fromUserId, toUserId, quantity, reason };
+      const transfer = { fromMemberId, toMemberId, quantity, reason };
 
       await this.sharesModel
         .findByIdAndUpdate(sharesId, {
@@ -421,7 +421,7 @@ export class SharesService extends ContextAwareService {
         .exec();
 
       const newShares = new this.sharesModel({
-        userId: toUserId,
+        memberId: toMemberId,
         offerId: originShares.offerId,
         quantity,
         status: SharesTxStatus.COMPLETE,
@@ -432,7 +432,7 @@ export class SharesService extends ContextAwareService {
       success = true;
 
       const result = await this.viewShares(context, {
-        userId: fromUserId,
+        memberId: fromMemberId,
         pagination: { page: this.DEFAULT_PAGE, size: this.DEFAULT_PAGE_SIZE },
       });
 
@@ -444,9 +444,9 @@ export class SharesService extends ContextAwareService {
     } finally {
       const duration = Date.now() - startTime;
       this.metricsService.recordSharesTransferMetric({
-        userId: fromUserId,
-        fromUserId,
-        toUserId,
+        memberId: fromMemberId,
+        fromMemberId,
+        toMemberId,
         quantity,
         success,
         duration,
@@ -502,7 +502,7 @@ export class SharesService extends ContextAwareService {
       }
 
       return this.viewShares(context, {
-        userId: updatedShares.userId,
+        memberId: updatedShares.memberId,
         pagination: { page: this.DEFAULT_PAGE, size: this.DEFAULT_PAGE_SIZE },
       });
     } catch (error) {
@@ -513,7 +513,7 @@ export class SharesService extends ContextAwareService {
 
   private async viewShares(
     context: ServiceContext,
-    { userId, pagination }: UserSharesDto,
+    { memberId, pagination }: MemberSharesDto,
   ) {
     try {
       const paginationParams = pagination || {
@@ -523,7 +523,7 @@ export class SharesService extends ContextAwareService {
 
       const shares = await this.sharesModel
         .find({
-          userId,
+          memberId,
           status: { $ne: SharesTxStatus.UNRECOGNIZED },
         })
         .sort({ createdAt: -1 })
@@ -538,19 +538,19 @@ export class SharesService extends ContextAwareService {
         .reduce((sum, share) => sum + share.quantity, 0);
 
       const transactions = await this.getPaginatedShareTx(
-        { userId },
+        { memberId },
         paginationParams,
       );
       const offers = await this.viewOffers(context);
 
       return {
-        userId,
+        memberId,
         shareHoldings,
         shares: transactions,
         offers,
       };
     } catch (error) {
-      this.logger.error(`Error getting user shares: ${error.message}`);
+      this.logger.error(`Error getting member shares: ${error.message}`);
       throw error;
     }
   }
@@ -588,7 +588,7 @@ export class SharesService extends ContextAwareService {
 
       return {
         id: shares._id.toString(),
-        userId: shares.userId,
+        memberId: shares.memberId,
         offerId: shares.offerId,
         quantity: shares.quantity,
         status: shares.status,
@@ -615,7 +615,7 @@ export class SharesService extends ContextAwareService {
     let success = false;
     let errorType = '';
     let sharesStatus: SharesTxStatus = SharesTxStatus.UNRECOGNIZED;
-    let userId = '';
+    let memberId = '';
     let offerId = '';
     let quantity = 0;
 
@@ -642,7 +642,7 @@ export class SharesService extends ContextAwareService {
         return;
       }
 
-      userId = sharesTx.userId;
+      memberId = sharesTx.memberId;
       offerId = sharesTx.offerId;
       quantity = sharesTx.quantity;
 
@@ -664,10 +664,10 @@ export class SharesService extends ContextAwareService {
       }
 
       const context: ServiceContext = {
-        userId: '',
+        memberId: '',
         scope: PermissionScope.GLOBAL,
         permissions: [],
-        user: {} as AuthenticatedUser,
+        member: {} as AuthenticatedMember,
       };
 
       await this.updateSharesInternal(context, {
@@ -702,20 +702,20 @@ export class SharesService extends ContextAwareService {
             const allOffers = await this.viewOffers(context);
             const totalSharesAvailable = allOffers.totalOfferQuantity;
 
-            const userShares = await this.viewShares(context, {
-              userId: sharesTx.userId,
+            const memberShares = await this.viewShares(context, {
+              memberId: sharesTx.memberId,
               pagination: {
                 page: this.DEFAULT_PAGE,
                 size: this.DEFAULT_PAGE_SIZE,
               },
             });
 
-            const currentHoldings = userShares.shareHoldings;
+            const currentHoldings = memberShares.shareHoldings;
             const percentageOfTotal =
               (currentHoldings / totalSharesAvailable) * 100;
 
             this.metricsService.recordSharesOwnershipMetric({
-              userId: sharesTx.userId,
+              memberId: sharesTx.memberId,
               quantity: currentHoldings,
               percentageOfTotal,
               limitReached: percentageOfTotal >= 15,
@@ -739,9 +739,9 @@ export class SharesService extends ContextAwareService {
     } finally {
       const duration = Date.now() - startTime;
 
-      if (userId && offerId) {
+      if (memberId && offerId) {
         this.metricsService.recordSharesSubscriptionMetric({
-          userId,
+          memberId,
           offerId,
           quantity,
           success,
@@ -750,7 +750,7 @@ export class SharesService extends ContextAwareService {
         });
 
         this.logger.log(
-          `Recorded wallet transaction metrics - UserId: ${userId}, ` +
+          `Recorded wallet transaction metrics - UserId: ${memberId}, ` +
             `OfferId: ${offerId}, Quantity: ${quantity}, Status: ${SharesTxStatus[sharesStatus]}, ` +
             `Success: ${success}, Duration: ${duration}ms${errorType ? `, Error: ${errorType}` : ''}`,
         );
@@ -759,7 +759,7 @@ export class SharesService extends ContextAwareService {
   }
 
   private async getPaginatedShareTx(
-    query: { userId: string } | null,
+    query: { memberId: string } | null,
     pagination: { page: number; size: number },
   ) {
     try {
@@ -781,7 +781,7 @@ export class SharesService extends ContextAwareService {
         .slice(selectPage * size, (selectPage + 1) * size)
         .map((tx) => ({
           id: tx._id.toString(),
-          userId: tx.userId,
+          memberId: tx.memberId,
           offerId: tx.offerId,
           quantity: tx.quantity,
           status: tx.status,

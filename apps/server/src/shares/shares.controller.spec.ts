@@ -29,7 +29,7 @@ const mockSharesService = {
   subscribeShares: jest.fn(),
   transferShares: jest.fn(),
   updateShares: jest.fn(),
-  userSharesTransactions: jest.fn(),
+  memberSharesTransactions: jest.fn(),
   allSharesTransactions: jest.fn(),
   findSharesTransaction: jest.fn(),
   handleWalletTransactionUpdate: jest.fn(),
@@ -101,7 +101,7 @@ describe('SharesController', () => {
       const mockSubscription = {
         offerId: 'offer-123',
         quantity: 100,
-        userId: 'user-123',
+        memberId: 'member-123',
       };
 
       mockSharesService.subscribeShares.mockResolvedValue({
@@ -125,8 +125,8 @@ describe('SharesController', () => {
     it('should call service.transferShares', async () => {
       const mockTransfer = {
         sharesId: 'shares-123',
-        fromUserId: 'user-123',
-        toUserId: 'user-456',
+        fromMemberId: 'member-123',
+        toMemberId: 'member-456',
         quantity: 50,
         reason: 'Transfer to family member',
       };

@@ -1,7 +1,7 @@
 import { Document } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 
-export enum UserStatus {
+export enum MemberStatus {
   PENDING = 'pending',
   ACTIVE = 'active',
   SUSPENDED = 'suspended',
@@ -21,8 +21,8 @@ export class Member {
   @Prop()
   lastName?: string;
 
-  @Prop({ type: String, enum: UserStatus, default: UserStatus.PENDING })
-  status: UserStatus;
+  @Prop({ type: String, enum: MemberStatus, default: MemberStatus.PENDING })
+  status: MemberStatus;
 
   @Prop()
   emailVerifiedAt?: Date;
@@ -38,5 +38,5 @@ export class Member {
   };
 }
 
-export type UserDocument = Member & Document;
-export const UserSchema = SchemaFactory.createForClass(Member);
+export type MemberDocument = Member & Document;
+export const MemberSchema = SchemaFactory.createForClass(Member);

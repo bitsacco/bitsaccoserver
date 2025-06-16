@@ -5,7 +5,7 @@ export * from './auth.types';
 export * from './compliance.types';
 export * from './permissions.types';
 export * from './service.types';
-export * from './user.types';
+export * from './member.types';
 
 // Business domain types
 export * from './api.types';

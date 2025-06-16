@@ -20,7 +20,7 @@ case "$USER_TYPE" in
     PASSWORD="member123"
     ;;
   *)
-    echo "❌ Invalid user type. Use: admin, developer, or test"
+    echo "❌ Invalid member type. Use: admin, developer, or test"
     exit 1
     ;;
 esac
@@ -54,7 +54,7 @@ if [ "$ACCESS_TOKEN" != "null" ] && [ -n "$ACCESS_TOKEN" ]; then
   echo "curl -H 'Authorization: Bearer $ACCESS_TOKEN' http://localhost:4000/api/v1/profile"
   echo ""
   
-  # Decode token to show user info
+  # Decode token to show member info
   if command -v jq >/dev/null 2>&1; then
     PAYLOAD=$(echo "$ACCESS_TOKEN" | cut -d'.' -f2)
     # Add padding if needed

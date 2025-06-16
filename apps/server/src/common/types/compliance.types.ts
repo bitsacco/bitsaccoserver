@@ -6,7 +6,7 @@ export enum RiskLevel {
 }
 
 export interface ComplianceContext {
-  userId: string;
+  memberId: string;
   organizationId?: string;
   chamaId?: string;
   scope: string;

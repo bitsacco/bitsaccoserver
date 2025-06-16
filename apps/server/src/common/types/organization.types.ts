@@ -55,7 +55,7 @@ export interface UpdateOrganizationDto {
 }
 
 export interface AddMemberDto {
-  userId: string;
+  memberId: string;
   role: string; // Will reference GroupRole enum
   permissions?: string[];
   startDate?: Date;

@@ -13,7 +13,7 @@ import {
   CurrentUser,
   GlobalScope,
   RequiresApproval,
-  AuthenticatedUser,
+  AuthenticatedMember,
   Permission,
   PermissionScope,
   ServiceRole,
@@ -61,7 +61,7 @@ export class ComplianceController {
   @GlobalScope([Permission.FINANCE_DEPOSIT, Permission.FINANCE_WITHDRAW])
   @ApiOperation({ summary: 'Initiate approval workflow' })
   async initiateWorkflow(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Body()
     workflowData: {
       workflowType: WorkflowType;
@@ -95,21 +95,21 @@ export class ComplianceController {
       metadata: workflowData.metadata,
     };
 
-    return await this.makerCheckerService.initiateWorkflow(user, request);
+    return await this.makerCheckerService.initiateWorkflow(member, request);
   }
 
   @Get('workflows/pending')
   @GlobalScope([Permission.FINANCE_APPROVE])
   @ApiOperation({ summary: 'Get pending workflows for approval' })
   async getPendingWorkflows(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('scope') scope?: PermissionScope,
     @Query('workflowType') workflowType?: WorkflowType,
     @Query('limit') limit?: number,
     @Query('offset') offset?: number,
   ) {
     return await this.makerCheckerService.getPendingWorkflows(
-      user,
+      member,
       scope,
       workflowType,
       limit,
@@ -122,10 +122,10 @@ export class ComplianceController {
   @ApiOperation({ summary: 'Get workflow details' })
   @ApiParam({ name: 'workflowId', description: 'Workflow ID' })
   async getWorkflow(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('workflowId') workflowId: string,
   ) {
-    return await this.makerCheckerService.getWorkflow(user, workflowId);
+    return await this.makerCheckerService.getWorkflow(member, workflowId);
   }
 
   @Post('workflows/:workflowId/approve')
@@ -134,14 +134,14 @@ export class ComplianceController {
   @ApiOperation({ summary: 'Approve or reject workflow' })
   @ApiParam({ name: 'workflowId', description: 'Workflow ID' })
   async submitApproval(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('workflowId') workflowId: string,
     @Body()
     approvalData: {
       status: 'approved' | 'rejected';
       comment?: string;
       ipAddress?: string;
-      userAgent?: string;
+      memberAgent?: string;
     },
   ) {
     const request: ApprovalRequest = {
@@ -152,10 +152,10 @@ export class ComplianceController {
           : ApprovalStatus.REJECTED,
       comment: approvalData.comment,
       ipAddress: approvalData.ipAddress,
-      userAgent: approvalData.userAgent,
+      memberAgent: approvalData.memberAgent,
     };
 
-    return await this.makerCheckerService.submitApproval(user, request);
+    return await this.makerCheckerService.submitApproval(member, request);
   }
 
   @Post('workflows/:workflowId/cancel')
@@ -163,12 +163,12 @@ export class ComplianceController {
   @ApiOperation({ summary: 'Cancel pending workflow' })
   @ApiParam({ name: 'workflowId', description: 'Workflow ID' })
   async cancelWorkflow(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('workflowId') workflowId: string,
     @Body() cancellationData: { reason: string },
   ) {
     return await this.makerCheckerService.cancelWorkflow(
-      user,
+      member,
       workflowId,
       cancellationData.reason,
     );
@@ -180,7 +180,7 @@ export class ComplianceController {
   @GlobalScope([Permission.SYSTEM_MONITOR])
   @ApiOperation({ summary: 'Check segregation of duties violations' })
   async checkSegregationViolation(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Body()
     operationData: {
       action: string;
@@ -194,7 +194,7 @@ export class ComplianceController {
     },
   ) {
     const operationContext: Omit<OperationContext, 'timestamp'> = {
-      userId: user.userId,
+      memberId: member.memberId,
       action: operationData.action,
       permissions: operationData.permissions,
       roles: operationData.roles,
@@ -206,7 +206,7 @@ export class ComplianceController {
     };
 
     return await this.segregationService.checkSegregationViolation(
-      user,
+      member,
       operationContext,
     );
   }
@@ -216,12 +216,12 @@ export class ComplianceController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Get segregation of duties rules (ADMIN+)' })
   async getSegregationRules(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('scope') scope?: PermissionScope,
     @Query('isActive') isActive?: boolean,
   ) {
     return await this.segregationService.getSegregationRules(
-      user,
+      member,
       scope,
       isActive,
     );
@@ -232,7 +232,7 @@ export class ComplianceController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Create segregation rule (SYSTEM-ADMIN only)' })
   async createSegregationRule(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Body()
     ruleData: {
       ruleName: string;
@@ -250,7 +250,7 @@ export class ComplianceController {
           roles: (ServiceRole | GroupRole)[];
         };
         conflictType:
-          | 'same_user'
+          | 'same_member'
           | 'same_role'
           | 'same_session'
           | 'time_window';
@@ -264,7 +264,10 @@ export class ComplianceController {
       };
     },
   ) {
-    return await this.segregationService.createSegregationRule(user, ruleData);
+    return await this.segregationService.createSegregationRule(
+      member,
+      ruleData,
+    );
   }
 
   @Put('sod/rules/:ruleId/toggle')
@@ -275,12 +278,12 @@ export class ComplianceController {
   })
   @ApiParam({ name: 'ruleId', description: 'Rule ID' })
   async toggleSegregationRule(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('ruleId') ruleId: string,
     @Body() toggleData: { isActive: boolean },
   ) {
     return await this.segregationService.toggleSegregationRule(
-      user,
+      member,
       ruleId,
       toggleData.isActive,
     );
@@ -291,7 +294,7 @@ export class ComplianceController {
   @GlobalScope([Permission.REPORTS_READ])
   @ApiOperation({ summary: 'Get segregation violations report (ADMIN+)' })
   async getViolationReport(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
     @Query('scope') scope?: PermissionScope,
@@ -299,7 +302,7 @@ export class ComplianceController {
     @Query('chamaId') chamaId?: string,
   ) {
     return await this.segregationService.getViolationReport(
-      user,
+      member,
       new Date(startDate),
       new Date(endDate),
       scope,
@@ -314,7 +317,7 @@ export class ComplianceController {
   @GlobalScope([Permission.FINANCE_READ])
   @ApiOperation({ summary: 'Assess transaction risk' })
   async assessTransactionRisk(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Context() context: any,
     @Body()
     riskData: {
@@ -322,7 +325,7 @@ export class ComplianceController {
       currency: string;
       transactionType: string;
       frequency: number;
-      userRiskProfile: 'low' | 'medium' | 'high';
+      memberRiskProfile: 'low' | 'medium' | 'high';
       counterpartyRisk?: 'low' | 'medium' | 'high';
       geographicRisk?: 'low' | 'medium' | 'high';
       timeOfDay: number;
@@ -335,7 +338,7 @@ export class ComplianceController {
       currency: riskData.currency,
       transactionType: riskData.transactionType,
       frequency: riskData.frequency,
-      userRiskProfile: riskData.userRiskProfile,
+      memberRiskProfile: riskData.memberRiskProfile,
       counterpartyRisk: riskData.counterpartyRisk,
       geographicRisk: riskData.geographicRisk,
       timeOfDay: riskData.timeOfDay,
@@ -344,7 +347,7 @@ export class ComplianceController {
     };
 
     return await this.riskManagementService.assessTransactionRisk(
-      user,
+      member,
       transactionRisk,
       context.scope,
       context.organizationId,
@@ -356,7 +359,7 @@ export class ComplianceController {
   @GlobalScope([Permission.FINANCE_READ])
   @ApiOperation({ summary: 'Check transaction limits' })
   async checkTransactionLimits(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Context() context: any,
     @Body()
     limitCheckData: {
@@ -366,7 +369,7 @@ export class ComplianceController {
     },
   ) {
     return await this.riskManagementService.checkTransactionLimits(
-      user,
+      member,
       limitCheckData.amount,
       limitCheckData.currency,
       limitCheckData.operationType,
@@ -380,14 +383,14 @@ export class ComplianceController {
   @GlobalScope([Permission.FINANCE_READ])
   @ApiOperation({ summary: 'Get transaction limits' })
   async getTransactionLimits(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('scope') scope?: PermissionScope,
     @Query('organizationId') organizationId?: string,
     @Query('chamaId') chamaId?: string,
     @Query('isActive') isActive?: boolean,
   ) {
     return await this.riskManagementService.getTransactionLimits(
-      user,
+      member,
       scope,
       organizationId,
       chamaId,
@@ -400,14 +403,14 @@ export class ComplianceController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Create transaction limit (ADMIN+)' })
   async createTransactionLimit(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Body()
     limitData: {
       limitName: string;
       scope: PermissionScope;
       organizationId?: string;
       chamaId?: string;
-      userId?: string;
+      memberId?: string;
       applicableRoles: (ServiceRole | GroupRole)[];
       currency: string;
       limits: {
@@ -435,7 +438,7 @@ export class ComplianceController {
     },
   ) {
     return await this.riskManagementService.createTransactionLimit(
-      user,
+      member,
       limitData,
     );
   }
@@ -481,7 +484,7 @@ export class ComplianceController {
   @GlobalScope([Permission.REPORTS_READ])
   @ApiOperation({ summary: 'Get compliance events (ADMIN+)' })
   async getComplianceEvents(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('eventType') eventType?: string,
     @Query('severity') severity?: RiskLevel,
     @Query('scope') scope?: PermissionScope,
@@ -507,7 +510,7 @@ export class ComplianceController {
       offset,
     };
 
-    return await this.complianceService.getComplianceEvents(user, filters);
+    return await this.complianceService.getComplianceEvents(member, filters);
   }
 
   @Put('events/:eventId')
@@ -516,7 +519,7 @@ export class ComplianceController {
   @ApiOperation({ summary: 'Update compliance event status (ADMIN+)' })
   @ApiParam({ name: 'eventId', description: 'Event ID' })
   async updateEventStatus(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('eventId') eventId: string,
     @Body()
     updateData: {
@@ -528,7 +531,7 @@ export class ComplianceController {
     },
   ) {
     return await this.complianceService.updateEventStatus(
-      user,
+      member,
       eventId,
       updateData,
     );
@@ -575,7 +578,7 @@ export class ComplianceController {
   @GlobalScope([Permission.REPORTS_EXPORT])
   @ApiOperation({ summary: 'Generate regulatory report (ADMIN+)' })
   async generateRegulatoryReport(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Body()
     reportData: {
       reportType: string;
@@ -590,7 +593,7 @@ export class ComplianceController {
     },
   ) {
     return await this.complianceService.generateRegulatoryReport(
-      user,
+      member,
       reportData.reportType,
       reportData.regulator,
       reportData.reportingPeriod,
@@ -604,7 +607,7 @@ export class ComplianceController {
   @GlobalScope([Permission.REPORTS_READ])
   @ApiOperation({ summary: 'Get regulatory reports (ADMIN+)' })
   async getRegulatoryReports(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('reportType') reportType?: string,
     @Query('regulator') regulator?: string,
     @Query('status') status?: string,
@@ -627,7 +630,7 @@ export class ComplianceController {
       offset,
     };
 
-    return await this.complianceService.getRegulatoryReports(user, filters);
+    return await this.complianceService.getRegulatoryReports(member, filters);
   }
 
   @Post('reports/:reportId/submit')
@@ -636,10 +639,13 @@ export class ComplianceController {
   @ApiOperation({ summary: 'Submit regulatory report (ADMIN+)' })
   @ApiParam({ name: 'reportId', description: 'Report ID' })
   async submitRegulatoryReport(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('reportId') reportId: string,
   ) {
-    return await this.complianceService.submitRegulatoryReport(user, reportId);
+    return await this.complianceService.submitRegulatoryReport(
+      member,
+      reportId,
+    );
   }
 
   // Audit Logs
@@ -649,7 +655,7 @@ export class ComplianceController {
   @GlobalScope([Permission.REPORTS_READ])
   @ApiOperation({ summary: 'Get audit logs (ADMIN+)' })
   async getAuditLogs(
-    @Query('userId') userId?: string,
+    @Query('memberId') memberId?: string,
     @Query('action') action?: string,
     @Query('resourceType') resourceType?: string,
     @Query('scope') scope?: PermissionScope,
@@ -663,7 +669,7 @@ export class ComplianceController {
     @Query('offset') offset?: number,
   ) {
     const filters: AuditQueryFilters = {
-      userId,
+      memberId,
       action,
       resourceType,
       scope,
@@ -688,9 +694,9 @@ export class ComplianceController {
   })
   async searchAuditLogs(
     @Query('keyword') keyword?: string,
-    @Query('userId') userId?: string,
+    @Query('memberId') memberId?: string,
     @Query('ipAddress') ipAddress?: string,
-    @Query('userAgent') userAgent?: string,
+    @Query('memberAgent') memberAgent?: string,
     @Query('minAmount') minAmount?: number,
     @Query('maxAmount') maxAmount?: number,
     @Query('riskLevels') riskLevels?: string,
@@ -705,9 +711,9 @@ export class ComplianceController {
   ) {
     const searchCriteria = {
       keyword,
-      userId,
+      memberId,
       ipAddress,
-      userAgent,
+      memberAgent,
       amountRange:
         minAmount && maxAmount ? { min: minAmount, max: maxAmount } : undefined,
       riskLevels: riskLevels ? riskLevels.split(',') : undefined,
@@ -768,7 +774,7 @@ export class ComplianceController {
   @GlobalScope([Permission.REPORTS_EXPORT])
   @ApiOperation({ summary: 'Get compliance-ready audit report (ADMIN+)' })
   async getComplianceAuditReport(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('scope') scope: PermissionScope,
     @Query('organizationId') organizationId?: string,
     @Query('startDate') startDate?: string,

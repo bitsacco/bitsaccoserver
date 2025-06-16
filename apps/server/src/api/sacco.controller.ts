@@ -11,7 +11,7 @@ import {
   CrossScope,
   RequiresApproval,
   FinancialOperation,
-  AuthenticatedUser,
+  AuthenticatedMember,
   Permission,
   PermissionScope,
   Context,
@@ -51,7 +51,7 @@ export class SaccoController {
   @ApiOperation({ summary: 'Get balance for current context' })
   async getBalance(
     @Context() context: ServiceContext,
-    @CurrentUser() _user: AuthenticatedUser,
+    @CurrentUser() _member: AuthenticatedMember,
   ) {
     return await this.financialService.executeOperation(
       'viewBalance',
@@ -441,16 +441,16 @@ export class SaccoController {
     @OrganizationId() organizationId: string,
     @Body()
     memberData: {
-      userId: string;
+      memberId: string;
       role: string;
       customPermissions?: string[];
     },
   ) {
     return await this.saccoService.addOrganizationMember(
       organizationId,
-      memberData.userId,
+      memberData.memberId,
       memberData.role as any,
-      context.userId,
+      context.memberId,
       memberData.customPermissions as any,
     );
   }
@@ -463,16 +463,16 @@ export class SaccoController {
     @ChamaId() chamaId: string,
     @Body()
     memberData: {
-      userId: string;
+      memberId: string;
       role: string;
       customPermissions?: string[];
     },
   ) {
     return await this.saccoService.addChamaMember(
       chamaId,
-      memberData.userId,
+      memberData.memberId,
       memberData.role as any,
-      context.userId,
+      context.memberId,
       memberData.customPermissions as any,
     );
   }

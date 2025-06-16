@@ -12,7 +12,7 @@ import { ApiTags, ApiOperation, ApiParam } from '@nestjs/swagger';
 import {
   CurrentUser,
   GlobalScope,
-  AuthenticatedUser,
+  AuthenticatedMember,
   ServiceRole,
   PermissionScope,
   AuthGuard,
@@ -43,10 +43,13 @@ export class AdminController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Get system configuration (SYSTEM-ADMIN only)' })
   async getSystemConfiguration(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('category') category?: string,
   ): Promise<SystemConfiguration[]> {
-    return await this.governanceService.getSystemConfiguration(user, category);
+    return await this.governanceService.getSystemConfiguration(
+      member,
+      category,
+    );
   }
 
   @Put('config/:key')
@@ -55,7 +58,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Update system configuration (SYSTEM-ADMIN only)' })
   @ApiParam({ name: 'key', description: 'Configuration key' })
   async updateSystemConfiguration(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('key') key: string,
     @Body()
     updateData: {
@@ -64,7 +67,7 @@ export class AdminController {
     },
   ): Promise<SystemConfiguration> {
     return await this.governanceService.updateSystemConfiguration(
-      user,
+      member,
       key,
       updateData.value,
       updateData.description,
@@ -76,7 +79,7 @@ export class AdminController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Create system configuration (SYSTEM-ADMIN only)' })
   async createSystemConfiguration(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Body()
     configData: {
       category:
@@ -92,7 +95,7 @@ export class AdminController {
       requiredRole: ServiceRole;
     },
   ): Promise<SystemConfiguration> {
-    return await this.governanceService.createSystemConfiguration(user, {
+    return await this.governanceService.createSystemConfiguration(member, {
       ...configData,
       isActive: true,
     });
@@ -105,11 +108,11 @@ export class AdminController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Get service integrations (ADMIN+)' })
   async getServiceIntegrations(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('type') serviceType?: string,
   ): Promise<ServiceIntegration[]> {
     return await this.governanceService.getServiceIntegrations(
-      user,
+      member,
       serviceType,
     );
   }
@@ -119,7 +122,7 @@ export class AdminController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Register service integration (SYSTEM-ADMIN only)' })
   async registerServiceIntegration(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Body()
     integrationData: {
       serviceName: string;
@@ -144,7 +147,7 @@ export class AdminController {
     },
   ): Promise<ServiceIntegration> {
     return await this.governanceService.registerServiceIntegration(
-      user,
+      member,
       integrationData,
     );
   }
@@ -157,12 +160,12 @@ export class AdminController {
   })
   @ApiParam({ name: 'serviceName', description: 'Service name' })
   async updateServiceIntegrationStatus(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('serviceName') serviceName: string,
     @Body() statusData: { isEnabled: boolean },
   ): Promise<ServiceIntegration> {
     return await this.governanceService.updateServiceIntegrationStatus(
-      user,
+      member,
       serviceName,
       statusData.isEnabled,
     );
@@ -175,11 +178,14 @@ export class AdminController {
   @GlobalScope([Permission.SYSTEM_MONITOR])
   @ApiOperation({ summary: 'Get telemetry configuration (ADMIN+)' })
   async getTelemetryConfiguration(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('level')
-    level?: 'server' | 'service' | 'organization' | 'chama' | 'user',
+    level?: 'server' | 'service' | 'organization' | 'chama' | 'member',
   ): Promise<TelemetryConfig[]> {
-    return await this.governanceService.getTelemetryConfiguration(user, level);
+    return await this.governanceService.getTelemetryConfiguration(
+      member,
+      level,
+    );
   }
 
   @Post('telemetry/:level')
@@ -188,9 +194,9 @@ export class AdminController {
   @ApiOperation({ summary: 'Configure telemetry settings (SYSTEM-ADMIN only)' })
   @ApiParam({ name: 'level', description: 'Telemetry level' })
   async configureTelemetry(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('level')
-    level: 'server' | 'service' | 'organization' | 'chama' | 'user',
+    level: 'server' | 'service' | 'organization' | 'chama' | 'member',
     @Body()
     telemetryData: {
       metricsEnabled: boolean;
@@ -217,7 +223,7 @@ export class AdminController {
     },
   ): Promise<TelemetryConfig> {
     return await this.governanceService.configureTelemetry(
-      user,
+      member,
       level,
       telemetryData,
     );
@@ -229,14 +235,14 @@ export class AdminController {
   @RequireRole(ServiceRole.ADMIN)
   @GlobalScope([Permission.SYSTEM_MONITOR])
   @ApiOperation({ summary: 'Get system health status (ADMIN+)' })
-  async getSystemHealth(@CurrentUser() user: AuthenticatedUser): Promise<{
+  async getSystemHealth(@CurrentUser() member: AuthenticatedMember): Promise<{
     overall: 'healthy' | 'degraded' | 'down';
     server: any;
     services: any[];
     integrations: any[];
     lastChecked: Date;
   }> {
-    return await this.governanceService.getSystemHealth(user);
+    return await this.governanceService.getSystemHealth(member);
   }
 
   @Get('metrics/organization/:organizationId')
@@ -245,7 +251,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Get organization metrics (ADMIN+)' })
   @ApiParam({ name: 'organizationId', description: 'Organization ID' })
   async getOrganizationMetrics(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('organizationId') organizationId: string,
     @Query('timeRange') timeRange: '1h' | '24h' | '7d' | '30d' = '24h',
   ): Promise<{
@@ -255,7 +261,7 @@ export class AdminController {
     compliance: any;
   }> {
     return await this.governanceService.getOrganizationMetrics(
-      user,
+      member,
       organizationId,
       timeRange,
     );
@@ -267,7 +273,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Get chama metrics (ADMIN+)' })
   @ApiParam({ name: 'chamaId', description: 'Chama ID' })
   async getChamaMetrics(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('chamaId') chamaId: string,
     @Query('timeRange') timeRange: '1h' | '24h' | '7d' | '30d' = '24h',
   ): Promise<{
@@ -277,7 +283,7 @@ export class AdminController {
     activity: any;
   }> {
     return await this.governanceService.getChamaMetrics(
-      user,
+      member,
       chamaId,
       timeRange,
     );
@@ -290,7 +296,7 @@ export class AdminController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Configure system alerts (SYSTEM-ADMIN only)' })
   async configureAlerts(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Body()
     alertConfig: {
       type: 'system' | 'service' | 'organization' | 'chama';
@@ -309,7 +315,7 @@ export class AdminController {
       isEnabled: boolean;
     },
   ): Promise<any> {
-    return await this.governanceService.configureAlerts(user, alertConfig);
+    return await this.governanceService.configureAlerts(member, alertConfig);
   }
 
   // System Backup and Maintenance
@@ -319,7 +325,7 @@ export class AdminController {
   @GlobalScope([Permission.SYSTEM_BACKUP])
   @ApiOperation({ summary: 'Initiate system backup (SYSTEM-ADMIN only)' })
   async initiateSystemBackup(
-    @CurrentUser() _user: AuthenticatedUser,
+    @CurrentUser() _member: AuthenticatedMember,
     @Body()
     _backupData: {
       type: 'full' | 'incremental' | 'configuration';
@@ -347,7 +353,7 @@ export class AdminController {
   @ApiOperation({ summary: 'Get backup status (SYSTEM-ADMIN only)' })
   @ApiParam({ name: 'backupId', description: 'Backup ID' })
   async getBackupStatus(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Param('backupId') backupId: string,
   ): Promise<{
     backupId: string;
@@ -370,7 +376,7 @@ export class AdminController {
   @GlobalScope([Permission.SYSTEM_CONFIG])
   @ApiOperation({ summary: 'Schedule system maintenance (SYSTEM-ADMIN only)' })
   async scheduleSystemMaintenance(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Body()
     maintenanceData: {
       type: 'update' | 'migration' | 'optimization' | 'security_patch';
@@ -393,29 +399,29 @@ export class AdminController {
     };
   }
 
-  // User and Permission Management
+  // Member and Permission Management
 
-  @Get('users')
+  @Get('members')
   @RequireRole(ServiceRole.ADMIN)
   @GlobalScope([Permission.USER_READ])
-  @ApiOperation({ summary: 'Get system users (ADMIN+)' })
+  @ApiOperation({ summary: 'Get system members (ADMIN+)' })
   async getSystemUsers(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('role') role?: ServiceRole,
     @Query('status') status?: 'active' | 'inactive' | 'suspended',
     @Query('limit') limit: number = 50,
     @Query('offset') offset: number = 0,
   ): Promise<{
-    users: any[];
+    members: any[];
     total: number;
     limit: number;
     offset: number;
   }> {
-    // Implementation would fetch users with filtering
+    // Implementation would fetch members with filtering
     return {
-      users: [
+      members: [
         {
-          userId: 'user-001',
+          memberId: 'member-001',
           email: 'admin@example.com',
           serviceRole: ServiceRole.ADMIN,
           status: 'active',
@@ -429,35 +435,35 @@ export class AdminController {
     };
   }
 
-  @Put('users/:userId/role')
+  @Put('members/:memberId/role')
   @RequireRole(ServiceRole.SYSTEM_ADMIN)
   @GlobalScope([Permission.USER_UPDATE])
-  @ApiOperation({ summary: 'Update user service role (SYSTEM-ADMIN only)' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiOperation({ summary: 'Update member service role (SYSTEM-ADMIN only)' })
+  @ApiParam({ name: 'memberId', description: 'Member ID' })
   async updateUserServiceRole(
-    @CurrentUser() _user: AuthenticatedUser,
-    @Param('userId') _userId: string,
+    @CurrentUser() _member: AuthenticatedMember,
+    @Param('memberId') _memberId: string,
     @Body() _roleData: { serviceRole: ServiceRole },
   ): Promise<{ success: boolean }> {
-    // Implementation would update user service role
+    // Implementation would update member service role
     return { success: true };
   }
 
-  @Put('users/:userId/status')
+  @Put('members/:memberId/status')
   @RequireRole(ServiceRole.ADMIN)
   @GlobalScope([Permission.USER_UPDATE])
-  @ApiOperation({ summary: 'Update user status (ADMIN+)' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiOperation({ summary: 'Update member status (ADMIN+)' })
+  @ApiParam({ name: 'memberId', description: 'Member ID' })
   async updateUserStatus(
-    @CurrentUser() _user: AuthenticatedUser,
-    @Param('userId') _userId: string,
+    @CurrentUser() _member: AuthenticatedMember,
+    @Param('memberId') _memberId: string,
     @Body()
     _statusData: {
       status: 'active' | 'inactive' | 'suspended';
       reason?: string;
     },
   ): Promise<{ success: boolean }> {
-    // Implementation would update user status
+    // Implementation would update member status
     return { success: true };
   }
 
@@ -468,10 +474,10 @@ export class AdminController {
   @GlobalScope([Permission.REPORTS_READ])
   @ApiOperation({ summary: 'Get audit logs (ADMIN+)' })
   async getAuditLogs(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('startDate') startDate?: string,
     @Query('endDate') endDate?: string,
-    @Query('userId') userId?: string,
+    @Query('memberId') memberId?: string,
     @Query('action') action?: string,
     @Query('limit') limit: number = 100,
     @Query('offset') offset: number = 0,
@@ -487,10 +493,10 @@ export class AdminController {
         {
           id: 'audit-001',
           timestamp: new Date(),
-          userId: 'user-001',
+          memberId: 'member-001',
           action: 'USER_LOGIN',
           resource: 'authentication',
-          details: { ip: '192.168.1.1', userAgent: 'Mozilla/5.0...' },
+          details: { ip: '192.168.1.1', memberAgent: 'Mozilla/5.0...' },
           result: 'success',
         },
       ],
@@ -505,7 +511,7 @@ export class AdminController {
   @GlobalScope([Permission.REPORTS_EXPORT])
   @ApiOperation({ summary: 'Generate compliance report (ADMIN+)' })
   async generateComplianceReport(
-    @CurrentUser() user: AuthenticatedUser,
+    @CurrentUser() member: AuthenticatedMember,
     @Query('type')
     type: 'kyc' | 'transaction' | 'audit' | 'financial' = 'audit',
     @Query('format') format: 'json' | 'csv' | 'pdf' = 'json',

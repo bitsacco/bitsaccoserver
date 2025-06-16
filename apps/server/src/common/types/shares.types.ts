@@ -1,7 +1,7 @@
 // Shares domain types
 
 export interface SharesMetricData {
-  userId: string;
+  memberId: string;
   offerId?: string;
   quantity: number;
   success: boolean;
@@ -10,15 +10,15 @@ export interface SharesMetricData {
 }
 
 export interface SharesOwnershipMetricData {
-  userId: string;
+  memberId: string;
   quantity: number;
   percentageOfTotal: number;
   limitReached: boolean;
 }
 
 export interface SharesTransferData {
-  fromUserId: string;
-  toUserId: string;
+  fromMemberId: string;
+  toMemberId: string;
   quantity: number;
   success: boolean;
   duration: number;

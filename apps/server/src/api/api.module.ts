@@ -10,6 +10,9 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { ApiController } from './api.controller';
 import { ComplianceController } from './compliance.controller';
+import { ApiKeyController } from './api-key.controller';
+import { SaccoController } from './sacco.controller';
+import { AdminController } from './admin.controller';
 import { ApiService } from './api.service';
 import { AuthModule } from '../auth/auth.module';
 import { SmsModule } from '../sms/sms.module';
@@ -17,6 +20,7 @@ import { SharesModule } from '../shares/shares.module';
 import { OrganizationModule } from '../organization';
 import { BaseModule } from '../base/base.module';
 import { CommonModule } from '../common/common.module';
+import { LoanService } from '../loans';
 
 @Module({
   imports: [
@@ -118,7 +122,13 @@ import { CommonModule } from '../common/common.module';
     OrganizationModule,
     BaseModule,
   ],
-  controllers: [ApiController, ComplianceController],
-  providers: [ApiService],
+  controllers: [
+    ApiController,
+    ComplianceController,
+    ApiKeyController,
+    SaccoController,
+    AdminController,
+  ],
+  providers: [ApiService, LoanService],
 })
 export class ApiModule {}

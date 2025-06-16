@@ -21,7 +21,7 @@ export class ServiceRegistry {
   }
 
   /**
-   * Get services available to user in specific context
+   * Get services available to member in specific context
    */
   getServicesForContext(context: ServiceContext): string[] {
     const availableServices: string[] = [];
