@@ -13,6 +13,7 @@ import Chip from '@mui/material/Chip';
 
 import { useUser } from '@/hooks/use-user';
 import { ServiceRole } from '@bitsaccoserver/types';
+import { getUserDisplayName, getUserInitial } from '@/lib/utils/user';
 
 export function AccountInfo(): React.JSX.Element {
   const { user } = useUser();
@@ -68,20 +69,11 @@ export function AccountInfo(): React.JSX.Element {
               src={user.avatar || user.profilePicture}
               sx={{ height: '80px', width: '80px' }}
             >
-              {user.firstName?.charAt(0) ||
-                user.name?.charAt(0) ||
-                user.email?.charAt(0)}
+              {getUserInitial(user)}
             </Avatar>
           </div>
           <Stack spacing={1} sx={{ textAlign: 'center' }}>
-            <Typography variant="h5">
-              {user.name ||
-                (user.firstName || user.lastName
-                  ? `${user.firstName || ''} ${user.lastName || ''}`.trim()
-                  : '') ||
-                user.email?.split('@')[0] ||
-                'User'}
-            </Typography>
+            <Typography variant="h5">{getUserDisplayName(user)}</Typography>
             <Typography color="text.secondary" variant="body2">
               {user.email}
             </Typography>

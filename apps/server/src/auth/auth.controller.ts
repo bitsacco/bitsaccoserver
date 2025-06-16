@@ -408,24 +408,31 @@ export class AuthController {
       }
 
       const token = authHeader.slice(7);
-      
+
       // Decode JWT token directly to get the raw payload
       const tokenParts = token.split('.');
       if (tokenParts.length !== 3) {
-        throw new HttpException('Invalid JWT token format', HttpStatus.UNAUTHORIZED);
+        throw new HttpException(
+          'Invalid JWT token format',
+          HttpStatus.UNAUTHORIZED,
+        );
       }
 
       const payload = JSON.parse(
         Buffer.from(tokenParts[1], 'base64url').toString('utf8'),
       );
 
-      this.logger.debug(`Member-info JWT payload: ${JSON.stringify(payload, null, 2)}`);
+      this.logger.debug(
+        `Member-info JWT payload: ${JSON.stringify(payload, null, 2)}`,
+      );
 
       // Handle both server-generated tokens and Keycloak tokens
       const firstName = payload.firstName || payload.given_name;
       const lastName = payload.lastName || payload.family_name;
 
-      this.logger.debug(`Extracted firstName: ${firstName}, lastName: ${lastName}`);
+      this.logger.debug(
+        `Extracted firstName: ${firstName}, lastName: ${lastName}`,
+      );
 
       return {
         id: payload.sub,

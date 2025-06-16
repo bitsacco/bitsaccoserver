@@ -19,6 +19,7 @@ import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
 import { ServiceRole } from '@bitsaccoserver/types';
+import { getUserDisplayName } from '@/lib/utils/user';
 
 const getRoleLabel = (role: ServiceRole) => {
   switch (role) {
@@ -77,14 +78,7 @@ export function UserPopover({
       slotProps={{ paper: { sx: { width: '240px' } } }}
     >
       <Box sx={{ p: '16px 20px ' }}>
-        <Typography variant="subtitle1">
-          {user?.name ||
-            (user?.firstName || user?.lastName
-              ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
-              : '') ||
-            user?.email?.split('@')[0] ||
-            'User'}
-        </Typography>
+        <Typography variant="subtitle1">{getUserDisplayName(user)}</Typography>
         <Typography color="text.secondary" variant="body2">
           {user?.email || 'No email'}
         </Typography>

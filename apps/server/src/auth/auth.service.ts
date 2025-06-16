@@ -742,7 +742,8 @@ export class AuthService {
       return {
         sub: payload.sub,
         email: payload.email,
-        email_verified: payload.email_verified || payload.emailVerified || false,
+        email_verified:
+          payload.email_verified || payload.emailVerified || false,
         given_name: payload.given_name || payload.firstName,
         family_name: payload.family_name || payload.lastName,
         preferred_username: payload.preferred_username,
