@@ -6,13 +6,17 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 import { ApiController } from './api.controller';
+import { ComplianceController } from './compliance.controller';
 import { ApiService } from './api.service';
 import { AuthModule } from '../auth/auth.module';
 import { SmsModule } from '../sms/sms.module';
 import { SharesModule } from '../shares/shares.module';
 import { OrganizationModule } from '../organization';
+import { BaseModule } from '../base/base.module';
+import { CommonModule } from '../common/common.module';
 
 @Module({
   imports: [
@@ -103,13 +107,18 @@ import { OrganizationModule } from '../organization';
       },
     ]),
 
+    // Event system
+    EventEmitterModule.forRoot(),
+
     // Feature modules
+    CommonModule,
     AuthModule,
     SmsModule,
     SharesModule,
     OrganizationModule,
+    BaseModule,
   ],
-  controllers: [ApiController],
+  controllers: [ApiController, ComplianceController],
   providers: [ApiService],
 })
 export class ApiModule {}

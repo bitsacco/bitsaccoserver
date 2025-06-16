@@ -12,50 +12,23 @@ import {
   ApprovalWorkflowDocument,
   ApprovalStatus,
   WorkflowType,
-  RiskLevel,
   SegregationRule,
   SegregationRuleDocument,
   TransactionLimit,
   TransactionLimitDocument,
+} from '../common/schemas/compliance.schema';
+import {
   AuthenticatedUser,
   Permission,
   PermissionScope,
   ServiceRole,
   GroupRole,
-  PermissionService,
-} from '..';
-import { ComplianceService } from '../../base/compliance.service';
-
-export interface WorkflowRequest {
-  workflowType: WorkflowType;
-  scope: PermissionScope;
-  organizationId: string;
-  chamaId?: string;
-  operationData: {
-    action: string;
-    resourceType: string;
-    resourceId?: string;
-    parameters: Record<string, any>;
-    estimatedValue?: number;
-    currency?: string;
-    description: string;
-  };
-  metadata?: {
-    sourceSystem?: string;
-    correlationId?: string;
-    businessJustification?: string;
-    urgency?: 'low' | 'medium' | 'high' | 'critical';
-    customerImpact?: 'none' | 'low' | 'medium' | 'high';
-  };
-}
-
-export interface ApprovalRequest {
-  workflowId: string;
-  status: ApprovalStatus.APPROVED | ApprovalStatus.REJECTED;
-  comment?: string;
-  ipAddress?: string;
-  userAgent?: string;
-}
+  RiskLevel,
+  WorkflowRequest,
+  ApprovalRequest,
+} from '../common/types';
+import { PermissionService } from '../common/services/permission.service';
+import { ComplianceService } from './compliance.service';
 
 /**
  * Maker-Checker Service

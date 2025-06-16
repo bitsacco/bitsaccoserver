@@ -4,7 +4,7 @@ import {
   ServiceContext,
   ServiceOperation,
 } from './context.service';
-import { Permission, PermissionScope } from '../types';
+import { Permission, PermissionScope, RiskLevel } from '../types';
 
 /**
  * Financial Services - Context-aware financial operations
@@ -21,10 +21,9 @@ export class FinancialService extends ContextAwareService {
           PermissionScope.CHAMA,
           PermissionScope.PERSONAL,
         ],
-        rateLimits: {
-          maxOperationsPerDay: 10,
-          maxAmountPerOperation: 100000,
-        },
+        description: 'Deposit funds to account',
+        riskLevel: RiskLevel.MEDIUM,
+        auditLevel: 'detailed',
       },
       withdraw: {
         name: 'withdraw',
@@ -35,11 +34,9 @@ export class FinancialService extends ContextAwareService {
           PermissionScope.PERSONAL,
         ],
         requiresApproval: true,
-        approvalRoles: ['treasurer', 'leader'],
-        rateLimits: {
-          maxOperationsPerDay: 5,
-          maxAmountPerOperation: 50000,
-        },
+        description: 'Withdraw funds from account',
+        riskLevel: RiskLevel.HIGH,
+        auditLevel: 'comprehensive',
       },
       transfer: {
         name: 'transfer',
@@ -50,10 +47,9 @@ export class FinancialService extends ContextAwareService {
           PermissionScope.PERSONAL,
         ],
         requiresApproval: true,
-        rateLimits: {
-          maxOperationsPerDay: 5,
-          maxAmountPerOperation: 25000,
-        },
+        description: 'Transfer funds between accounts',
+        riskLevel: RiskLevel.HIGH,
+        auditLevel: 'comprehensive',
       },
       viewBalance: {
         name: 'viewBalance',
@@ -64,6 +60,9 @@ export class FinancialService extends ContextAwareService {
           PermissionScope.CHAMA,
           PermissionScope.PERSONAL,
         ],
+        description: 'View account balance',
+        riskLevel: RiskLevel.LOW,
+        auditLevel: 'basic',
       },
       generateStatement: {
         name: 'generateStatement',
@@ -73,6 +72,9 @@ export class FinancialService extends ContextAwareService {
           PermissionScope.CHAMA,
           PermissionScope.PERSONAL,
         ],
+        description: 'Generate financial statement',
+        riskLevel: RiskLevel.LOW,
+        auditLevel: 'basic',
       },
     };
   }

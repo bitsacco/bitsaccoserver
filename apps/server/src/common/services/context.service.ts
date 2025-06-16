@@ -3,45 +3,28 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { PermissionScope, Permission, AuthenticatedUser } from '../types';
+import { PermissionScope, AuthenticatedUser } from '../types';
+import {
+  ServiceContext,
+  ServiceOperation,
+  ServiceResult,
+} from '../types/audit.types';
 import { PermissionService } from './permission.service';
 import { SaccoService } from './sacco.service';
+
+// Re-export types for services that import from this module
+export {
+  ServiceContext,
+  ServiceOperation,
+  ServiceResult,
+} from '../types/audit.types';
 
 /**
  * Context-aware service framework for SACCO operations
  * Handles service delivery across multiple scopes: global, organization, chama, personal
  */
 
-export interface ServiceContext {
-  userId: string;
-  scope: PermissionScope;
-  organizationId?: string;
-  chamaId?: string;
-  permissions: Permission[];
-  user: AuthenticatedUser;
-}
-
-export interface ServiceOperation {
-  name: string;
-  requiredPermissions: Permission[];
-  allowedScopes: PermissionScope[];
-  requiresApproval?: boolean;
-  approvalRoles?: string[];
-  rateLimits?: {
-    maxOperationsPerDay?: number;
-    maxOperationsPerHour?: number;
-    maxAmountPerOperation?: number;
-  };
-}
-
-export interface ServiceResult<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  requiresApproval?: boolean;
-  approvalId?: string;
-  context: ServiceContext;
-}
+// Interfaces moved to ../types/audit.types.ts
 
 /**
  * Base class for context-aware services

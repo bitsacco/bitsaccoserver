@@ -2,7 +2,7 @@
 class MockOrganizationService {
   constructor() {}
 
-  async create(createDto: any, userId: string, userEmail: string) {
+  async create(createDto: any, userId: string, _userEmail: string) {
     return {
       _id: 'org-123',
       name: createDto.name,

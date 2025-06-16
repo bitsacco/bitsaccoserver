@@ -18,14 +18,14 @@ import {
   ChamaMembershipDocument,
   GroupRelationship,
   GroupRelationshipDocument,
-} from '..';
+} from '../schemas/sacco.schema';
 import {
   ServiceRole,
   GroupRole,
   Permission,
   PermissionScope,
   GroupMembership,
-} from '..';
+} from '../types';
 import { PermissionService } from './permission.service';
 
 /**

@@ -102,7 +102,6 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
-    "setupFilesAfterEnv": ["<rootDir>/../jest.setup.ts"],
     "forceExit": true,
     "detectOpenHandles": true,
     "maxWorkers": 1,

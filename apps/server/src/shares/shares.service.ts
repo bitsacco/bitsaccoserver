@@ -26,6 +26,7 @@ import {
   ServiceContext,
   PaginationDto,
   AuthenticatedUser,
+  RiskLevel,
 } from '../common';
 
 @Injectable()
@@ -53,18 +54,18 @@ export class SharesService extends ContextAwareService {
         name: 'purchaseShares',
         requiredPermissions: [Permission.SHARES_TRADE],
         allowedScopes: [PermissionScope.ORGANIZATION, PermissionScope.PERSONAL],
-        rateLimits: {
-          maxOperationsPerDay: 3,
-        },
+        description: 'Purchase shares in an offering',
+        riskLevel: RiskLevel.MEDIUM,
+        auditLevel: 'detailed',
       },
       sellShares: {
         name: 'sellShares',
         requiredPermissions: [Permission.SHARES_TRADE],
         allowedScopes: [PermissionScope.ORGANIZATION, PermissionScope.PERSONAL],
         requiresApproval: true,
-        rateLimits: {
-          maxOperationsPerDay: 2,
-        },
+        description: 'Sell owned shares',
+        riskLevel: RiskLevel.MEDIUM,
+        auditLevel: 'detailed',
       },
       viewShares: {
         name: 'viewShares',
@@ -74,12 +75,18 @@ export class SharesService extends ContextAwareService {
           PermissionScope.ORGANIZATION,
           PermissionScope.PERSONAL,
         ],
+        description: 'View shares information',
+        riskLevel: RiskLevel.LOW,
+        auditLevel: 'basic',
       },
       createOffer: {
         name: 'createOffer',
         requiredPermissions: [Permission.SHARES_CREATE],
         allowedScopes: [PermissionScope.ORGANIZATION],
         requiresApproval: true,
+        description: 'Create new shares offering',
+        riskLevel: RiskLevel.HIGH,
+        auditLevel: 'comprehensive',
       },
     };
   }
@@ -233,7 +240,7 @@ export class SharesService extends ContextAwareService {
     }
   }
 
-  private async viewOffers(context: ServiceContext) {
+  private async viewOffers(_context: ServiceContext) {
     try {
       const offers = await this.sharesOfferModel
         .find({})
@@ -550,7 +557,7 @@ export class SharesService extends ContextAwareService {
 
   private async viewAllShares(
     context: ServiceContext,
-    { page, size }: PaginationDto,
+    { page: _page, size: _size }: PaginationDto,
   ) {
     try {
       const shares = await this.getPaginatedShareTx(null, {

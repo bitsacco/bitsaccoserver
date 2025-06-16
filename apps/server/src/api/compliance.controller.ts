@@ -25,12 +25,12 @@ import {
   RiskLevel,
   Context,
   ApprovalRequest,
-  MakerCheckerService,
   WorkflowRequest,
   AuditQueryFilters,
   AuditService,
 } from '../common';
 import {
+  MakerCheckerService,
   SegregationService,
   OperationContext,
   ComplianceService,
@@ -43,7 +43,7 @@ import {
 /**
  * Compliance Controller - Maker-Checker, Risk Management, and Regulatory Features
  */
-@ApiTags('Compliance & Risk Management')
+@ApiTags('compliance')
 @Controller('compliance')
 @UseGuards(AuthGuard)
 export class ComplianceController {
@@ -672,7 +672,7 @@ export class ComplianceController {
       startDate: startDate ? new Date(startDate) : undefined,
       endDate: endDate ? new Date(endDate) : undefined,
       sensitiveData,
-      riskLevel,
+      riskLevel: riskLevel as RiskLevel,
       limit,
       offset,
     };

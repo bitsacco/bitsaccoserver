@@ -6,58 +6,14 @@ import {
   TransactionType,
   TransactionStatus,
 } from '../schemas';
-
-export interface SmsMetricData {
-  receiver: string;
-  messageLength: number;
-  success: boolean;
-  duration: number;
-  errorType?: string;
-}
-
-export interface SmsBulkMetricData {
-  receiverCount: number;
-  messageLength: number;
-  success: boolean;
-  duration: number;
-  errorType?: string;
-}
-
-export interface ApiMetricData {
-  endpoint: string;
-  method: string;
-  statusCode: number;
-  duration: number;
-  success: boolean;
-  requestSize?: number;
-  responseSize?: number;
-  userAgent?: string;
-  clientIp?: string;
-}
-
-export interface AuthMetricData {
-  action: 'login' | 'register' | 'token_refresh' | 'logout';
-  success: boolean;
-  duration: number;
-  errorType?: string;
-  userId?: string;
-}
-
-export interface SharesMetricData {
-  userId: string;
-  offerId?: string;
-  quantity: number;
-  success: boolean;
-  duration: number;
-  errorType?: string;
-}
-
-export interface SharesOwnershipMetricData {
-  userId: string;
-  quantity: number;
-  percentageOfTotal: number;
-  limitReached: boolean;
-}
+import {
+  SmsMetricData,
+  SmsBulkMetricData,
+  ApiMetricData,
+  AuthMetricData,
+  SharesMetricData,
+  SharesOwnershipMetricData,
+} from '../types';
 
 @Injectable()
 export class MetricsService {

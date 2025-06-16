@@ -4,7 +4,12 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { UsageTrackingMiddleware } from './usage-tracking.middleware';
-import { ApiKeyService, MetricsService } from './services';
+import {
+  ApiKeyService,
+  MetricsService,
+  AuditService,
+  PermissionService,
+} from './services';
 import {
   TransactionLogDocument,
   TransactionLogSchema,
@@ -12,6 +17,8 @@ import {
   ApiKeySchema,
   OrganizationServiceDocument,
   OrganizationServiceSchema,
+  AuditTrail,
+  AuditTrailSchema,
 } from './schemas';
 
 @Module({
@@ -22,6 +29,10 @@ import {
       {
         name: OrganizationServiceDocument.name,
         schema: OrganizationServiceSchema,
+      },
+      {
+        name: AuditTrail.name,
+        schema: AuditTrailSchema,
       },
     ]),
     JwtModule.registerAsync({
@@ -37,11 +48,19 @@ import {
     }),
   ],
   controllers: [],
-  providers: [ApiKeyService, UsageTrackingMiddleware, MetricsService],
+  providers: [
+    ApiKeyService,
+    UsageTrackingMiddleware,
+    MetricsService,
+    AuditService,
+    PermissionService,
+  ],
   exports: [
     ApiKeyService,
     UsageTrackingMiddleware,
     MetricsService,
+    AuditService,
+    PermissionService,
     MongooseModule,
     JwtModule,
   ],

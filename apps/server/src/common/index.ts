@@ -4,8 +4,9 @@ export * from './common.module';
 export * from './decorators';
 export * from './dto';
 export * from './schemas';
-export * from './services';
+// Export only non-conflicting types
 export * from './types';
+export * from './services';
 
 export * from './rate-limit.interceptor';
 export * from './usage-tracking.middleware';

@@ -5,6 +5,7 @@ import {
   PermissionScope,
   ServiceContext,
   ServiceOperation,
+  RiskLevel,
 } from '../common';
 
 /**
@@ -23,19 +24,25 @@ export class LoanService extends ContextAwareService {
           PermissionScope.PERSONAL,
         ],
         requiresApproval: true,
-        rateLimits: {
-          maxOperationsPerDay: 1,
-        },
+        description: 'Apply for a new loan',
+        riskLevel: RiskLevel.MEDIUM,
+        auditLevel: 'detailed',
       },
       approveLoan: {
         name: 'approveLoan',
         requiredPermissions: [Permission.LOAN_APPROVE],
         allowedScopes: [PermissionScope.ORGANIZATION, PermissionScope.CHAMA],
+        description: 'Approve a loan application',
+        riskLevel: RiskLevel.HIGH,
+        auditLevel: 'comprehensive',
       },
       disburseLoan: {
         name: 'disburseLoan',
         requiredPermissions: [Permission.LOAN_DISBURSE],
         allowedScopes: [PermissionScope.ORGANIZATION],
+        description: 'Disburse approved loan funds',
+        riskLevel: RiskLevel.HIGH,
+        auditLevel: 'comprehensive',
       },
       viewLoans: {
         name: 'viewLoans',
@@ -46,6 +53,9 @@ export class LoanService extends ContextAwareService {
           PermissionScope.CHAMA,
           PermissionScope.PERSONAL,
         ],
+        description: 'View loan information',
+        riskLevel: RiskLevel.LOW,
+        auditLevel: 'basic',
       },
       repayLoan: {
         name: 'repayLoan',
@@ -55,6 +65,9 @@ export class LoanService extends ContextAwareService {
           PermissionScope.CHAMA,
           PermissionScope.PERSONAL,
         ],
+        description: 'Make loan repayment',
+        riskLevel: RiskLevel.MEDIUM,
+        auditLevel: 'detailed',
       },
     };
   }

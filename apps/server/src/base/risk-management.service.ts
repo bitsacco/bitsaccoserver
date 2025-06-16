@@ -171,8 +171,8 @@ export class RiskManagementService {
       businessContext: {
         amount: transactionData.amount,
         currency: transactionData.currency,
-        transactionType: transactionData.transactionType,
       },
+      timestamp: new Date(),
     });
 
     // Emit risk assessment event
@@ -280,6 +280,7 @@ export class RiskManagementService {
         currency,
         transactionType: operationType,
       },
+      timestamp: new Date(),
     });
 
     return { violations, canProceed, requiresApproval };
@@ -350,6 +351,7 @@ export class RiskManagementService {
       scope: limitData.scope,
       organizationId: limitData.organizationId,
       chamaId: limitData.chamaId,
+      timestamp: new Date(),
     });
 
     return savedLimit;
@@ -394,6 +396,7 @@ export class RiskManagementService {
       scope: limit.scope,
       organizationId: limit.organizationId,
       chamaId: limit.chamaId,
+      timestamp: new Date(),
     });
 
     return updatedLimit!;

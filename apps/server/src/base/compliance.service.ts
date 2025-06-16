@@ -203,6 +203,7 @@ export class ComplianceService {
       scope: event.scope,
       organizationId: event.organizationId,
       chamaId: event.chamaId,
+      timestamp: new Date(),
     });
 
     return savedEvent;
@@ -356,6 +357,7 @@ export class ComplianceService {
       resourceId: savedReport._id.toString(),
       scope,
       organizationId,
+      timestamp: new Date(),
     });
 
     return savedReport;
@@ -395,6 +397,7 @@ export class ComplianceService {
       resourceId: reportId,
       scope: report.scope,
       organizationId: report.organizationId,
+      timestamp: new Date(),
     });
 
     // Emit submission event

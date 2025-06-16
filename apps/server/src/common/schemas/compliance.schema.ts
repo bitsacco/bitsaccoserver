@@ -1,6 +1,12 @@
 import { Document } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { ServiceRole, GroupRole, Permission, PermissionScope } from '../types';
+import {
+  ServiceRole,
+  GroupRole,
+  Permission,
+  PermissionScope,
+  RiskLevel,
+} from '../types';
 
 /**
  * Maker-Checker Workflow Schema
@@ -27,12 +33,7 @@ export enum WorkflowType {
   SYSTEM_MAINTENANCE = 'system_maintenance',
 }
 
-export enum RiskLevel {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical',
-}
+// RiskLevel moved to ../types
 
 @Schema({ timestamps: true })
 export class ApprovalWorkflow {
@@ -244,7 +245,12 @@ export class TransactionLimit {
   @Prop()
   userId?: string; // For personal limits
 
-  @Prop([{ type: String, enum: [ServiceRole, GroupRole] }])
+  @Prop([
+    {
+      type: String,
+      enum: [...Object.values(ServiceRole), ...Object.values(GroupRole)],
+    },
+  ])
   applicableRoles: (ServiceRole | GroupRole)[];
 
   @Prop({ required: true })

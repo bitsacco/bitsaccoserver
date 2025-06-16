@@ -1,68 +1,10 @@
 import { Model } from 'mongoose';
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { AuditTrail, AuditTrailDocument, PermissionScope } from '..';
+import { AuditTrail, AuditTrailDocument } from '../schemas/compliance.schema';
+import { PermissionScope, AuditEventData, AuditQueryFilters } from '../types';
 
-export interface AuditEventData {
-  userId: string;
-  impersonatedBy?: string;
-  action: string;
-  resourceType: string;
-  resourceId?: string;
-  scope: PermissionScope;
-  organizationId?: string;
-  chamaId?: string;
-  requestData?: {
-    method: string;
-    endpoint: string;
-    parameters?: Record<string, any>;
-    body?: any;
-    userAgent: string;
-    ipAddress: string;
-    sessionId?: string;
-  };
-  responseData?: {
-    statusCode: number;
-    success: boolean;
-    error?: string;
-    changes?: Array<{
-      field: string;
-      oldValue: any;
-      newValue: any;
-    }>;
-  };
-  complianceContext?: {
-    workflowId?: string;
-    approvalRequired: boolean;
-    approvalStatus?: string;
-    riskLevel?: string;
-    sensitiveData: boolean;
-    dataClassification?: 'public' | 'internal' | 'confidential' | 'restricted';
-  };
-  businessContext?: {
-    amount?: number;
-    currency?: string;
-    transactionType?: string;
-    counterparty?: string;
-    businessJustification?: string;
-  };
-  tags?: string[];
-}
-
-export interface AuditQueryFilters {
-  userId?: string;
-  action?: string;
-  resourceType?: string;
-  scope?: PermissionScope;
-  organizationId?: string;
-  chamaId?: string;
-  startDate?: Date;
-  endDate?: Date;
-  sensitiveData?: boolean;
-  riskLevel?: string;
-  limit?: number;
-  offset?: number;
-}
+// Interfaces moved to ../types/audit.types.ts
 
 /**
  * Enhanced Audit Service for Compliance

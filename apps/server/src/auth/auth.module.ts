@@ -10,10 +10,16 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
 import { User, UserSchema } from './user.schema';
-import { ServiceDocument, ServiceSchema, RateLimitInterceptor } from '@/common';
+import {
+  ServiceDocument,
+  ServiceSchema,
+  RateLimitInterceptor,
+  CommonModule,
+} from '@/common';
 
 @Module({
   imports: [
+    CommonModule,
     PassportModule,
     HttpModule.register({
       timeout: 10000,

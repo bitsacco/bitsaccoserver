@@ -15,6 +15,7 @@ import {
   ServiceRole,
   Permission,
   PermissionScope,
+  RiskLevel,
 } from '../common';
 
 export interface SoDViolation {
@@ -101,13 +102,14 @@ export class SegregationService {
           organizationId: context.organizationId,
           chamaId: context.chamaId,
           complianceContext: {
-            riskLevel: 'high',
+            riskLevel: RiskLevel.HIGH,
             sensitiveData: true,
             approvalRequired: true,
           },
           businessContext: {
             businessJustification: `SoD violation: ${rule.description}`,
           },
+          timestamp: new Date(),
         });
 
         // Emit violation event
@@ -178,6 +180,7 @@ export class SegregationService {
       resourceType: 'segregation_rule',
       resourceId: savedRule._id.toString(),
       scope: PermissionScope.GLOBAL,
+      timestamp: new Date(),
     });
 
     return savedRule;
@@ -213,6 +216,7 @@ export class SegregationService {
       resourceType: 'segregation_rule',
       resourceId: ruleId,
       scope: PermissionScope.GLOBAL,
+      timestamp: new Date(),
     });
 
     return rule;
@@ -273,6 +277,7 @@ export class SegregationService {
       resourceType: 'segregation_rule',
       resourceId: ruleId,
       scope: PermissionScope.GLOBAL,
+      timestamp: new Date(),
     });
 
     return rule;

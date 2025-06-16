@@ -1,30 +1,3 @@
-import { Request } from 'express';
-
-export enum UserRole {
-  DEVELOPER = 'developer',
-  ADMIN = 'admin',
-}
-
-export interface JwtPayload {
-  sub: string;
-  email: string;
-  email_verified?: boolean;
-  given_name?: string;
-  family_name?: string;
-  preferred_username?: string;
-  name?: string;
-  iat?: number;
-  exp?: number;
-  aud?: string;
-  iss?: string;
-}
-
-export enum ServiceStatus {
-  ACTIVE = 'active',
-  DEPRECATED = 'deprecated',
-  MAINTENANCE = 'maintenance',
-}
-
 /**
  * SACCO-specific role hierarchy with dual-scope permissions
  * Service-level roles: System-wide permissions
@@ -122,18 +95,6 @@ export enum Permission {
   GOVERNANCE_MODERATE = 'governance:moderate',
 }
 
-/**
- * Dual-scope permission assignment
- * Users have both service-level and context-specific permissions
- */
-export interface UserPermissions {
-  serviceRole: ServiceRole;
-  servicePermissions: Permission[];
-
-  // Context-specific permissions
-  groupMemberships: GroupMembership[];
-}
-
 export interface GroupMembership {
   groupId: string;
   groupType: 'organization' | 'chama';
@@ -146,40 +107,15 @@ export interface GroupMembership {
 }
 
 /**
- * Enhanced authenticated user with dual-scope context
+ * Dual-scope permission assignment
+ * Users have both service-level and context-specific permissions
  */
-export interface AuthenticatedUser {
-  // Basic user info
-  userId: string;
-  sub: string; // JWT subject identifier (same as userId but from token)
-  email: string;
-  authMethod: 'jwt' | 'api-key';
-
-  // Service-level permissions
+export interface UserPermissions {
   serviceRole: ServiceRole;
   servicePermissions: Permission[];
 
-  // Current context
-  currentOrganizationId?: string;
-  currentChamaId?: string;
-  currentScope: PermissionScope;
-
-  // All group memberships
+  // Context-specific permissions
   groupMemberships: GroupMembership[];
-
-  // Resolved permissions for current context
-  contextPermissions: Permission[];
-
-  // Legacy alias for contextPermissions (for backward compatibility)
-  permissions?: Permission[];
-}
-
-export interface AuthenticatedRequest extends Request {
-  user: AuthenticatedUser;
-  organizationId?: string;
-  chamaId?: string;
-  scope: PermissionScope;
-  apiKeyId?: string; // For API key authentication
 }
 
 /**
