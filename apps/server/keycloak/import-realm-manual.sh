@@ -65,48 +65,48 @@ for role in "bitsaccoserver-admin:Full access to console management" "bitsaccose
     -d "{\"name\": \"$name\", \"description\": \"$desc\"}"
 done
 
-# 4. Create users
-echo "4️⃣ Creating users..."
+# 4. Create members
+echo "4️⃣ Creating members..."
 
-# Admin user
-curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users" \
+# Admin member
+curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/members" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "admin@bitsaccoserver.org",
     "email": "admin@bitsaccoserver.org",
     "firstName": "Admin",
-    "lastName": "User",
+    "lastName": "Member",
     "enabled": true,
     "emailVerified": true,
     "credentials": [{"type": "password", "value": "admin123", "temporary": false}],
     "realmRoles": ["bitsaccoserver-admin", "bitsaccoserver-member"]
   }'
 
-# Developer user  
-curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users" \
+# Developer member  
+curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/members" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "developer@bitsaccoserver.org",
     "email": "developer@bitsaccoserver.org", 
     "firstName": "Dev",
-    "lastName": "User",
+    "lastName": "Member",
     "enabled": true,
     "emailVerified": true,
     "credentials": [{"type": "password", "value": "dev123", "temporary": false}],
     "realmRoles": ["bitsaccoserver-developer", "bitsaccoserver-member"]
   }'
 
-# Test user
-curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users" \
+# Test member
+curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/members" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "member@bitsaccoserver.org",
     "email": "member@bitsaccoserver.org",
     "firstName": "Test",
-    "lastName": "User", 
+    "lastName": "Member", 
     "enabled": true,
     "emailVerified": true,
     "credentials": [{"type": "password", "value": "member123", "temporary": false}],

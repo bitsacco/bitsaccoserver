@@ -5,13 +5,12 @@ import {
   MinLength,
   MaxLength,
   IsOptional,
-  IsBoolean,
   Matches,
 } from 'class-validator';
 
 export class LoginDto {
   @ApiProperty({
-    description: 'User email address',
+    description: 'Member email address',
     example: 'example@bitsaccoserver.org',
     default: 'example@bitsaccoserver.org',
   })
@@ -19,7 +18,7 @@ export class LoginDto {
   email: string;
 
   @ApiProperty({
-    description: 'User password (minimum 6 characters)',
+    description: 'Member password (minimum 6 characters)',
     example: 'Test123!',
     default: 'Test123!',
   })
@@ -30,7 +29,7 @@ export class LoginDto {
 
 export class RegisterDto {
   @ApiProperty({
-    description: 'User email address',
+    description: 'Member email address',
     example: 'example@bitsaccoserver.org',
     default: 'example@bitsaccoserver.org',
   })
@@ -39,7 +38,7 @@ export class RegisterDto {
 
   @ApiProperty({
     description:
-      'User password (minimum 8 characters, must contain uppercase, lowercase, number, and special character)',
+      'Member password (minimum 8 characters, must contain uppercase, lowercase, number, and special character)',
     example: 'Test123!',
     default: 'Test123!',
   })
@@ -53,7 +52,7 @@ export class RegisterDto {
   password: string;
 
   @ApiProperty({
-    description: 'User first name',
+    description: 'Member first name',
     example: 'Test',
     default: 'Test',
   })
@@ -63,9 +62,9 @@ export class RegisterDto {
   firstName: string;
 
   @ApiProperty({
-    description: 'User last name',
-    example: 'User',
-    default: 'User',
+    description: 'Member last name',
+    example: 'Member',
+    default: 'Member',
   })
   @IsString()
   @MinLength(1)
@@ -73,7 +72,7 @@ export class RegisterDto {
   lastName: string;
 
   @ApiProperty({
-    description: 'User phone number (optional)',
+    description: 'Member phone number (optional)',
     example: '+254700000000',
     required: false,
   })
@@ -83,39 +82,6 @@ export class RegisterDto {
     message: 'Phone number must be in international format',
   })
   phoneNumber?: string;
-
-  @ApiProperty({
-    description: 'Whether to create a default organization for the user',
-    example: true,
-    required: false,
-    default: false,
-  })
-  @IsOptional()
-  @IsBoolean()
-  createOrganization?: boolean;
-
-  @ApiProperty({
-    description: 'Organization name (required if createOrganization is true)',
-    example: 'My Company',
-    required: false,
-  })
-  @IsOptional()
-  @IsString()
-  @MinLength(2)
-  @MaxLength(100)
-  organizationName?: string;
-
-  @ApiProperty({
-    description: 'Organization country code',
-    example: 'KE',
-    required: false,
-    default: 'KE',
-  })
-  @IsOptional()
-  @IsString()
-  @MinLength(2)
-  @MaxLength(2)
-  country?: string;
 }
 
 export class RefreshTokenDto {
@@ -182,8 +148,8 @@ export class ChangePasswordDto {
 
 export class ForgotPasswordDto {
   @ApiProperty({
-    description: 'User email address',
-    example: 'user@example.com',
+    description: 'Member email address',
+    example: 'member@example.com',
   })
   @IsEmail()
   email: string;
@@ -200,8 +166,8 @@ export class VerifyEmailDto {
 
 export class ResendVerificationDto {
   @ApiProperty({
-    description: 'User email address',
-    example: 'user@example.com',
+    description: 'Member email address',
+    example: 'member@example.com',
   })
   @IsEmail()
   email: string;

@@ -7,7 +7,7 @@ import {
   ServiceRole,
   Permission,
   PermissionScope,
-  SACCOAuthenticatedUser,
+  AuthenticatedMember,
 } from '../common';
 
 /**
@@ -64,7 +64,7 @@ export interface ServiceIntegration {
  */
 export interface TelemetryConfig {
   id: string;
-  level: 'server' | 'service' | 'organization' | 'chama' | 'user';
+  level: 'server' | 'service' | 'organization' | 'chama' | 'member';
   metricsEnabled: boolean;
   loggingLevel: 'debug' | 'info' | 'warn' | 'error';
   retentionPeriod: number; // in days
@@ -108,10 +108,10 @@ export class GovernanceService {
    * Get system configuration (SYSTEM-ADMIN only)
    */
   async getSystemConfiguration(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     category?: string,
   ): Promise<SystemConfiguration[]> {
-    this.validateSystemAdminAccess(user);
+    this.validateSystemAdminAccess(member);
 
     const configs = Array.from(this.systemConfig.values());
     return category
@@ -123,12 +123,12 @@ export class GovernanceService {
    * Update system configuration (SYSTEM-ADMIN only)
    */
   async updateSystemConfiguration(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     key: string,
     value: any,
     description?: string,
   ): Promise<SystemConfiguration> {
-    this.validateSystemAdminAccess(user);
+    this.validateSystemAdminAccess(member);
 
     const existing = this.systemConfig.get(key);
     if (!existing) {
@@ -139,7 +139,7 @@ export class GovernanceService {
       ...existing,
       value,
       description: description || existing.description,
-      lastModifiedBy: user.userId,
+      lastModifiedBy: member.memberId,
       lastModifiedAt: new Date(),
       version: existing.version + 1,
     };
@@ -156,18 +156,18 @@ export class GovernanceService {
    * Create new system configuration (SYSTEM-ADMIN only)
    */
   async createSystemConfiguration(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     config: Omit<
       SystemConfiguration,
       'id' | 'lastModifiedBy' | 'lastModifiedAt' | 'version'
     >,
   ): Promise<SystemConfiguration> {
-    this.validateSystemAdminAccess(user);
+    this.validateSystemAdminAccess(member);
 
     const newConfig: SystemConfiguration = {
       ...config,
       id: this.generateId(),
-      lastModifiedBy: user.userId,
+      lastModifiedBy: member.memberId,
       lastModifiedAt: new Date(),
       version: 1,
     };
@@ -182,7 +182,7 @@ export class GovernanceService {
    * Register service integration (SYSTEM-ADMIN only)
    */
   async registerServiceIntegration(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     integration: Omit<
       ServiceIntegration,
       | 'id'
@@ -193,14 +193,14 @@ export class GovernanceService {
       | 'lastHealthCheck'
     >,
   ): Promise<ServiceIntegration> {
-    this.validateSystemAdminAccess(user);
+    this.validateSystemAdminAccess(member);
 
     const newIntegration: ServiceIntegration = {
       ...integration,
       id: this.generateId(),
       healthStatus: 'healthy',
       lastHealthCheck: new Date(),
-      createdBy: user.userId,
+      createdBy: member.memberId,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -217,13 +217,13 @@ export class GovernanceService {
    * Get service integrations
    */
   async getServiceIntegrations(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     serviceType?: string,
   ): Promise<ServiceIntegration[]> {
-    // ADMIN users can view service integrations
+    // ADMIN members can view service integrations
     if (
-      user.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
-      user.serviceRole !== ServiceRole.ADMIN
+      member.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
+      member.serviceRole !== ServiceRole.ADMIN
     ) {
       throw new ForbiddenException(
         'Insufficient permissions to view service integrations',
@@ -233,7 +233,7 @@ export class GovernanceService {
     const integrations = Array.from(this.serviceIntegrations.values());
 
     // Filter sensitive information for non-system admins
-    if (user.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
       integrations.forEach((integration) => {
         delete integration.configuration.credentials;
         delete integration.configuration.apiKey;
@@ -251,11 +251,11 @@ export class GovernanceService {
    * Update service integration status
    */
   async updateServiceIntegrationStatus(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     serviceName: string,
     isEnabled: boolean,
   ): Promise<ServiceIntegration> {
-    this.validateSystemAdminAccess(user);
+    this.validateSystemAdminAccess(member);
 
     const integration = this.serviceIntegrations.get(serviceName);
     if (!integration) {
@@ -277,11 +277,11 @@ export class GovernanceService {
    * Configure telemetry settings (SYSTEM-ADMIN only)
    */
   async configureTelemetry(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     level: TelemetryConfig['level'],
     config: Omit<TelemetryConfig, 'id' | 'level'>,
   ): Promise<TelemetryConfig> {
-    this.validateSystemAdminAccess(user);
+    this.validateSystemAdminAccess(member);
 
     const telemetryConfig: TelemetryConfig = {
       ...config,
@@ -301,13 +301,13 @@ export class GovernanceService {
    * Get telemetry configuration
    */
   async getTelemetryConfiguration(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     level?: TelemetryConfig['level'],
   ): Promise<TelemetryConfig[]> {
-    // ADMIN users can view telemetry configuration
+    // ADMIN members can view telemetry configuration
     if (
-      user.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
-      user.serviceRole !== ServiceRole.ADMIN
+      member.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
+      member.serviceRole !== ServiceRole.ADMIN
     ) {
       throw new ForbiddenException(
         'Insufficient permissions to view telemetry configuration',
@@ -323,7 +323,7 @@ export class GovernanceService {
   /**
    * Get system health status
    */
-  async getSystemHealth(user: SACCOAuthenticatedUser): Promise<{
+  async getSystemHealth(member: AuthenticatedMember): Promise<{
     overall: 'healthy' | 'degraded' | 'down';
     server: any;
     services: any[];
@@ -332,8 +332,8 @@ export class GovernanceService {
   }> {
     // ADMIN and SYSTEM_ADMIN can view system health
     if (
-      user.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
-      user.serviceRole !== ServiceRole.ADMIN
+      member.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
+      member.serviceRole !== ServiceRole.ADMIN
     ) {
       throw new ForbiddenException(
         'Insufficient permissions to view system health',
@@ -361,7 +361,7 @@ export class GovernanceService {
    * Get organization-level metrics (scope-aware)
    */
   async getOrganizationMetrics(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     organizationId: string,
     timeRange: '1h' | '24h' | '7d' | '30d' = '24h',
   ): Promise<{
@@ -370,15 +370,15 @@ export class GovernanceService {
     activity: any;
     compliance: any;
   }> {
-    // Validate user has access to organization metrics
-    const hasPermission = user.groupMemberships?.some(
+    // Validate member has access to organization metrics
+    const hasPermission = member.groupMemberships?.some(
       (membership) =>
         membership.groupId === organizationId &&
         membership.groupType === 'organization' &&
         membership.permissions.includes(Permission.REPORTS_READ),
     );
 
-    if (!hasPermission && user.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (!hasPermission && member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
       throw new ForbiddenException(
         'Insufficient permissions to view organization metrics',
       );
@@ -408,7 +408,7 @@ export class GovernanceService {
    * Get chama-level metrics (scope-aware)
    */
   async getChamaMetrics(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     chamaId: string,
     timeRange: '1h' | '24h' | '7d' | '30d' = '24h',
   ): Promise<{
@@ -417,15 +417,15 @@ export class GovernanceService {
     loans: any;
     activity: any;
   }> {
-    // Validate user has access to chama metrics
-    const hasPermission = user.groupMemberships?.some(
+    // Validate member has access to chama metrics
+    const hasPermission = member.groupMemberships?.some(
       (membership) =>
         membership.groupId === chamaId &&
         membership.groupType === 'chama' &&
         membership.permissions.includes(Permission.REPORTS_READ),
     );
 
-    if (!hasPermission && user.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (!hasPermission && member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
       throw new ForbiddenException(
         'Insufficient permissions to view chama metrics',
       );
@@ -445,7 +445,7 @@ export class GovernanceService {
    * Configure alerts (SYSTEM-ADMIN only)
    */
   async configureAlerts(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     _alertConfig: {
       type: 'system' | 'service' | 'organization' | 'chama';
       conditions: Array<{
@@ -463,7 +463,7 @@ export class GovernanceService {
       isEnabled: boolean;
     },
   ): Promise<any> {
-    this.validateSystemAdminAccess(user);
+    this.validateSystemAdminAccess(member);
 
     // Implementation would store alert configuration
     // and set up monitoring triggers
@@ -472,8 +472,8 @@ export class GovernanceService {
 
   // Private Methods
 
-  private validateSystemAdminAccess(user: SACCOAuthenticatedUser): void {
-    if (user.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+  private validateSystemAdminAccess(member: AuthenticatedMember): void {
+    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
       throw new ForbiddenException('SYSTEM_ADMIN role required');
     }
   }
@@ -499,7 +499,7 @@ export class GovernanceService {
         category: 'limits',
         key: 'api.rate_limit.requests_per_minute',
         value: 60,
-        description: 'API rate limit per minute per user',
+        description: 'API rate limit per minute per member',
         scope: 'global',
         isActive: true,
         requiredRole: ServiceRole.SYSTEM_ADMIN,

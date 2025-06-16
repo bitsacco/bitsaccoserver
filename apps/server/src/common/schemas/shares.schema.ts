@@ -11,8 +11,8 @@ export enum SharesTxStatus {
 }
 
 export interface SharesTxTransferMeta {
-  fromUserId: string;
-  toUserId: string;
+  fromMemberId: string;
+  toMemberId: string;
   quantity: number;
   reason?: string;
 }
@@ -20,7 +20,7 @@ export interface SharesTxTransferMeta {
 @Schema({ timestamps: true, versionKey: false })
 export class SharesDocument extends Document {
   @Prop({ type: String, required: true })
-  userId: string;
+  memberId: string;
 
   @Prop({ type: String, required: true })
   offerId: string;

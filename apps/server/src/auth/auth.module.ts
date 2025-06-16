@@ -9,23 +9,24 @@ import { KeycloakConnectModule } from 'nest-keycloak-connect';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
-import { User, UserSchema } from './user.schema';
+import { Member, MemberSchema } from './member.schema';
 import {
   ServiceDocument,
   ServiceSchema,
-  CommonModule,
   RateLimitInterceptor,
+  CommonModule,
 } from '@/common';
 
 @Module({
   imports: [
+    CommonModule,
     PassportModule,
     HttpModule.register({
       timeout: 10000,
       maxRedirects: 5,
     }),
     MongooseModule.forFeature([
-      { name: User.name, schema: UserSchema },
+      { name: Member.name, schema: MemberSchema },
       { name: ServiceDocument.name, schema: ServiceSchema },
     ]),
 
@@ -57,9 +58,6 @@ import {
         logLevels: ['verbose'],
       }),
     }),
-
-    // Common Module (contains OrganizationService)
-    CommonModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, RateLimitInterceptor],

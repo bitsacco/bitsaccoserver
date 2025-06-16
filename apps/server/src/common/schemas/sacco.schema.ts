@@ -1,13 +1,13 @@
 import { Document } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { ServiceRole, GroupRole, Permission } from '../sacco-types';
+import { ServiceRole, GroupRole, Permission } from '../types';
 
 /**
- * Enhanced SACCO Organization Schema
+ * Enhanced SACCO Schema
  * Supports hierarchical structure with flexible organizational formations
  */
 @Schema({ timestamps: true })
-export class SACCOOrganization {
+export class Sacco {
   @Prop({ required: true, unique: true })
   name: string;
 
@@ -129,9 +129,8 @@ export class SACCOOrganization {
   };
 }
 
-export type SACCOOrganizationDocument = SACCOOrganization & Document;
-export const SACCOOrganizationSchema =
-  SchemaFactory.createForClass(SACCOOrganization);
+export type SaccoDocument = Sacco & Document;
+export const SaccoSchema = SchemaFactory.createForClass(Sacco);
 
 /**
  * Chama Schema - Sub-organizations within SACCOs
@@ -247,9 +246,9 @@ export const ChamaSchema = SchemaFactory.createForClass(Chama);
  * Supports membership in both SACCOs and Chamas
  */
 @Schema({ timestamps: true })
-export class SACCOMember {
+export class SaccoMember {
   @Prop({ required: true })
-  userId: string;
+  memberId: string;
 
   @Prop({ required: true })
   email: string;
@@ -336,16 +335,16 @@ export class SACCOMember {
   };
 }
 
-export type SACCOMemberDocument = SACCOMember & Document;
-export const SACCOMemberSchema = SchemaFactory.createForClass(SACCOMember);
+export type SaccoMemberDocument = SaccoMember & Document;
+export const SaccoMemberSchema = SchemaFactory.createForClass(SaccoMember);
 
 /**
  * Organization Membership - Links members to SACCOs with roles
  */
 @Schema({ timestamps: true })
-export class SACCOOrganizationMembership {
+export class SaccoMembership {
   @Prop({ required: true })
-  userId: string;
+  memberId: string;
 
   @Prop({ required: true })
   organizationId: string;
@@ -409,11 +408,9 @@ export class SACCOOrganizationMembership {
   };
 }
 
-export type SACCOOrganizationMembershipDocument = SACCOOrganizationMembership &
-  Document;
-export const SACCOOrganizationMembershipSchema = SchemaFactory.createForClass(
-  SACCOOrganizationMembership,
-);
+export type SaccoMembershipDocument = SaccoMembership & Document;
+export const SaccoMembershipSchema =
+  SchemaFactory.createForClass(SaccoMembership);
 
 /**
  * Chama Membership - Links members to chamas with roles
@@ -421,7 +418,7 @@ export const SACCOOrganizationMembershipSchema = SchemaFactory.createForClass(
 @Schema({ timestamps: true })
 export class ChamaMembership {
   @Prop({ required: true })
-  userId: string;
+  memberId: string;
 
   @Prop({ required: true })
   chamaId: string;

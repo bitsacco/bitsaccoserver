@@ -19,7 +19,11 @@
       "Bash(sed:*)",
       "Bash(yarn lint)",
       "Bash(yarn lint:*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm test:*)",
+      "Bash(mv:*)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

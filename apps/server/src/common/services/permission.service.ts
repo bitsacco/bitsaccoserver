@@ -5,10 +5,10 @@ import {
   Permission,
   PermissionScope,
   GroupMembership,
-  SACCOAuthenticatedUser,
+  AuthenticatedMember,
   ROLE_PERMISSIONS,
   ROLE_HIERARCHY,
-} from '../common';
+} from '..';
 
 /**
  * Service for managing and resolving SACCO permissions
@@ -59,30 +59,30 @@ export class PermissionService {
    * Check if a service role inherits from another service role
    */
   serviceRoleInheritsFrom(
-    userRole: ServiceRole,
+    memberRole: ServiceRole,
     checkRole: ServiceRole,
   ): boolean {
-    if (userRole === checkRole) return true;
+    if (memberRole === checkRole) return true;
 
-    const inheritedRoles = ROLE_HIERARCHY[userRole] || [];
+    const inheritedRoles = ROLE_HIERARCHY[memberRole] || [];
     return inheritedRoles.includes(checkRole);
   }
 
   /**
    * Check if a group role inherits from another group role
    */
-  groupRoleInheritsFrom(userRole: GroupRole, checkRole: GroupRole): boolean {
-    if (userRole === checkRole) return true;
+  groupRoleInheritsFrom(memberRole: GroupRole, checkRole: GroupRole): boolean {
+    if (memberRole === checkRole) return true;
 
-    const inheritedRoles = ROLE_HIERARCHY[userRole] || [];
+    const inheritedRoles = ROLE_HIERARCHY[memberRole] || [];
     return inheritedRoles.includes(checkRole);
   }
 
   /**
-   * Resolve all effective permissions for a user in a specific context
+   * Resolve all effective permissions for a member in a specific context
    */
   resolveUserPermissions(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     scope: PermissionScope,
     organizationId?: string,
     chamaId?: string,
@@ -90,13 +90,15 @@ export class PermissionService {
     const permissions = new Set<Permission>();
 
     // Always include service-level permissions
-    const servicePermissions = this.getServiceRolePermissions(user.serviceRole);
+    const servicePermissions = this.getServiceRolePermissions(
+      member.serviceRole,
+    );
     servicePermissions.forEach((p) => permissions.add(p));
 
     // Add context-specific permissions based on scope
     if (scope !== PermissionScope.GLOBAL) {
       const relevantMemberships = this.getRelevantMemberships(
-        user.groupMemberships,
+        member.groupMemberships,
         scope,
         organizationId,
         chamaId,
@@ -145,80 +147,80 @@ export class PermissionService {
   }
 
   /**
-   * Check if user has specific permission in given scope
+   * Check if member has specific permission in given scope
    */
-  userHasPermission(
-    user: SACCOAuthenticatedUser,
+  memberHasPermission(
+    member: AuthenticatedMember,
     permission: Permission,
     scope: PermissionScope,
     organizationId?: string,
     chamaId?: string,
   ): boolean {
-    const userPermissions = this.resolveUserPermissions(
-      user,
+    const memberPermissions = this.resolveUserPermissions(
+      member,
       scope,
       organizationId,
       chamaId,
     );
-    return userPermissions.includes(permission);
+    return memberPermissions.includes(permission);
   }
 
   /**
-   * Check if user has all required permissions in given scope
+   * Check if member has all required permissions in given scope
    */
-  userHasAllPermissions(
-    user: SACCOAuthenticatedUser,
+  memberHasAllPermissions(
+    member: AuthenticatedMember,
     permissions: Permission[],
     scope: PermissionScope,
     organizationId?: string,
     chamaId?: string,
   ): boolean {
-    const userPermissions = this.resolveUserPermissions(
-      user,
+    const memberPermissions = this.resolveUserPermissions(
+      member,
       scope,
       organizationId,
       chamaId,
     );
     return permissions.every((permission) =>
-      userPermissions.includes(permission),
+      memberPermissions.includes(permission),
     );
   }
 
   /**
-   * Check if user has any of the required permissions in given scope
+   * Check if member has any of the required permissions in given scope
    */
-  userHasAnyPermission(
-    user: SACCOAuthenticatedUser,
+  memberHasAnyPermission(
+    member: AuthenticatedMember,
     permissions: Permission[],
     scope: PermissionScope,
     organizationId?: string,
     chamaId?: string,
   ): boolean {
-    const userPermissions = this.resolveUserPermissions(
-      user,
+    const memberPermissions = this.resolveUserPermissions(
+      member,
       scope,
       organizationId,
       chamaId,
     );
     return permissions.some((permission) =>
-      userPermissions.includes(permission),
+      memberPermissions.includes(permission),
     );
   }
 
   /**
-   * Get user's effective role in a specific context
+   * Get member's effective role in a specific context
    */
   getUserEffectiveRole(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     scope: PermissionScope,
     organizationId?: string,
     chamaId?: string,
   ): { serviceRole: ServiceRole; groupRole?: GroupRole } {
-    const result = { serviceRole: user.serviceRole };
+    const result = { serviceRole: member.serviceRole };
 
     if (scope !== PermissionScope.GLOBAL) {
       const relevantMemberships = this.getRelevantMemberships(
-        user.groupMemberships,
+        member.groupMemberships,
         scope,
         organizationId,
         chamaId,
@@ -244,16 +246,11 @@ export class PermissionService {
    */
   private sortRolesByHierarchy(roles: GroupRole[]): GroupRole[] {
     const roleHierarchyOrder = {
-      [GroupRole.SACCO_OWNER]: 1,
-      [GroupRole.SACCO_ADMIN]: 2,
-      [GroupRole.SACCO_MANAGER]: 3,
-      [GroupRole.SACCO_TREASURER]: 4,
-      [GroupRole.SACCO_SECRETARY]: 5,
-      [GroupRole.CHAMA_LEADER]: 6,
-      [GroupRole.CHAMA_TREASURER]: 7,
-      [GroupRole.CHAMA_SECRETARY]: 8,
-      [GroupRole.CHAMA_MEMBER]: 9,
-      [GroupRole.VIEWER]: 10,
+      [GroupRole.ORG_ADMIN]: 1,
+      [GroupRole.CHAMA_ADMIN]: 2,
+      [GroupRole.ORG_MEMBER]: 3,
+      [GroupRole.CHAMA_MEMBER]: 4,
+      [GroupRole.VIEWER]: 5,
     };
 
     return roles.sort((a, b) => roleHierarchyOrder[a] - roleHierarchyOrder[b]);
@@ -263,7 +260,7 @@ export class PermissionService {
    * Create a new group membership
    */
   createGroupMembership(
-    userId: string,
+    memberId: string,
     groupId: string,
     groupType: 'organization' | 'chama',
     role: GroupRole,

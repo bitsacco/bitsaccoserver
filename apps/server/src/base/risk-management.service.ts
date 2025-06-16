@@ -3,21 +3,21 @@ import {
   BadRequestException,
   ForbiddenException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   TransactionLimit,
   TransactionLimitDocument,
   RiskLevel,
-  SACCOAuthenticatedUser,
+  AuthenticatedMember,
   Permission,
   PermissionScope,
   ServiceRole,
   GroupRole,
+  AuditService,
 } from '../common';
 import { ComplianceService } from './compliance.service';
-import { AuditService } from './audit.service';
 
 export interface RiskAssessment {
   riskScore: number; // 0-100
@@ -39,7 +39,7 @@ export interface TransactionRisk {
   currency: string;
   transactionType: string;
   frequency: number; // transactions in last 24h
-  userRiskProfile: 'low' | 'medium' | 'high';
+  memberRiskProfile: 'low' | 'medium' | 'high';
   counterpartyRisk?: 'low' | 'medium' | 'high';
   geographicRisk?: 'low' | 'medium' | 'high';
   timeOfDay: number; // hour 0-23
@@ -68,7 +68,7 @@ export class RiskManagementService {
   private riskFactorWeights = {
     amount: 0.3,
     frequency: 0.2,
-    userProfile: 0.2,
+    memberProfile: 0.2,
     timePattern: 0.1,
     geographic: 0.1,
     counterparty: 0.1,
@@ -88,7 +88,7 @@ export class RiskManagementService {
    * Assess transaction risk
    */
   async assessTransactionRisk(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     transactionData: TransactionRisk,
     scope: PermissionScope,
     organizationId?: string,
@@ -107,12 +107,13 @@ export class RiskManagementService {
     factors.push(frequencyFactor);
     totalScore += frequencyFactor.score * this.riskFactorWeights.frequency;
 
-    // User profile risk assessment
-    const userProfileFactor = this.assessUserProfileRisk(
-      transactionData.userRiskProfile,
+    // Member profile risk assessment
+    const memberProfileFactor = this.assessUserProfileRisk(
+      transactionData.memberRiskProfile,
     );
-    factors.push(userProfileFactor);
-    totalScore += userProfileFactor.score * this.riskFactorWeights.userProfile;
+    factors.push(memberProfileFactor);
+    totalScore +=
+      memberProfileFactor.score * this.riskFactorWeights.memberProfile;
 
     // Time pattern risk assessment
     const timePatternFactor = this.assessTimePatternRisk(
@@ -157,7 +158,7 @@ export class RiskManagementService {
 
     // Log risk assessment
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'RISK_ASSESSMENT_PERFORMED',
       resourceType: 'transaction',
       scope,
@@ -171,13 +172,13 @@ export class RiskManagementService {
       businessContext: {
         amount: transactionData.amount,
         currency: transactionData.currency,
-        transactionType: transactionData.transactionType,
       },
+      timestamp: new Date(),
     });
 
     // Emit risk assessment event
     this.eventEmitter.emit('risk.assessment_completed', {
-      userId: user.userId,
+      memberId: member.memberId,
       riskScore,
       riskLevel,
       transactionAmount: transactionData.amount,
@@ -190,7 +191,7 @@ export class RiskManagementService {
    * Check transaction limits
    */
   async checkTransactionLimits(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     amount: number,
     currency: string,
     operationType: string,
@@ -204,7 +205,7 @@ export class RiskManagementService {
   }> {
     // Get applicable limits
     const applicableLimits = await this.getApplicableLimits(
-      user,
+      member,
       scope,
       organizationId,
       chamaId,
@@ -249,7 +250,7 @@ export class RiskManagementService {
 
       // Check periodic limits (daily, weekly, monthly)
       const periodicViolations = await this.checkPeriodicLimits(
-        user,
+        member,
         amount,
         limit,
         scope,
@@ -265,7 +266,7 @@ export class RiskManagementService {
 
     // Log limit check
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'TRANSACTION_LIMITS_CHECKED',
       resourceType: 'transaction_limit',
       scope,
@@ -280,6 +281,7 @@ export class RiskManagementService {
         currency,
         transactionType: operationType,
       },
+      timestamp: new Date(),
     });
 
     return { violations, canProceed, requiresApproval };
@@ -289,13 +291,13 @@ export class RiskManagementService {
    * Create transaction limit
    */
   async createTransactionLimit(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     limitData: {
       limitName: string;
       scope: PermissionScope;
       organizationId?: string;
       chamaId?: string;
-      userId?: string;
+      memberId?: string;
       applicableRoles: (ServiceRole | GroupRole)[];
       currency: string;
       limits: {
@@ -324,7 +326,7 @@ export class RiskManagementService {
   ): Promise<TransactionLimitDocument> {
     // Validate permissions
     const canCreateLimits = this.validateLimitCreationPermissions(
-      user,
+      member,
       limitData.scope,
     );
     if (!canCreateLimits) {
@@ -336,20 +338,21 @@ export class RiskManagementService {
     const limit = new this.transactionLimitModel({
       ...limitData,
       isActive: true,
-      createdBy: user.userId,
+      createdBy: member.memberId,
     });
 
     const savedLimit = await limit.save();
 
     // Log audit event
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'TRANSACTION_LIMIT_CREATED',
       resourceType: 'transaction_limit',
       resourceId: savedLimit._id.toString(),
       scope: limitData.scope,
       organizationId: limitData.organizationId,
       chamaId: limitData.chamaId,
+      timestamp: new Date(),
     });
 
     return savedLimit;
@@ -359,7 +362,7 @@ export class RiskManagementService {
    * Update transaction limit
    */
   async updateTransactionLimit(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     limitId: string,
     updateData: Partial<TransactionLimit>,
   ): Promise<TransactionLimitDocument> {
@@ -370,7 +373,7 @@ export class RiskManagementService {
 
     // Validate permissions
     const canUpdateLimits = this.validateLimitUpdatePermissions(
-      user,
+      member,
       limit.scope,
     );
     if (!canUpdateLimits) {
@@ -387,13 +390,14 @@ export class RiskManagementService {
 
     // Log audit event
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'TRANSACTION_LIMIT_UPDATED',
       resourceType: 'transaction_limit',
       resourceId: limitId,
       scope: limit.scope,
       organizationId: limit.organizationId,
       chamaId: limit.chamaId,
+      timestamp: new Date(),
     });
 
     return updatedLimit!;
@@ -403,7 +407,7 @@ export class RiskManagementService {
    * Get transaction limits
    */
   async getTransactionLimits(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     scope?: PermissionScope,
     organizationId?: string,
     chamaId?: string,
@@ -416,16 +420,16 @@ export class RiskManagementService {
     if (chamaId) query.chamaId = chamaId;
     if (isActive !== undefined) query.isActive = isActive;
 
-    // Filter based on user permissions
-    if (user.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    // Filter based on member permissions
+    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
       // Users can only see limits they have access to
       const accessibleOrgs =
-        user.groupMemberships
+        member.groupMemberships
           ?.filter((m) => m.groupType === 'organization')
           .map((m) => m.groupId) || [];
 
       const accessibleChamas =
-        user.groupMemberships
+        member.groupMemberships
           ?.filter((m) => m.groupType === 'chama')
           .map((m) => m.groupId) || [];
 
@@ -433,7 +437,7 @@ export class RiskManagementService {
         { scope: PermissionScope.GLOBAL },
         { organizationId: { $in: accessibleOrgs } },
         { chamaId: { $in: accessibleChamas } },
-        { userId: user.userId },
+        { memberId: member.memberId },
       ];
     }
 
@@ -538,7 +542,7 @@ export class RiskManagementService {
       timestamp: Date;
     }>;
     recentHighRiskTransactions: Array<{
-      userId: string;
+      memberId: string;
       amount: number;
       riskScore: number;
       timestamp: Date;
@@ -586,7 +590,7 @@ export class RiskManagementService {
     // Get recent high-risk transactions (mock data)
     const recentHighRiskTransactions = [
       {
-        userId: 'user-001',
+        memberId: 'member-001',
         amount: 50000,
         riskScore: 85,
         timestamp: new Date(),
@@ -615,7 +619,7 @@ export class RiskManagementService {
       {
         limitName: 'SACCO Daily Transaction Limit',
         scope: PermissionScope.ORGANIZATION,
-        applicableRoles: [GroupRole.CHAMA_MEMBER, GroupRole.CHAMA_TREASURER],
+        applicableRoles: [GroupRole.CHAMA_MEMBER],
         currency: 'KES',
         limits: {
           maxTransactionAmount: 100000,
@@ -626,7 +630,7 @@ export class RiskManagementService {
         applicableOperations: ['deposit', 'withdraw', 'transfer'],
         overrideConditions: {
           allowOverride: true,
-          overrideRoles: [GroupRole.SACCO_ADMIN, GroupRole.SACCO_TREASURER],
+          overrideRoles: [GroupRole.ORG_ADMIN, GroupRole.CHAMA_ADMIN],
           overridePermissions: [Permission.FINANCE_APPROVE],
           requiresApproval: true,
           maxOverridePercentage: 50,
@@ -649,7 +653,7 @@ export class RiskManagementService {
         applicableOperations: ['deposit', 'withdraw'],
         overrideConditions: {
           allowOverride: true,
-          overrideRoles: [GroupRole.CHAMA_LEADER, GroupRole.CHAMA_TREASURER],
+          overrideRoles: [GroupRole.CHAMA_ADMIN],
           overridePermissions: [Permission.FINANCE_APPROVE],
           requiresApproval: true,
           maxOverridePercentage: 25,
@@ -723,7 +727,7 @@ export class RiskManagementService {
     };
   }
 
-  private assessUserProfileRisk(userRiskProfile: string): any {
+  private assessUserProfileRisk(memberRiskProfile: string): any {
     const scoreMap = {
       low: 10,
       medium: 40,
@@ -731,10 +735,10 @@ export class RiskManagementService {
     };
 
     return {
-      factor: 'User Profile',
-      weight: this.riskFactorWeights.userProfile,
-      score: scoreMap[userRiskProfile] || 40,
-      description: `User has ${userRiskProfile} risk profile`,
+      factor: 'Member Profile',
+      weight: this.riskFactorWeights.memberProfile,
+      score: scoreMap[memberRiskProfile] || 40,
+      description: `Member has ${memberRiskProfile} risk profile`,
     };
   }
 
@@ -876,7 +880,7 @@ export class RiskManagementService {
   }
 
   private async getApplicableLimits(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     scope: PermissionScope,
     organizationId?: string,
     chamaId?: string,
@@ -896,7 +900,7 @@ export class RiskManagementService {
       { scope: PermissionScope.GLOBAL },
       { scope: scope, organizationId: organizationId },
       { scope: PermissionScope.CHAMA, chamaId: chamaId },
-      { scope: PermissionScope.PERSONAL, userId: user.userId },
+      { scope: PermissionScope.PERSONAL, memberId: member.memberId },
     ];
 
     // Filter by operation type
@@ -906,18 +910,18 @@ export class RiskManagementService {
 
     const limits = await this.transactionLimitModel.find(query);
 
-    // Filter by user roles
+    // Filter by member roles
     return limits.filter((limit) => {
-      const userRoles: (ServiceRole | GroupRole)[] = [user.serviceRole];
-      if (user.groupMemberships) {
-        userRoles.push(...user.groupMemberships.map((m) => m.role));
+      const memberRoles: (ServiceRole | GroupRole)[] = [member.serviceRole];
+      if (member.groupMemberships) {
+        memberRoles.push(...member.groupMemberships.map((m) => m.role));
       }
-      return limit.applicableRoles.some((role) => userRoles.includes(role));
+      return limit.applicableRoles.some((role) => memberRoles.includes(role));
     });
   }
 
   private async checkPeriodicLimits(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     amount: number,
     limit: TransactionLimitDocument,
     _scope: PermissionScope,
@@ -997,24 +1001,24 @@ export class RiskManagementService {
   }
 
   private validateLimitCreationPermissions(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     scope: PermissionScope,
   ): boolean {
-    if (user.serviceRole === ServiceRole.SYSTEM_ADMIN) return true;
+    if (member.serviceRole === ServiceRole.SYSTEM_ADMIN) return true;
 
-    // Check if user has appropriate permissions for the scope
+    // Check if member has appropriate permissions for the scope
     if (scope === PermissionScope.GLOBAL) {
       return false; // Only SYSTEM_ADMIN can create global limits
     }
 
-    return user.serviceRole === ServiceRole.ADMIN;
+    return member.serviceRole === ServiceRole.ADMIN;
   }
 
   private validateLimitUpdatePermissions(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     scope: PermissionScope,
   ): boolean {
-    return this.validateLimitCreationPermissions(user, scope);
+    return this.validateLimitCreationPermissions(member, scope);
   }
 
   private generateRiskScoreTrend(

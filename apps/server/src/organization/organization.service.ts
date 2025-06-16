@@ -4,18 +4,18 @@ import {
   ConflictException,
   Logger,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
-import {
-  CreateOrganizationDto,
-  UpdateOrganizationDto,
-} from './organization.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { GroupRole } from '../common';
 import {
   OrganizationDocument,
   OrganizationMember,
   OrganizationMemberDocument,
-} from './schemas/organization.schema';
-import { UserRole } from './types';
+} from './organization.schema';
+import {
+  CreateOrganizationDto,
+  UpdateOrganizationDto,
+} from './organization.dto';
 
 @Injectable()
 export class OrganizationService {
@@ -30,8 +30,8 @@ export class OrganizationService {
 
   async create(
     createOrganizationDto: CreateOrganizationDto,
-    userId: string,
-    userEmail: string,
+    memberId: string,
+    memberEmail: string,
   ): Promise<OrganizationDocument> {
     // Check if organization name already exists
     const existingOrg = await this.organizationModel.findOne({
@@ -44,8 +44,8 @@ export class OrganizationService {
     // Create organization
     const organization = new this.organizationModel({
       ...createOrganizationDto,
-      ownerId: userId,
-      ownerEmail: userEmail,
+      ownerId: memberId,
+      ownerEmail: memberEmail,
       limits: {
         maxApiKeys: 10,
         maxMonthlyVolume: 1000000,
@@ -60,16 +60,16 @@ export class OrganizationService {
     try {
       await this.addMember(
         savedOrg._id.toString(),
-        userId,
-        UserRole.ADMIN,
-        userId,
+        memberId,
+        GroupRole.ORG_ADMIN,
+        memberId,
       );
     } catch (error) {
       this.logger.debug(
         `Failed to add owner as member during organization creation: ${JSON.stringify(
           {
             organizationId: savedOrg._id.toString(),
-            userId,
+            memberId,
             error: error.message,
           },
         )}`,
@@ -80,10 +80,10 @@ export class OrganizationService {
     return savedOrg;
   }
 
-  async findAll(userId: string): Promise<OrganizationDocument[]> {
-    // Find all organizations where user is a member
+  async findAll(memberId: string): Promise<OrganizationDocument[]> {
+    // Find all organizations where member is a member
     const memberships = await this.organizationMemberModel
-      .find({ userId, isActive: true })
+      .find({ memberId, isActive: true })
       .select('organizationId');
 
     const orgIds = memberships.map((m) => m.organizationId);
@@ -139,32 +139,32 @@ export class OrganizationService {
 
   async addMember(
     organizationId: string,
-    userId: string,
-    role: UserRole,
+    memberId: string,
+    role: GroupRole,
     invitedBy: string,
   ): Promise<OrganizationMember> {
     this.logger.debug(
-      `Adding member - organizationId: ${organizationId}, userId: ${userId}, role: ${role}, invitedBy: ${invitedBy}`,
+      `Adding member - organizationId: ${organizationId}, memberId: ${memberId}, role: ${role}, invitedBy: ${invitedBy}`,
     );
 
     // Validate input parameters
-    if (!organizationId || !userId || !role || !invitedBy) {
+    if (!organizationId || !memberId || !role || !invitedBy) {
       this.logger.error(
-        `Missing required parameters for addMember: ${JSON.stringify({ organizationId, userId, role, invitedBy })}`,
+        `Missing required parameters for addMember: ${JSON.stringify({ organizationId, memberId, role, invitedBy })}`,
       );
       throw new Error('Missing required parameters for adding member');
     }
 
-    // Check if user is already a member
+    // Check if member is already a member
     const existingMember = await this.organizationMemberModel.findOne({
       organizationId,
-      userId,
+      memberId,
     });
 
     if (existingMember) {
       if (existingMember.isActive) {
         throw new ConflictException(
-          'User is already a member of this organization',
+          'Member is already a member of this organization',
         );
       }
       // Reactivate existing membership
@@ -176,7 +176,7 @@ export class OrganizationService {
 
     const member = new this.organizationMemberModel({
       organizationId,
-      userId,
+      memberId,
       role,
       invitedBy,
       invitedAt: new Date(),
@@ -193,9 +193,9 @@ export class OrganizationService {
     });
   }
 
-  async removeMember(organizationId: string, userId: string): Promise<void> {
+  async removeMember(organizationId: string, memberId: string): Promise<void> {
     const result = await this.organizationMemberModel.findOneAndUpdate(
-      { organizationId, userId },
+      { organizationId, memberId },
       { isActive: false },
       { new: true },
     );
@@ -207,11 +207,11 @@ export class OrganizationService {
 
   async updateMemberRole(
     organizationId: string,
-    userId: string,
-    role: UserRole,
+    memberId: string,
+    role: GroupRole,
   ): Promise<OrganizationMember> {
     const member = await this.organizationMemberModel.findOneAndUpdate(
-      { organizationId, userId, isActive: true },
+      { organizationId, memberId, isActive: true },
       { role },
       { new: true },
     );

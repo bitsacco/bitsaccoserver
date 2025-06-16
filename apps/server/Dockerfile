@@ -25,7 +25,7 @@ RUN yarn install
 COPY packages ./packages
 RUN yarn workspace @bitsaccoserver/types build
 
-# Create non-root user
+# Create non-root member
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nestjs -u 1001
 
@@ -81,7 +81,7 @@ WORKDIR /app
 # Install curl for health checks
 RUN apk add --no-cache curl
 
-# Create non-root user
+# Create non-root member
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nestjs -u 1001
 
@@ -93,7 +93,7 @@ COPY --from=builder --chown=nestjs:nodejs /workspace/node_modules ./node_modules
 # Expose port
 EXPOSE 4000
 
-# Switch to non-root user
+# Switch to non-root member
 USER nestjs
 
 # Health check

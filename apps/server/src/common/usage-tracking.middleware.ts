@@ -22,7 +22,7 @@ export class UsageTrackingMiddleware implements NestMiddleware {
     // Capture response data
     res.send = function (data) {
       const responseTime = Date.now() - startTime;
-      const _user = (req as any).user;
+      const _member = (req as any).member;
       const organizationId = (req as any).organizationId;
       const apiKeyId = (req as any).apiKeyId;
 
@@ -46,7 +46,7 @@ export class UsageTrackingMiddleware implements NestMiddleware {
             : 0,
           responseSize: Buffer.byteLength(data, 'utf8'),
           clientIp: req.ip,
-          userAgent: req.headers['user-agent'],
+          memberAgent: req.headers['member-agent'],
           timestamp: new Date(),
           metadata: {
             query: req.query,

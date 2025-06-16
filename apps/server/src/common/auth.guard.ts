@@ -8,8 +8,8 @@ import {
 import { Reflector } from '@nestjs/core';
 import { Observable } from 'rxjs';
 import {
-  SACCOAuthenticatedRequest,
-  SACCOAuthenticatedUser,
+  AuthenticatedRequest,
+  AuthenticatedMember,
   Permission,
   PermissionScope,
   ServiceRole,
@@ -17,25 +17,23 @@ import {
   GroupMembership,
   ROLE_PERMISSIONS,
   ROLE_HIERARCHY,
-} from '../sacco-types';
+} from './types';
 
 /**
  * Enhanced SACCO authentication and authorization guard
  * Supports dual-scope permissions: service-level and group-level
  */
 @Injectable()
-export class SACCOAuthGuard implements CanActivate {
+export class AuthGuard implements CanActivate {
   constructor(private reflector: Reflector) {}
 
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
-    const request = context
-      .switchToHttp()
-      .getRequest<SACCOAuthenticatedRequest>();
-    const user = request.user;
+    const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
+    const member = request.member;
 
-    if (!user) {
+    if (!member) {
       throw new UnauthorizedException('Authentication required');
     }
 
@@ -58,9 +56,9 @@ export class SACCOAuthGuard implements CanActivate {
       ServiceRole | GroupRole
     >('role', [context.getHandler(), context.getClass()]);
 
-    // Resolve user context and permissions
-    const enhancedUser = this.enhanceUserContext(user, request);
-    request.user = enhancedUser;
+    // Resolve member context and permissions
+    const enhancedUser = this.enhanceUserContext(member, request);
+    request.member = enhancedUser;
 
     // Check role requirement
     if (
@@ -91,12 +89,12 @@ export class SACCOAuthGuard implements CanActivate {
   }
 
   /**
-   * Enhance user context with resolved permissions and current scope
+   * Enhance member context with resolved permissions and current scope
    */
   private enhanceUserContext(
-    user: any,
-    request: SACCOAuthenticatedRequest,
-  ): SACCOAuthenticatedUser {
+    member: any,
+    request: AuthenticatedRequest,
+  ): AuthenticatedMember {
     // Determine current context from request
     const organizationId =
       request.params?.organizationId ||
@@ -113,11 +111,11 @@ export class SACCOAuthGuard implements CanActivate {
     }
 
     // Mock group memberships (would be loaded from database in real implementation)
-    const groupMemberships: GroupMembership[] = user.groupMemberships || [];
+    const groupMemberships: GroupMembership[] = member.groupMemberships || [];
 
     // Resolve permissions for current context
     const contextPermissions = this.resolveContextPermissions(
-      user.serviceRole,
+      member.serviceRole,
       groupMemberships,
       currentScope,
       organizationId,
@@ -125,16 +123,18 @@ export class SACCOAuthGuard implements CanActivate {
     );
 
     return {
-      userId: user.sub || user.userId,
-      email: user.email,
-      authMethod: user.authMethod,
-      serviceRole: user.serviceRole || ServiceRole.MEMBER,
-      servicePermissions: ROLE_PERMISSIONS[user.serviceRole] || [],
+      memberId: member.sub || member.memberId,
+      sub: member.sub || member.memberId,
+      email: member.email,
+      authMethod: member.authMethod,
+      serviceRole: member.serviceRole || ServiceRole.MEMBER,
+      servicePermissions: ROLE_PERMISSIONS[member.serviceRole] || [],
       currentOrganizationId: organizationId,
       currentChamaId: chamaId,
       currentScope,
       groupMemberships,
       contextPermissions,
+      permissions: contextPermissions, // Legacy alias
     };
   }
 
@@ -199,16 +199,19 @@ export class SACCOAuthGuard implements CanActivate {
   }
 
   /**
-   * Check if user has required role in the specified scope
+   * Check if member has required role in the specified scope
    */
   private hasRole(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     requiredRole: ServiceRole | GroupRole,
     scope: PermissionScope,
   ): boolean {
     // Check service-level role
     if (Object.values(ServiceRole).includes(requiredRole as ServiceRole)) {
-      return this.hasServiceRole(user.serviceRole, requiredRole as ServiceRole);
+      return this.hasServiceRole(
+        member.serviceRole,
+        requiredRole as ServiceRole,
+      );
     }
 
     // Check group-level role
@@ -216,16 +219,16 @@ export class SACCOAuthGuard implements CanActivate {
       return false; // Group roles don't apply to global scope
     }
 
-    return user.groupMemberships.some((membership) => {
+    return member.groupMemberships.some((membership) => {
       if (!membership.isActive) return false;
 
       // Check if this membership is relevant for current scope
       const isRelevant =
         (scope === PermissionScope.ORGANIZATION &&
-          membership.groupId === user.currentOrganizationId &&
+          membership.groupId === member.currentOrganizationId &&
           membership.groupType === 'organization') ||
         (scope === PermissionScope.CHAMA &&
-          membership.groupId === user.currentChamaId &&
+          membership.groupId === member.currentChamaId &&
           membership.groupType === 'chama');
 
       if (!isRelevant) return false;
@@ -243,25 +246,25 @@ export class SACCOAuthGuard implements CanActivate {
    * Check service-level role hierarchy
    */
   private hasServiceRole(
-    userRole: ServiceRole,
+    memberRole: ServiceRole,
     requiredRole: ServiceRole,
   ): boolean {
-    if (userRole === requiredRole) return true;
+    if (memberRole === requiredRole) return true;
 
-    const inheritedRoles = ROLE_HIERARCHY[userRole] || [];
+    const inheritedRoles = ROLE_HIERARCHY[memberRole] || [];
     return inheritedRoles.includes(requiredRole);
   }
 
   /**
-   * Check if user has all required permissions in the specified scope
+   * Check if member has all required permissions in the specified scope
    */
   private hasPermissions(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     requiredPermissions: Permission[],
     _scope: PermissionScope,
   ): boolean {
     return requiredPermissions.every((permission) =>
-      user.contextPermissions.includes(permission),
+      member.contextPermissions.includes(permission),
     );
   }
 }

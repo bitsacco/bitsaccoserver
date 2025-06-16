@@ -5,7 +5,8 @@ import {
   GroupRole,
   Permission,
   PermissionScope,
-} from '../sacco-types';
+  RiskLevel,
+} from '../types';
 
 /**
  * Maker-Checker Workflow Schema
@@ -22,7 +23,7 @@ export enum ApprovalStatus {
 
 export enum WorkflowType {
   FINANCIAL_TRANSACTION = 'financial_transaction',
-  USER_MANAGEMENT = 'user_management',
+  USER_MANAGEMENT = 'member_management',
   CONFIGURATION_CHANGE = 'configuration_change',
   LOAN_APPROVAL = 'loan_approval',
   SHARES_ISSUANCE = 'shares_issuance',
@@ -32,12 +33,7 @@ export enum WorkflowType {
   SYSTEM_MAINTENANCE = 'system_maintenance',
 }
 
-export enum RiskLevel {
-  LOW = 'low',
-  MEDIUM = 'medium',
-  HIGH = 'high',
-  CRITICAL = 'critical',
-}
+// RiskLevel moved to ../types
 
 @Schema({ timestamps: true })
 export class ApprovalWorkflow {
@@ -99,7 +95,7 @@ export class ApprovalWorkflow {
       comment: String,
       approvedAt: Date,
       ipAddress: String,
-      userAgent: String,
+      memberAgent: String,
     },
   ])
   approvals: Array<{
@@ -109,7 +105,7 @@ export class ApprovalWorkflow {
     comment?: string;
     approvedAt?: Date;
     ipAddress?: string;
-    userAgent?: string;
+    memberAgent?: string;
   }>;
 
   @Prop()
@@ -204,7 +200,7 @@ export class SegregationRule {
       permissions: Permission[];
       roles: (ServiceRole | GroupRole)[];
     };
-    conflictType: 'same_user' | 'same_role' | 'same_session' | 'time_window';
+    conflictType: 'same_member' | 'same_role' | 'same_session' | 'time_window';
     timeWindowHours?: number;
   };
 
@@ -247,9 +243,14 @@ export class TransactionLimit {
   chamaId?: string;
 
   @Prop()
-  userId?: string; // For personal limits
+  memberId?: string; // For personal limits
 
-  @Prop([{ type: String, enum: [ServiceRole, GroupRole] }])
+  @Prop([
+    {
+      type: String,
+      enum: [...Object.values(ServiceRole), ...Object.values(GroupRole)],
+    },
+  ])
   applicableRoles: (ServiceRole | GroupRole)[];
 
   @Prop({ required: true })
@@ -330,7 +331,7 @@ export class ComplianceEvent {
   chamaId?: string;
 
   @Prop()
-  userId?: string;
+  memberId?: string;
 
   @Prop({ required: true })
   description: string;
@@ -472,10 +473,10 @@ export class AuditTrail {
   eventId: string;
 
   @Prop({ required: true })
-  userId: string;
+  memberId: string;
 
   @Prop()
-  impersonatedBy?: string; // If action was performed on behalf of user
+  impersonatedBy?: string; // If action was performed on behalf of member
 
   @Prop({ required: true })
   action: string;
@@ -501,7 +502,7 @@ export class AuditTrail {
     endpoint: string;
     parameters?: Record<string, any>;
     body?: any;
-    userAgent: string;
+    memberAgent: string;
     ipAddress: string;
     sessionId?: string;
   };

@@ -58,11 +58,11 @@
         {
           "name": "email",
           "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-property-mapper",
+          "protocolMapper": "oidc-membermodel-property-mapper",
           "consentRequired": false,
           "config": {
-            "userinfo.token.claim": "true",
-            "user.attribute": "email",
+            "memberinfo.token.claim": "true",
+            "member.attribute": "email",
             "id.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "email",
@@ -72,11 +72,11 @@
         {
           "name": "given_name",
           "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-property-mapper",
+          "protocolMapper": "oidc-membermodel-property-mapper",
           "consentRequired": false,
           "config": {
-            "userinfo.token.claim": "true",
-            "user.attribute": "firstName",
+            "memberinfo.token.claim": "true",
+            "member.attribute": "firstName",
             "id.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "given_name",
@@ -86,11 +86,11 @@
         {
           "name": "family_name",
           "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-property-mapper",
+          "protocolMapper": "oidc-membermodel-property-mapper",
           "consentRequired": false,
           "config": {
-            "userinfo.token.claim": "true",
-            "user.attribute": "lastName",
+            "memberinfo.token.claim": "true",
+            "member.attribute": "lastName",
             "id.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "family_name",
@@ -100,10 +100,10 @@
         {
           "name": "org_roles",
           "protocol": "openid-connect",
-          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "protocolMapper": "oidc-membermodel-realm-role-mapper",
           "consentRequired": false,
           "config": {
-            "userinfo.token.claim": "true",
+            "memberinfo.token.claim": "true",
             "id.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "org_roles",
@@ -133,12 +133,12 @@
       }
     ]
   },
-  "users": [
+  "members": [
     {
       "username": "admin@bitsaccoserver.org",
       "email": "admin@bitsaccoserver.org",
       "firstName": "Admin",
-      "lastName": "User",
+      "lastName": "Member",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
@@ -157,7 +157,7 @@
       "username": "developer@bitsaccoserver.org",
       "email": "developer@bitsaccoserver.org",
       "firstName": "Dev",
-      "lastName": "User",
+      "lastName": "Member",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
@@ -176,7 +176,7 @@
       "username": "member@bitsaccoserver.org",
       "email": "member@bitsaccoserver.org",
       "firstName": "Test",
-      "lastName": "User",
+      "lastName": "Member",
       "enabled": true,
       "emailVerified": true,
       "credentials": [
@@ -196,7 +196,7 @@
       "enabled": true,
       "serviceAccountClientId": "bitsaccoserver",
       "clientRoles": {
-        "realm-management": ["manage-users", "create-client", "manage-clients", "view-users", "view-clients"]
+        "realm-management": ["manage-members", "create-client", "manage-clients", "view-members", "view-clients"]
       }
     }
   ],
@@ -245,11 +245,11 @@
             "oidc-full-name-mapper",
             "oidc-sha256-pairwise-sub-mapper",
             "oidc-address-mapper",
-            "saml-user-property-mapper",
-            "oidc-usermodel-property-mapper",
+            "saml-member-property-mapper",
+            "oidc-membermodel-property-mapper",
             "saml-role-list-mapper",
-            "saml-user-attribute-mapper",
-            "oidc-usermodel-attribute-mapper"
+            "saml-member-attribute-mapper",
+            "oidc-membermodel-attribute-mapper"
           ]
         }
       },

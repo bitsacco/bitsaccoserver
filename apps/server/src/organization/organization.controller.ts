@@ -18,22 +18,23 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import {
-  AddMemberDto,
   ApiKeyService,
   AuthenticatedRequest,
   CreateApiKeyDto,
-  CreateOrganizationDto,
-  OrganizationService,
-  RBACGuard,
   Roles,
-  UnifiedAuthGuard,
+  AuthGuard,
+  GroupRole,
+} from '../common';
+import { OrganizationService } from './organization.service';
+import {
+  AddMemberDto,
+  CreateOrganizationDto,
   UpdateOrganizationDto,
-  UserRole,
-} from '@/common';
+} from './organization.dto';
 
 @ApiTags('orgs')
 @ApiBearerAuth()
-@UseGuards(UnifiedAuthGuard)
+@UseGuards(AuthGuard)
 @Controller('organizations')
 export class OrganizationController {
   constructor(
@@ -53,24 +54,24 @@ export class OrganizationController {
   ) {
     return this.organizationService.create(
       createOrganizationDto,
-      req.user.sub,
-      req.user.email,
+      req.member.sub,
+      req.member.email,
     );
   }
 
   @Get()
-  @ApiOperation({ summary: 'Get all organizations for current user' })
+  @ApiOperation({ summary: 'Get all organizations for current member' })
   @ApiResponse({
     status: 200,
     description: 'Organizations retrieved successfully',
   })
   async findAll(@Request() req: AuthenticatedRequest) {
-    return this.organizationService.findAll(req.user.sub);
+    return this.organizationService.findAll(req.member.sub);
   }
 
   @Get(':id')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.DEVELOPER, UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get organization by ID' })
   @ApiResponse({
     status: 200,
@@ -81,8 +82,8 @@ export class OrganizationController {
   }
 
   @Patch(':id')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Update organization' })
   @ApiResponse({
     status: 200,
@@ -96,8 +97,8 @@ export class OrganizationController {
   }
 
   @Delete(':id')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Delete organization' })
   @ApiResponse({
     status: 200,
@@ -108,8 +109,8 @@ export class OrganizationController {
   }
 
   @Get(':id/members')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.DEVELOPER, UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get organization members' })
   @ApiResponse({ status: 200, description: 'Members retrieved successfully' })
   async getMembers(@Param('id') id: string) {
@@ -117,8 +118,8 @@ export class OrganizationController {
   }
 
   @Post(':id/members')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Add member to organization' })
   @ApiBody({
     type: AddMemberDto,
@@ -128,7 +129,7 @@ export class OrganizationController {
         summary: 'Add developer member',
         description: 'Example of adding a developer to the organization',
         value: {
-          userId: 'user-123-abc',
+          memberId: 'member-123-abc',
           role: 'developer',
         },
       },
@@ -136,7 +137,7 @@ export class OrganizationController {
         summary: 'Add admin member',
         description: 'Example of adding an admin to the organization',
         value: {
-          userId: 'user-456-def',
+          memberId: 'member-456-def',
           role: 'admin',
         },
       },
@@ -148,9 +149,9 @@ export class OrganizationController {
     schema: {
       type: 'object',
       properties: {
-        userId: { type: 'string' },
+        memberId: { type: 'string' },
         organizationId: { type: 'string' },
-        role: { type: 'string', enum: Object.values(UserRole) },
+        role: { type: 'string', enum: Object.values(GroupRole) },
         invitedBy: { type: 'string' },
         invitedAt: { type: 'string', format: 'date-time' },
         joinedAt: { type: 'string', format: 'date-time' },
@@ -160,7 +161,7 @@ export class OrganizationController {
   })
   @ApiResponse({ status: 400, description: 'Invalid request data' })
   @ApiResponse({ status: 403, description: 'Insufficient permissions' })
-  @ApiResponse({ status: 409, description: 'User is already a member' })
+  @ApiResponse({ status: 409, description: 'Member is already a member' })
   async addMember(
     @Param('id') organizationId: string,
     @Body() addMemberDto: AddMemberDto,
@@ -168,16 +169,16 @@ export class OrganizationController {
   ) {
     return this.organizationService.addMember(
       organizationId,
-      addMemberDto.userId,
+      addMemberDto.memberId,
       addMemberDto.role,
-      req.user.sub,
+      req.member.sub,
     );
   }
 
   // API Key Management Endpoints
   @Post(':id/api-keys')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.DEVELOPER, UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Create a new API key for organization' })
   @ApiResponse({ status: 201, description: 'API key created successfully' })
   async createApiKey(
@@ -187,14 +188,14 @@ export class OrganizationController {
   ) {
     return this.apiKeyService.create(
       organizationId,
-      req.user.sub,
+      req.member.sub,
       createApiKeyDto,
     );
   }
 
   @Get(':id/api-keys')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.DEVELOPER, UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'List organization API keys' })
   @ApiResponse({ status: 200, description: 'API keys retrieved successfully' })
   async getApiKeys(@Param('id') organizationId: string) {
@@ -202,8 +203,8 @@ export class OrganizationController {
   }
 
   @Get(':id/api-keys/:keyId')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.DEVELOPER, UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get API key details' })
   @ApiResponse({ status: 200, description: 'API key retrieved successfully' })
   async getApiKey(
@@ -214,8 +215,8 @@ export class OrganizationController {
   }
 
   @Delete(':id/api-keys/:keyId')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.DEVELOPER, UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Delete/revoke API key' })
   @ApiResponse({ status: 200, description: 'API key revoked successfully' })
   async deleteApiKey(
@@ -226,8 +227,8 @@ export class OrganizationController {
   }
 
   @Get(':id/api-keys/:keyId/usage')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.DEVELOPER, UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get API key usage statistics' })
   @ApiResponse({
     status: 200,
@@ -242,8 +243,8 @@ export class OrganizationController {
 
   // Services, Usage & Billing Endpoints (moved from ManagerController)
   @Get(':id/services')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.DEVELOPER, UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get available services for organization' })
   @ApiResponse({ status: 200, description: 'Services retrieved successfully' })
   async getOrganizationServices(@Param('id') organizationId: string) {
@@ -255,8 +256,8 @@ export class OrganizationController {
   }
 
   @Get(':id/usage')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.DEVELOPER, UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get organization usage statistics' })
   @ApiResponse({
     status: 200,
@@ -285,8 +286,8 @@ export class OrganizationController {
   }
 
   @Get(':id/billing')
-  @UseGuards(RBACGuard)
-  @Roles(UserRole.ADMIN)
+  @UseGuards(AuthGuard)
+  @Roles(GroupRole.ORG_ADMIN)
   @ApiOperation({ summary: 'Get organization billing information' })
   @ApiResponse({
     status: 200,

@@ -1,23 +1,23 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import {
   ComplianceEvent,
   ComplianceEventDocument,
   RegulatoryReport,
   RegulatoryReportDocument,
   RiskLevel,
-  SACCOAuthenticatedUser,
+  AuthenticatedMember,
   PermissionScope,
+  AuditService,
 } from '../common';
-import { AuditService } from './audit.service';
 
 export interface ComplianceEventData {
   eventType: string;
   severity: RiskLevel;
   description: string;
-  userId?: string;
+  memberId?: string;
   scope: PermissionScope;
   organizationId?: string;
   chamaId?: string;
@@ -112,7 +112,7 @@ export class ComplianceService {
    * Get compliance events with filtering
    */
   async getComplianceEvents(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     filters: {
       eventType?: string;
       severity?: RiskLevel;
@@ -166,7 +166,7 @@ export class ComplianceService {
    * Update compliance event status
    */
   async updateEventStatus(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     eventId: string,
     update: {
       status: 'open' | 'investigating' | 'resolved' | 'false_positive';
@@ -196,13 +196,14 @@ export class ComplianceService {
 
     // Log audit event
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'COMPLIANCE_EVENT_UPDATED',
       resourceType: 'compliance_event',
       resourceId: eventId,
       scope: event.scope,
       organizationId: event.organizationId,
       chamaId: event.chamaId,
+      timestamp: new Date(),
     });
 
     return savedEvent;
@@ -222,7 +223,7 @@ export class ComplianceService {
 
     // Get compliance events for the period
     const { events } = await this.getComplianceEvents(
-      {} as SACCOAuthenticatedUser,
+      {} as AuthenticatedMember,
       {
         scope,
         organizationId,
@@ -307,7 +308,7 @@ export class ComplianceService {
    * Generate regulatory report
    */
   async generateRegulatoryReport(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     reportType: string,
     regulator: string,
     reportingPeriod: {
@@ -346,19 +347,20 @@ export class ComplianceService {
         completenessCheck: true,
         accuracyScore: 95,
       },
-      generatedBy: user.userId,
+      generatedBy: member.memberId,
     });
 
     const savedReport = await report.save();
 
     // Log audit event
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'REGULATORY_REPORT_GENERATED',
       resourceType: 'regulatory_report',
       resourceId: savedReport._id.toString(),
       scope,
       organizationId,
+      timestamp: new Date(),
     });
 
     return savedReport;
@@ -368,7 +370,7 @@ export class ComplianceService {
    * Submit regulatory report
    */
   async submitRegulatoryReport(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     reportId: string,
   ): Promise<RegulatoryReportDocument> {
     const report = await this.regulatoryReportModel.findById(reportId);
@@ -385,19 +387,20 @@ export class ComplianceService {
     // Update submission status
     report.submission.status = 'submitted';
     report.submission.submittedAt = new Date();
-    report.submission.submittedBy = user.userId;
+    report.submission.submittedBy = member.memberId;
     report.submission.acknowledgmentId = `ACK-${Date.now()}`;
 
     const savedReport = await report.save();
 
     // Log audit event
     await this.auditService.logAuditEvent({
-      userId: user.userId,
+      memberId: member.memberId,
       action: 'REGULATORY_REPORT_SUBMITTED',
       resourceType: 'regulatory_report',
       resourceId: reportId,
       scope: report.scope,
       organizationId: report.organizationId,
+      timestamp: new Date(),
     });
 
     // Emit submission event
@@ -405,7 +408,7 @@ export class ComplianceService {
       reportId: savedReport._id,
       reportType: report.reportType,
       regulator: report.regulator,
-      submittedBy: user.userId,
+      submittedBy: member.memberId,
     });
 
     return savedReport;
@@ -415,7 +418,7 @@ export class ComplianceService {
    * Get regulatory reports
    */
   async getRegulatoryReports(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     filters: {
       reportType?: string;
       regulator?: string;
@@ -483,7 +486,7 @@ export class ComplianceService {
 
     // Check recent compliance events
     const { events } = await this.getComplianceEvents(
-      {} as SACCOAuthenticatedUser,
+      {} as AuthenticatedMember,
       {
         scope,
         organizationId,

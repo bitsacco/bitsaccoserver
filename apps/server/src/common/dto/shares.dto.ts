@@ -1,4 +1,3 @@
-import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNotEmpty,
   IsNumber,
@@ -7,6 +6,7 @@ import {
   IsDateString,
   Min,
 } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { SharesTxStatus } from '../schemas';
 
 export class OfferSharesDto {
@@ -34,14 +34,14 @@ export class OfferSharesDto {
   availableTo?: string;
 }
 
-export class SubscribeSharesDto {
+export class BuySharesDto {
   @ApiProperty({
-    description: 'User ID subscribing to shares',
-    example: 'user123',
+    description: 'Member ID subscribing to shares',
+    example: 'member123',
   })
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  memberId: string;
 
   @ApiProperty({ description: 'Share offer ID', example: 'offer456' })
   @IsNotEmpty()
@@ -65,17 +65,20 @@ export class TransferSharesDto {
   sharesId: string;
 
   @ApiProperty({
-    description: 'User ID transferring shares',
-    example: 'user123',
+    description: 'Member ID transferring shares',
+    example: 'member123',
   })
   @IsNotEmpty()
   @IsString()
-  fromUserId: string;
+  fromMemberId: string;
 
-  @ApiProperty({ description: 'User ID receiving shares', example: 'user456' })
+  @ApiProperty({
+    description: 'Member ID receiving shares',
+    example: 'member456',
+  })
   @IsNotEmpty()
   @IsString()
-  toUserId: string;
+  toMemberId: string;
 
   @ApiProperty({ description: 'Number of shares to transfer', example: 50 })
   @IsNotEmpty()
@@ -107,8 +110,8 @@ export class UpdateSharesDto {
     quantity?: number;
     status?: SharesTxStatus;
     transfer?: {
-      fromUserId: string;
-      toUserId: string;
+      fromMemberId: string;
+      toMemberId: string;
       quantity: number;
       reason?: string;
     };
@@ -116,11 +119,14 @@ export class UpdateSharesDto {
   };
 }
 
-export class UserSharesDto {
-  @ApiProperty({ description: 'User ID to get shares for', example: 'user123' })
+export class MemberSharesDto {
+  @ApiProperty({
+    description: 'Member ID to get shares for',
+    example: 'member123',
+  })
   @IsNotEmpty()
   @IsString()
-  userId: string;
+  memberId: string;
 
   @ApiProperty({ description: 'Pagination parameters', required: false })
   @IsOptional()

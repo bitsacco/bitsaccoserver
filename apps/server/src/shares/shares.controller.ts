@@ -20,17 +20,17 @@ import {
 } from '@nestjs/common';
 import {
   OfferSharesDto,
-  SubscribeSharesDto,
+  BuySharesDto,
   TransferSharesDto,
   UpdateSharesDto,
   PaginationDto,
-  UnifiedAuthGuard,
+  AuthGuard,
 } from '@/common';
 import { SharesService } from './shares.service';
 
 @ApiTags('shares')
 @ApiBearerAuth()
-@UseGuards(UnifiedAuthGuard)
+@UseGuards(AuthGuard)
 @Controller('shares')
 export class SharesController {
   private readonly logger = new Logger(SharesController.name);
@@ -60,15 +60,15 @@ export class SharesController {
   @ApiBearerAuth()
   @ApiCookieAuth()
   @ApiOperation({ summary: 'Subscribe to shares' })
-  @ApiBody({ type: SubscribeSharesDto })
-  async subscribeShares(@Body() req: SubscribeSharesDto) {
+  @ApiBody({ type: BuySharesDto })
+  async subscribeShares(@Body() req: BuySharesDto) {
     return this.sharesService.subscribeShares(req);
   }
 
   @Post('transfer')
   @ApiBearerAuth()
   @ApiCookieAuth()
-  @ApiOperation({ summary: 'Transfer shares between users' })
+  @ApiOperation({ summary: 'Transfer shares between members' })
   @ApiBody({ type: TransferSharesDto })
   async transferShares(@Body() req: TransferSharesDto) {
     return this.sharesService.transferShares(req);
@@ -84,11 +84,11 @@ export class SharesController {
     return this.sharesService.updateShares({ sharesId, updates });
   }
 
-  @Get('user/:userId/transactions')
+  @Get('member/:memberId/transactions')
   @ApiBearerAuth()
   @ApiCookieAuth()
-  @ApiOperation({ summary: 'Get user shares transactions' })
-  @ApiParam({ name: 'userId', description: 'User ID' })
+  @ApiOperation({ summary: 'Get member shares transactions' })
+  @ApiParam({ name: 'memberId', description: 'Member ID' })
   @ApiQuery({
     name: 'page',
     required: false,
@@ -101,12 +101,12 @@ export class SharesController {
     type: Number,
     description: 'Page size',
   })
-  async userSharesTransactions(
-    @Param('userId') userId: string,
+  async memberSharesTransactions(
+    @Param('memberId') memberId: string,
     @Query() pagination: PaginationDto,
   ) {
-    return this.sharesService.userSharesTransactions({
-      userId,
+    return this.sharesService.memberSharesTransactions({
+      memberId,
       pagination: {
         page: pagination.page || 1,
         size: pagination.size || 10,

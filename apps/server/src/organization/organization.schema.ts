@@ -1,6 +1,6 @@
 import { Document } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { UserRole } from '../types';
+import { GroupRole } from '../common/types';
 
 @Schema({ timestamps: true })
 export class OrganizationDocument {
@@ -52,13 +52,13 @@ export const OrganizationSchema =
 @Schema({ timestamps: true })
 export class OrganizationMember {
   @Prop({ required: true })
-  userId: string;
+  memberId: string;
 
   @Prop({ required: true })
   organizationId: string;
 
-  @Prop({ type: String, enum: UserRole, required: true })
-  role: UserRole;
+  @Prop({ type: String, enum: GroupRole, required: true })
+  role: GroupRole;
 
   @Prop({ required: true })
   invitedBy: string;

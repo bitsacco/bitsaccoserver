@@ -4,8 +4,6 @@ import { JwtService } from '@nestjs/jwt';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { Injectable, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { UserRole } from '@/common';
-import { OrganizationService } from '@/common';
 import { LoginDto, RegisterDto } from './auth.dto';
 
 export interface KeycloakTokenResponse {
@@ -38,7 +36,6 @@ export class AuthService {
     private jwtService: JwtService,
     private readonly httpService: HttpService,
     private readonly configService: ConfigService,
-    private readonly organizationService: OrganizationService,
   ) {
     this.keycloakBaseUrl = this.configService.get<string>(
       'KEYCLOAK_AUTH_SERVER_URL',
@@ -94,29 +91,33 @@ export class AuthService {
   }
 
   // Legacy JWT methods for backward compatibility
-  async validateUser(email: string, userId: string): Promise<any> {
+  async validateUser(email: string, memberId: string): Promise<any> {
     // This would typically validate against Keycloak
-    // For now, we'll return a basic user object
+    // For now, we'll return a basic member object
     return {
-      userId,
+      memberId,
       email,
-      roles: ['user'],
+      roles: ['member'],
     };
   }
 
-  async legacyLogin(user: { userId: string; email: string; roles: string[] }) {
+  async legacyLogin(member: {
+    memberId: string;
+    email: string;
+    roles: string[];
+  }) {
     const payload = {
-      email: user.email,
-      sub: user.userId,
-      roles: user.roles,
+      email: member.email,
+      sub: member.memberId,
+      roles: member.roles,
     };
 
     return {
       access_token: this.jwtService.sign(payload),
-      user: {
-        id: user.userId,
-        email: user.email,
-        roles: user.roles,
+      member: {
+        id: member.memberId,
+        email: member.email,
+        roles: member.roles,
       },
     };
   }
@@ -135,10 +136,10 @@ export class AuthService {
     }
 
     try {
-      // Get admin access token for user creation
+      // Get admin access token for member creation
       const adminToken = await this.getAdminAccessToken();
 
-      // Create user in Keycloak
+      // Create member in Keycloak
       const keycloakUser = {
         username: registerDto.email,
         email: registerDto.email,
@@ -160,7 +161,7 @@ export class AuthService {
 
       const createUserResponse = await firstValueFrom(
         this.httpService.post(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members`,
           keycloakUser,
           {
             headers: {
@@ -171,48 +172,24 @@ export class AuthService {
         ),
       );
 
-      // Extract user ID from Location header
+      // Extract member ID from Location header
       const locationHeader = createUserResponse.headers.location;
-      const userId = locationHeader?.split('/').pop();
+      const memberId = locationHeader?.split('/').pop();
 
-      if (!userId) {
+      if (!memberId) {
         throw new HttpException(
-          'Failed to retrieve user ID after creation',
+          'Failed to retrieve member ID after creation',
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
 
       // Send email verification
-      await this.sendEmailVerification(userId, adminToken);
-
-      let organizationId: string | null = null;
-
-      // Create organization if requested
-      if (registerDto.createOrganization && registerDto.organizationName) {
-        try {
-          const organization = await this.organizationService.create(
-            {
-              name: registerDto.organizationName,
-              description: `${registerDto.firstName}'s organization`,
-              country: registerDto.country || 'KE',
-            },
-            userId,
-            registerDto.email,
-          );
-          organizationId = (organization as any)._id.toString();
-        } catch (orgError) {
-          this.logger.warn(
-            `Failed to create organization for user ${userId}: ${orgError.message}`,
-          );
-          // Don't fail registration if organization creation fails
-        }
-      }
+      await this.sendEmailVerification(memberId, adminToken);
 
       return {
         message:
-          'User registered successfully. Please check your email for verification.',
-        userId,
-        organizationId,
+          'Member registered successfully. Please check your email for verification.',
+        memberId,
       };
     } catch (error) {
       this.logger.error(`Registration failed: ${error.message}`, error.stack);
@@ -220,14 +197,14 @@ export class AuthService {
       if (error instanceof AxiosError) {
         if (error.response?.status === 409) {
           throw new HttpException(
-            'User with this email already exists',
+            'Member with this email already exists',
             HttpStatus.CONFLICT,
           );
         }
 
         if (error.response?.status === 400) {
           const errorMessage =
-            error.response.data?.errorMessage || 'Invalid user data';
+            error.response.data?.errorMessage || 'Invalid member data';
           throw new HttpException(errorMessage, HttpStatus.BAD_REQUEST);
         }
       }
@@ -258,35 +235,27 @@ export class AuthService {
         loginDto.password,
       );
 
-      // Get user information from JWT token directly (bypass userinfo endpoint issue)
+      // Get member information from JWT token directly (bypass memberinfo endpoint issue)
       this.logger.debug(
-        `Extracting user info from JWT token: ${tokenResponse.access_token.substring(0, 20)}...`,
+        `Extracting member info from JWT token: ${tokenResponse.access_token.substring(0, 20)}...`,
       );
-      const userInfo = this.extractUserInfoFromToken(
+      const memberInfo = this.extractUserInfoFromToken(
         tokenResponse.access_token,
       );
-      this.logger.debug(`User info extracted: ${userInfo.email}`);
-
-      // Get user organizations
-      this.logger.debug(`Getting organizations for user: ${userInfo.sub}`);
-      const organizations = await this.getUserOrganizations(userInfo.sub);
-      this.logger.debug(
-        `Organizations retrieved: ${organizations.length} found`,
-      );
+      this.logger.debug(`Member info extracted: ${memberInfo.email}`);
 
       return {
         access_token: tokenResponse.access_token,
         refresh_token: tokenResponse.refresh_token,
         expires_in: tokenResponse.expires_in,
         token_type: tokenResponse.token_type,
-        user: {
-          id: userInfo.sub,
-          email: userInfo.email,
-          firstName: userInfo.given_name,
-          lastName: userInfo.family_name,
-          emailVerified: userInfo.email_verified,
+        member: {
+          id: memberInfo.sub,
+          email: memberInfo.email,
+          firstName: memberInfo.given_name,
+          lastName: memberInfo.family_name,
+          emailVerified: memberInfo.email_verified,
         },
-        organizations,
       };
     } catch (error) {
       this.logger.error(`Login failed: ${error.message}`, error.stack);
@@ -388,10 +357,10 @@ export class AuthService {
     try {
       const adminToken = await this.getAdminAccessToken();
 
-      // Find user by email
-      const users = await firstValueFrom(
+      // Find member by email
+      const members = await firstValueFrom(
         this.httpService.get(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users?email=${encodeURIComponent(email)}`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members?email=${encodeURIComponent(email)}`,
           {
             headers: {
               Authorization: `Bearer ${adminToken}`,
@@ -400,17 +369,17 @@ export class AuthService {
         ),
       );
 
-      if (users.data.length === 0) {
-        // User not found - but don't reveal this for security
+      if (members.data.length === 0) {
+        // Member not found - but don't reveal this for security
         return;
       }
 
-      const userId = users.data[0].id;
+      const memberId = members.data[0].id;
 
       // Send password reset email
       await firstValueFrom(
         this.httpService.put(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users/${userId}/execute-actions-email`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members/${memberId}/execute-actions-email`,
           ['UPDATE_PASSWORD'],
           {
             headers: {
@@ -440,7 +409,7 @@ export class AuthService {
   }
 
   async changePassword(
-    userId: string,
+    memberId: string,
     currentPassword: string,
     newPassword: string,
   ): Promise<void> {
@@ -450,7 +419,7 @@ export class AuthService {
       // Set new password
       await firstValueFrom(
         this.httpService.put(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users/${userId}/reset-password`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members/${memberId}/reset-password`,
           {
             type: 'password',
             value: newPassword,
@@ -496,10 +465,10 @@ export class AuthService {
     try {
       const adminToken = await this.getAdminAccessToken();
 
-      // Find user by email
-      const users = await firstValueFrom(
+      // Find member by email
+      const members = await firstValueFrom(
         this.httpService.get(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users?email=${encodeURIComponent(email)}`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members?email=${encodeURIComponent(email)}`,
           {
             headers: {
               Authorization: `Bearer ${adminToken}`,
@@ -508,12 +477,12 @@ export class AuthService {
         ),
       );
 
-      if (users.data.length === 0) {
-        return; // Don't reveal if user exists
+      if (members.data.length === 0) {
+        return; // Don't reveal if member exists
       }
 
-      const userId = users.data[0].id;
-      await this.sendEmailVerification(userId, adminToken);
+      const memberId = members.data[0].id;
+      await this.sendEmailVerification(memberId, adminToken);
     } catch (error) {
       this.logger.error(
         `Resend verification failed: ${error.message}`,
@@ -523,11 +492,11 @@ export class AuthService {
     }
   }
 
-  async getUserInfo(userId: string) {
+  async getUserInfo(memberId: string) {
     // Check if Keycloak is configured
     if (!this.isKeycloakConfigured()) {
       this.logger.error(
-        'Get user info failed: Keycloak authentication service is not configured',
+        'Get member info failed: Keycloak authentication service is not configured',
       );
       throw new HttpException(
         'Authentication service is not available. Please contact support.',
@@ -538,9 +507,9 @@ export class AuthService {
     try {
       const adminToken = await this.getAdminAccessToken();
 
-      const userResponse = await firstValueFrom(
+      const memberResponse = await firstValueFrom(
         this.httpService.get(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users/${userId}`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members/${memberId}`,
           {
             headers: {
               Authorization: `Bearer ${adminToken}`,
@@ -549,21 +518,22 @@ export class AuthService {
         ),
       );
 
-      const user = userResponse.data;
-      const organizations = await this.getUserOrganizations(userId);
+      const member = memberResponse.data;
 
       return {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        emailVerified: user.emailVerified,
-        organizations,
+        id: member.id,
+        email: member.email,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        emailVerified: member.emailVerified,
       };
     } catch (error) {
-      this.logger.error(`Get user info failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Get member info failed: ${error.message}`,
+        error.stack,
+      );
       throw new HttpException(
-        'Failed to retrieve user information',
+        'Failed to retrieve member information',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -619,7 +589,7 @@ export class AuthService {
       client_secret: this.clientSecret,
     };
 
-    this.logger.debug(`Authenticating user: ${email} with Keycloak`);
+    this.logger.debug(`Authenticating member: ${email} with Keycloak`);
     this.logger.debug(
       `Keycloak URL: ${this.keycloakBaseUrl}/realms/${this.realm}/protocol/openid-connect/token`,
     );
@@ -655,7 +625,7 @@ export class AuthService {
     try {
       const response = await firstValueFrom(
         this.httpService.get(
-          `${this.keycloakBaseUrl}/realms/${this.realm}/protocol/openid-connect/userinfo`,
+          `${this.keycloakBaseUrl}/realms/${this.realm}/protocol/openid-connect/memberinfo`,
           {
             headers: {
               Authorization: `Bearer ${accessToken}`,
@@ -667,7 +637,7 @@ export class AuthService {
       return response.data;
     } catch (error) {
       this.logger.error(
-        `Failed to get user info from Keycloak:`,
+        `Failed to get member info from Keycloak:`,
         error.response?.data || error.message,
       );
       throw error;
@@ -699,35 +669,20 @@ export class AuthService {
       };
     } catch (error) {
       this.logger.error(
-        `Failed to extract user info from token: ${error.message}`,
+        `Failed to extract member info from token: ${error.message}`,
       );
       throw new HttpException('Invalid access token', HttpStatus.UNAUTHORIZED);
     }
   }
 
-  private async getUserOrganizations(userId: string) {
-    try {
-      const organizations = await this.organizationService.findAll(userId);
-      return organizations.map((org) => ({
-        id: (org as any)._id,
-        name: org.name,
-        country: org.country,
-        role: org.ownerId === userId ? UserRole.ADMIN : UserRole.DEVELOPER, // Simplified role mapping
-      }));
-    } catch (error) {
-      this.logger.warn(`Failed to get user organizations: ${error.message}`);
-      return [];
-    }
-  }
-
   private async sendEmailVerification(
-    userId: string,
+    memberId: string,
     adminToken: string,
   ): Promise<void> {
     try {
       await firstValueFrom(
         this.httpService.put(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users/${userId}/execute-actions-email`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members/${memberId}/execute-actions-email`,
           ['VERIFY_EMAIL'],
           {
             headers: {
@@ -767,10 +722,10 @@ export class AuthService {
       // Get admin token
       const adminToken = await this.getAdminAccessToken();
 
-      // Find user by email
-      const usersResponse = await firstValueFrom(
+      // Find member by email
+      const membersResponse = await firstValueFrom(
         this.httpService.get(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users?email=${encodeURIComponent(email)}`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members?email=${encodeURIComponent(email)}`,
           {
             headers: {
               Authorization: `Bearer ${adminToken}`,
@@ -779,23 +734,23 @@ export class AuthService {
         ),
       );
 
-      if (!usersResponse.data || usersResponse.data.length === 0) {
-        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      if (!membersResponse.data || membersResponse.data.length === 0) {
+        throw new HttpException('Member not found', HttpStatus.NOT_FOUND);
       }
 
-      const user = usersResponse.data[0];
+      const member = membersResponse.data[0];
 
-      if (user.emailVerified) {
-        this.logger.log(`DEV: User ${email} is already verified`);
+      if (member.emailVerified) {
+        this.logger.log(`DEV: Member ${email} is already verified`);
         return;
       }
 
-      // Update user to mark email as verified
+      // Update member to mark email as verified
       await firstValueFrom(
         this.httpService.put(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users/${user.id}`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members/${member.id}`,
           {
-            ...user,
+            ...member,
             emailVerified: true,
           },
           {
@@ -810,7 +765,7 @@ export class AuthService {
       this.logger.log(`DEV: Successfully marked ${email} as verified`);
     } catch (error) {
       this.logger.error(
-        `Failed to verify user email: ${error.message}`,
+        `Failed to verify member email: ${error.message}`,
         error.stack,
       );
 
@@ -819,7 +774,7 @@ export class AuthService {
       }
 
       throw new HttpException(
-        'Failed to verify user email',
+        'Failed to verify member email',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -829,7 +784,7 @@ export class AuthService {
     const nodeEnv = this.configService.get<string>('NODE_ENV');
     if (nodeEnv === 'production') {
       throw new HttpException(
-        'User status is not available in production',
+        'Member status is not available in production',
         HttpStatus.FORBIDDEN,
       );
     }
@@ -837,7 +792,7 @@ export class AuthService {
     // Check if Keycloak is configured
     if (!this.isKeycloakConfigured()) {
       this.logger.error(
-        'Dev get user status failed: Keycloak authentication service is not configured',
+        'Dev get member status failed: Keycloak authentication service is not configured',
       );
       throw new HttpException(
         'Authentication service is not available. Please contact support.',
@@ -849,10 +804,10 @@ export class AuthService {
       // Get admin token
       const adminToken = await this.getAdminAccessToken();
 
-      // Find user by email
-      const usersResponse = await firstValueFrom(
+      // Find member by email
+      const membersResponse = await firstValueFrom(
         this.httpService.get(
-          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/users?email=${encodeURIComponent(email)}`,
+          `${this.keycloakBaseUrl}/admin/realms/${this.realm}/members?email=${encodeURIComponent(email)}`,
           {
             headers: {
               Authorization: `Bearer ${adminToken}`,
@@ -861,37 +816,37 @@ export class AuthService {
         ),
       );
 
-      if (!usersResponse.data || usersResponse.data.length === 0) {
-        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      if (!membersResponse.data || membersResponse.data.length === 0) {
+        throw new HttpException('Member not found', HttpStatus.NOT_FOUND);
       }
 
-      const user = usersResponse.data[0];
+      const member = membersResponse.data[0];
 
       return {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        enabled: user.enabled,
-        emailVerified: user.emailVerified,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        createdTimestamp: user.createdTimestamp,
-        requiredActions: user.requiredActions || [],
-        attributes: user.attributes || {},
+        id: member.id,
+        username: member.username,
+        email: member.email,
+        enabled: member.enabled,
+        emailVerified: member.emailVerified,
+        firstName: member.firstName,
+        lastName: member.lastName,
+        createdTimestamp: member.createdTimestamp,
+        requiredActions: member.requiredActions || [],
+        attributes: member.attributes || {},
         debug: {
-          canLogin: user.enabled && user.emailVerified,
+          canLogin: member.enabled && member.emailVerified,
           issues: [
-            ...(user.enabled ? [] : ['User is disabled']),
-            ...(user.emailVerified ? [] : ['Email not verified']),
-            ...((user.requiredActions || []).length > 0
-              ? [`Required actions: ${user.requiredActions.join(', ')}`]
+            ...(member.enabled ? [] : ['Member is disabled']),
+            ...(member.emailVerified ? [] : ['Email not verified']),
+            ...((member.requiredActions || []).length > 0
+              ? [`Required actions: ${member.requiredActions.join(', ')}`]
               : []),
           ],
         },
       };
     } catch (error) {
       this.logger.error(
-        `Failed to get user status: ${error.message}`,
+        `Failed to get member status: ${error.message}`,
         error.stack,
       );
 
@@ -900,7 +855,7 @@ export class AuthService {
       }
 
       throw new HttpException(
-        'Failed to get user status',
+        'Failed to get member status',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

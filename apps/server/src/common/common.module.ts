@@ -1,38 +1,59 @@
 import { Module } from '@nestjs/common';
-import { MongooseModule } from '@nestjs/mongoose';
 import { JwtModule } from '@nestjs/jwt';
+import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { ApiKeyController } from './api-key.controller';
-import { OrganizationService } from './organization.service';
-import { ApiKeyService } from './api-key.service';
-import { UnifiedAuthGuard } from './guards/unified-auth.guard';
-import { RBACGuard } from './guards/rbac.guard';
+
 import { UsageTrackingMiddleware } from './usage-tracking.middleware';
-import { MetricsService } from './metrics.service';
 import {
-  OrganizationDocument,
-  OrganizationSchema,
-  OrganizationMember,
-  OrganizationMemberSchema,
+  ApiKeyService,
+  MetricsService,
+  AuditService,
+  PermissionService,
+  SaccoService,
+  FinancialService,
+} from './services';
+import {
   TransactionLogDocument,
   TransactionLogSchema,
   ApiKeyDocument,
   ApiKeySchema,
   OrganizationServiceDocument,
   OrganizationServiceSchema,
+  AuditTrail,
+  AuditTrailSchema,
+  Sacco,
+  SaccoSchema,
+  Chama,
+  ChamaSchema,
+  SaccoMember,
+  SaccoMemberSchema,
+  SaccoMembership,
+  SaccoMembershipSchema,
+  ChamaMembership,
+  ChamaMembershipSchema,
+  GroupRelationship,
+  GroupRelationshipSchema,
 } from './schemas';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
-      { name: OrganizationDocument.name, schema: OrganizationSchema },
-      { name: OrganizationMember.name, schema: OrganizationMemberSchema },
       { name: TransactionLogDocument.name, schema: TransactionLogSchema },
       { name: ApiKeyDocument.name, schema: ApiKeySchema },
       {
         name: OrganizationServiceDocument.name,
         schema: OrganizationServiceSchema,
       },
+      {
+        name: AuditTrail.name,
+        schema: AuditTrailSchema,
+      },
+      { name: Sacco.name, schema: SaccoSchema },
+      { name: Chama.name, schema: ChamaSchema },
+      { name: SaccoMember.name, schema: SaccoMemberSchema },
+      { name: SaccoMembership.name, schema: SaccoMembershipSchema },
+      { name: ChamaMembership.name, schema: ChamaMembershipSchema },
+      { name: GroupRelationship.name, schema: GroupRelationshipSchema },
     ]),
     JwtModule.registerAsync({
       imports: [ConfigModule],
@@ -46,22 +67,24 @@ import {
       }),
     }),
   ],
-  controllers: [ApiKeyController],
+  controllers: [],
   providers: [
     ApiKeyService,
-    OrganizationService,
-    UnifiedAuthGuard,
-    RBACGuard,
     UsageTrackingMiddleware,
     MetricsService,
+    AuditService,
+    PermissionService,
+    SaccoService,
+    FinancialService,
   ],
   exports: [
     ApiKeyService,
-    OrganizationService,
-    UnifiedAuthGuard,
-    RBACGuard,
     UsageTrackingMiddleware,
     MetricsService,
+    AuditService,
+    PermissionService,
+    SaccoService,
+    FinancialService,
     MongooseModule,
     JwtModule,
   ],

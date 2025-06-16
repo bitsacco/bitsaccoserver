@@ -8,7 +8,7 @@ export enum UserStatus {
 }
 
 @Schema({ timestamps: true })
-export class User {
+export class Member {
   @Prop({ required: true, unique: true })
   email: string;
 
@@ -38,5 +38,5 @@ export class User {
   };
 }
 
-export type UserDocument = User & Document;
-export const UserSchema = SchemaFactory.createForClass(User);
+export type UserDocument = Member & Document;
+export const UserSchema = SchemaFactory.createForClass(Member);

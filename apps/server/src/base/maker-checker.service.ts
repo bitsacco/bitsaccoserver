@@ -1,61 +1,34 @@
+import { Model } from 'mongoose';
+import { InjectModel } from '@nestjs/mongoose';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   Injectable,
   BadRequestException,
   ForbiddenException,
   NotFoundException,
 } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
   ApprovalWorkflow,
   ApprovalWorkflowDocument,
   ApprovalStatus,
   WorkflowType,
-  RiskLevel,
   SegregationRule,
   SegregationRuleDocument,
   TransactionLimit,
   TransactionLimitDocument,
-  SACCOAuthenticatedUser,
+} from '../common/schemas/compliance.schema';
+import {
+  AuthenticatedMember,
   Permission,
   PermissionScope,
   ServiceRole,
   GroupRole,
-} from '../common';
-import { PermissionService } from './permission.service';
+  RiskLevel,
+  WorkflowRequest,
+  ApprovalRequest,
+} from '../common/types';
+import { PermissionService } from '../common/services/permission.service';
 import { ComplianceService } from './compliance.service';
-
-export interface WorkflowRequest {
-  workflowType: WorkflowType;
-  scope: PermissionScope;
-  organizationId: string;
-  chamaId?: string;
-  operationData: {
-    action: string;
-    resourceType: string;
-    resourceId?: string;
-    parameters: Record<string, any>;
-    estimatedValue?: number;
-    currency?: string;
-    description: string;
-  };
-  metadata?: {
-    sourceSystem?: string;
-    correlationId?: string;
-    businessJustification?: string;
-    urgency?: 'low' | 'medium' | 'high' | 'critical';
-    customerImpact?: 'none' | 'low' | 'medium' | 'high';
-  };
-}
-
-export interface ApprovalRequest {
-  workflowId: string;
-  status: ApprovalStatus.APPROVED | ApprovalStatus.REJECTED;
-  comment?: string;
-  ipAddress?: string;
-  userAgent?: string;
-}
 
 /**
  * Maker-Checker Service
@@ -79,17 +52,17 @@ export class MakerCheckerService {
    * Initiate a new approval workflow
    */
   async initiateWorkflow(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     request: WorkflowRequest,
   ): Promise<ApprovalWorkflowDocument> {
-    // Check if user can initiate this type of workflow
-    await this.validateInitiatorPermissions(user, request);
+    // Check if member can initiate this type of workflow
+    await this.validateInitiatorPermissions(member, request);
 
     // Check segregation of duties
-    await this.checkSegregationRules(user, request);
+    await this.checkSegregationRules(member, request);
 
     // Check transaction limits
-    await this.checkTransactionLimits(user, request);
+    await this.checkTransactionLimits(member, request);
 
     // Determine risk level and approval requirements
     const riskLevel = await this.assessRiskLevel(request);
@@ -101,7 +74,7 @@ export class MakerCheckerService {
     // Create workflow
     const workflow = new this.workflowModel({
       workflowType: request.workflowType,
-      initiatedBy: user.userId,
+      initiatedBy: member.memberId,
       organizationId: request.organizationId,
       chamaId: request.chamaId,
       scope: request.scope,
@@ -122,7 +95,7 @@ export class MakerCheckerService {
     // Emit workflow initiated event
     this.eventEmitter.emit('workflow.initiated', {
       workflowId: savedWorkflow._id,
-      initiator: user.userId,
+      initiator: member.memberId,
       workflowType: request.workflowType,
       riskLevel,
     });
@@ -137,7 +110,7 @@ export class MakerCheckerService {
    * Submit approval or rejection
    */
   async submitApproval(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     request: ApprovalRequest,
   ): Promise<ApprovalWorkflowDocument> {
     const workflow = await this.workflowModel.findById(request.workflowId);
@@ -146,7 +119,7 @@ export class MakerCheckerService {
     }
 
     // Validate approver permissions
-    await this.validateApproverPermissions(user, workflow);
+    await this.validateApproverPermissions(member, workflow);
 
     // Check if workflow has expired
     if (workflow.expiresAt && workflow.expiresAt < new Date()) {
@@ -155,19 +128,19 @@ export class MakerCheckerService {
       throw new BadRequestException('Workflow has expired');
     }
 
-    // Check if already approved/rejected by this user
+    // Check if already approved/rejected by this member
     const existingApproval = workflow.approvals.find(
-      (approval) => approval.approverId === user.userId,
+      (approval) => approval.approverId === member.memberId,
     );
     if (existingApproval) {
       throw new BadRequestException(
-        'User has already provided approval for this workflow',
+        'Member has already provided approval for this workflow',
       );
     }
 
     // Check self-approval rules
     if (
-      workflow.initiatedBy === user.userId &&
+      workflow.initiatedBy === member.memberId &&
       !workflow.approvalChain.allowSelfApproval
     ) {
       throw new ForbiddenException(
@@ -177,13 +150,13 @@ export class MakerCheckerService {
 
     // Add approval
     workflow.approvals.push({
-      approverId: user.userId,
-      approverRole: this.getUserHighestRole(user, workflow.scope),
+      approverId: member.memberId,
+      approverRole: this.getUserHighestRole(member, workflow.scope),
       status: request.status,
       comment: request.comment,
       approvedAt: new Date(),
       ipAddress: request.ipAddress,
-      userAgent: request.userAgent,
+      memberAgent: request.memberAgent,
     });
 
     // Check if workflow is complete
@@ -204,7 +177,7 @@ export class MakerCheckerService {
     // Emit approval event
     this.eventEmitter.emit('workflow.approval_submitted', {
       workflowId: savedWorkflow._id,
-      approver: user.userId,
+      approver: member.memberId,
       status: request.status,
       complete: workflowComplete,
     });
@@ -213,10 +186,10 @@ export class MakerCheckerService {
   }
 
   /**
-   * Get pending workflows for a user
+   * Get pending workflows for a member
    */
   async getPendingWorkflows(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     scope?: PermissionScope,
     workflowType?: WorkflowType,
     limit: number = 50,
@@ -228,7 +201,7 @@ export class MakerCheckerService {
     const query: any = {
       status: ApprovalStatus.PENDING,
       expiresAt: { $gt: new Date() },
-      'approvals.approverId': { $ne: user.userId }, // Exclude already approved by user
+      'approvals.approverId': { $ne: member.memberId }, // Exclude already approved by member
     };
 
     // Filter by scope access
@@ -240,18 +213,18 @@ export class MakerCheckerService {
       query.workflowType = workflowType;
     }
 
-    // Filter by user's permissions and access
+    // Filter by member's permissions and access
     const accessibleOrgs =
-      user.groupMemberships
+      member.groupMemberships
         ?.filter((m) => m.groupType === 'organization')
         .map((m) => m.groupId) || [];
 
     const accessibleChamas =
-      user.groupMemberships
+      member.groupMemberships
         ?.filter((m) => m.groupType === 'chama')
         .map((m) => m.groupId) || [];
 
-    if (user.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
       query.$or = [
         { organizationId: { $in: accessibleOrgs } },
         { chamaId: { $in: accessibleChamas } },
@@ -268,10 +241,10 @@ export class MakerCheckerService {
       this.workflowModel.countDocuments(query),
     ]);
 
-    // Filter workflows where user has required permissions to approve
+    // Filter workflows where member has required permissions to approve
     const approveableWorkflows = [];
     for (const workflow of workflows) {
-      if (await this.canUserApprove(user, workflow)) {
+      if (await this.canUserApprove(member, workflow)) {
         approveableWorkflows.push(workflow);
       }
     }
@@ -286,7 +259,7 @@ export class MakerCheckerService {
    * Get workflow details
    */
   async getWorkflow(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     workflowId: string,
   ): Promise<ApprovalWorkflowDocument> {
     const workflow = await this.workflowModel.findById(workflowId);
@@ -294,8 +267,8 @@ export class MakerCheckerService {
       throw new NotFoundException('Workflow not found');
     }
 
-    // Check if user has access to this workflow
-    const hasAccess = await this.checkWorkflowAccess(user, workflow);
+    // Check if member has access to this workflow
+    const hasAccess = await this.checkWorkflowAccess(member, workflow);
     if (!hasAccess) {
       throw new ForbiddenException('Access denied to this workflow');
     }
@@ -307,7 +280,7 @@ export class MakerCheckerService {
    * Cancel a pending workflow
    */
   async cancelWorkflow(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     workflowId: string,
     reason: string,
   ): Promise<ApprovalWorkflowDocument> {
@@ -318,8 +291,8 @@ export class MakerCheckerService {
 
     // Only initiator or admin can cancel
     if (
-      workflow.initiatedBy !== user.userId &&
-      user.serviceRole !== ServiceRole.SYSTEM_ADMIN
+      workflow.initiatedBy !== member.memberId &&
+      member.serviceRole !== ServiceRole.SYSTEM_ADMIN
     ) {
       throw new ForbiddenException(
         'Only workflow initiator or system admin can cancel',
@@ -332,7 +305,7 @@ export class MakerCheckerService {
 
     workflow.status = ApprovalStatus.CANCELLED;
     workflow.metadata.cancellationReason = reason;
-    workflow.metadata.cancelledBy = user.userId;
+    workflow.metadata.cancelledBy = member.memberId;
     workflow.metadata.cancelledAt = new Date();
 
     const savedWorkflow = await workflow.save();
@@ -340,7 +313,7 @@ export class MakerCheckerService {
     // Emit cancellation event
     this.eventEmitter.emit('workflow.cancelled', {
       workflowId: savedWorkflow._id,
-      cancelledBy: user.userId,
+      cancelledBy: member.memberId,
       reason,
     });
 
@@ -350,15 +323,15 @@ export class MakerCheckerService {
   // Private Methods
 
   private async validateInitiatorPermissions(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     request: WorkflowRequest,
   ): Promise<void> {
-    // Check if user has permissions to initiate this workflow type
+    // Check if member has permissions to initiate this workflow type
     const requiredPermissions = this.getWorkflowPermissions(
       request.workflowType,
     );
-    const hasPermissions = this.permissionService.userHasAllPermissions(
-      user,
+    const hasPermissions = this.permissionService.memberHasAllPermissions(
+      member,
       requiredPermissions,
       request.scope,
       request.organizationId,
@@ -373,7 +346,7 @@ export class MakerCheckerService {
   }
 
   private async checkSegregationRules(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     request: WorkflowRequest,
   ): Promise<void> {
     const applicableRules = await this.segregationRuleModel.find({
@@ -383,7 +356,7 @@ export class MakerCheckerService {
 
     for (const rule of applicableRules) {
       const conflict = await this.detectSegregationConflict(
-        user,
+        member,
         request,
         rule,
       );
@@ -398,7 +371,7 @@ export class MakerCheckerService {
             eventType: 'segregation_violation',
             severity: RiskLevel.MEDIUM,
             description: `SoD rule violation: ${rule.ruleName}`,
-            userId: user.userId,
+            memberId: member.memberId,
             scope: request.scope,
             organizationId: request.organizationId,
             chamaId: request.chamaId,
@@ -409,7 +382,7 @@ export class MakerCheckerService {
   }
 
   private async checkTransactionLimits(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     request: WorkflowRequest,
   ): Promise<void> {
     if (!request.operationData.estimatedValue) {
@@ -417,23 +390,23 @@ export class MakerCheckerService {
     }
 
     const applicableLimits = await this.getApplicableTransactionLimits(
-      user,
+      member,
       request,
     );
 
     for (const limit of applicableLimits) {
-      const violation = await this.checkLimitViolation(user, request, limit);
+      const violation = await this.checkLimitViolation(member, request, limit);
       if (violation) {
         if (!limit.overrideConditions.allowOverride) {
           throw new BadRequestException(
             `Transaction limit exceeded: ${limit.limitName}`,
           );
         }
-        // Check if user can override
-        const canOverride = await this.canUserOverrideLimit(user, limit);
+        // Check if member can override
+        const canOverride = await this.canUserOverrideLimit(member, limit);
         if (!canOverride) {
           throw new ForbiddenException(
-            `Transaction limit exceeded and user cannot override: ${limit.limitName}`,
+            `Transaction limit exceeded and member cannot override: ${limit.limitName}`,
           );
         }
       }
@@ -478,7 +451,7 @@ export class MakerCheckerService {
   ): Promise<any> {
     const chain = {
       requiredApprovals: 1,
-      requiredRoles: [GroupRole.CHAMA_LEADER] as (ServiceRole | GroupRole)[],
+      requiredRoles: [GroupRole.CHAMA_ADMIN] as (ServiceRole | GroupRole)[],
       requiredPermissions: [] as Permission[],
       allowSelfApproval: false,
       sequentialApproval: false,
@@ -489,29 +462,26 @@ export class MakerCheckerService {
     switch (riskLevel) {
       case RiskLevel.CRITICAL:
         chain.requiredApprovals = 3;
-        chain.requiredRoles = [ServiceRole.SYSTEM_ADMIN, GroupRole.SACCO_ADMIN];
+        chain.requiredRoles = [ServiceRole.SYSTEM_ADMIN, GroupRole.ORG_ADMIN];
         chain.allowSelfApproval = false;
         chain.sequentialApproval = true;
         chain.timeoutHours = 48;
         break;
       case RiskLevel.HIGH:
         chain.requiredApprovals = 2;
-        chain.requiredRoles = [
-          GroupRole.SACCO_ADMIN,
-          GroupRole.SACCO_TREASURER,
-        ];
+        chain.requiredRoles = [GroupRole.ORG_ADMIN, GroupRole.CHAMA_ADMIN];
         chain.allowSelfApproval = false;
         chain.timeoutHours = 24;
         break;
       case RiskLevel.MEDIUM:
         chain.requiredApprovals = 1;
-        chain.requiredRoles = [GroupRole.CHAMA_LEADER, GroupRole.SACCO_MANAGER];
+        chain.requiredRoles = [GroupRole.CHAMA_ADMIN, GroupRole.ORG_ADMIN];
         chain.allowSelfApproval = true;
         chain.timeoutHours = 12;
         break;
       case RiskLevel.LOW:
         chain.requiredApprovals = 1;
-        chain.requiredRoles = [GroupRole.CHAMA_TREASURER];
+        chain.requiredRoles = [GroupRole.CHAMA_ADMIN];
         chain.allowSelfApproval = true;
         chain.timeoutHours = 8;
         break;
@@ -563,37 +533,38 @@ export class MakerCheckerService {
   }
 
   private async validateApproverPermissions(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     workflow: ApprovalWorkflowDocument,
   ): Promise<void> {
-    const canApprove = await this.canUserApprove(user, workflow);
+    const canApprove = await this.canUserApprove(member, workflow);
     if (!canApprove) {
       throw new ForbiddenException(
-        'User does not have permission to approve this workflow',
+        'Member does not have permission to approve this workflow',
       );
     }
   }
 
   private async canUserApprove(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     workflow: ApprovalWorkflowDocument,
   ): Promise<boolean> {
-    // Check if user has required role
-    const userRoles = this.getUserRoles(user, workflow.scope);
+    // Check if member has required role
+    const memberRoles = this.getUserRoles(member, workflow.scope);
     const hasRequiredRole = workflow.approvalChain.requiredRoles.some((role) =>
-      userRoles.includes(role),
+      memberRoles.includes(role),
     );
 
     if (!hasRequiredRole) return false;
 
-    // Check if user has required permissions
-    const hasRequiredPermissions = this.permissionService.userHasAllPermissions(
-      user,
-      workflow.approvalChain.requiredPermissions,
-      workflow.scope,
-      workflow.organizationId,
-      workflow.chamaId,
-    );
+    // Check if member has required permissions
+    const hasRequiredPermissions =
+      this.permissionService.memberHasAllPermissions(
+        member,
+        workflow.approvalChain.requiredPermissions,
+        workflow.scope,
+        workflow.organizationId,
+        workflow.chamaId,
+      );
 
     return hasRequiredPermissions;
   }
@@ -649,31 +620,31 @@ export class MakerCheckerService {
   }
 
   private getUserHighestRole(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     scope: PermissionScope,
   ): ServiceRole | GroupRole {
     if (scope === PermissionScope.GLOBAL) {
-      return user.serviceRole;
+      return member.serviceRole;
     }
 
     // Get highest group role in context
     const relevantMemberships =
-      user.groupMemberships?.filter((m) => {
+      member.groupMemberships?.filter((m) => {
         if (scope === PermissionScope.ORGANIZATION)
           return m.groupType === 'organization';
         if (scope === PermissionScope.CHAMA) return m.groupType === 'chama';
         return false;
       }) || [];
 
-    if (relevantMemberships.length === 0) return user.serviceRole;
+    if (relevantMemberships.length === 0) return member.serviceRole;
 
     // Return highest privilege role
     const roleHierarchy = {
-      [GroupRole.SACCO_OWNER]: 1,
-      [GroupRole.SACCO_ADMIN]: 2,
-      [GroupRole.CHAMA_LEADER]: 3,
-      [GroupRole.CHAMA_TREASURER]: 4,
-      [GroupRole.CHAMA_MEMBER]: 5,
+      [GroupRole.ORG_ADMIN]: 1,
+      [GroupRole.CHAMA_ADMIN]: 2,
+      [GroupRole.ORG_MEMBER]: 3,
+      [GroupRole.CHAMA_MEMBER]: 4,
+      [GroupRole.VIEWER]: 5,
     };
 
     return relevantMemberships
@@ -682,14 +653,14 @@ export class MakerCheckerService {
   }
 
   private getUserRoles(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     scope: PermissionScope,
   ): (ServiceRole | GroupRole)[] {
-    const roles: (ServiceRole | GroupRole)[] = [user.serviceRole];
+    const roles: (ServiceRole | GroupRole)[] = [member.serviceRole];
 
     if (scope !== PermissionScope.GLOBAL) {
       const groupRoles =
-        user.groupMemberships
+        member.groupMemberships
           ?.filter((m) => {
             if (scope === PermissionScope.ORGANIZATION)
               return m.groupType === 'organization';
@@ -705,24 +676,24 @@ export class MakerCheckerService {
   }
 
   private async checkWorkflowAccess(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     workflow: ApprovalWorkflowDocument,
   ): Promise<boolean> {
     // System admin can access all workflows
-    if (user.serviceRole === ServiceRole.SYSTEM_ADMIN) return true;
+    if (member.serviceRole === ServiceRole.SYSTEM_ADMIN) return true;
 
     // Initiator can access their own workflows
-    if (workflow.initiatedBy === user.userId) return true;
+    if (workflow.initiatedBy === member.memberId) return true;
 
-    // Check if user has access to the organization/chama
-    const hasOrgAccess = user.groupMemberships?.some(
+    // Check if member has access to the organization/chama
+    const hasOrgAccess = member.groupMemberships?.some(
       (m) =>
         m.groupId === workflow.organizationId && m.groupType === 'organization',
     );
 
     const hasChamaAccess =
       workflow.chamaId &&
-      user.groupMemberships?.some(
+      member.groupMemberships?.some(
         (m) => m.groupId === workflow.chamaId && m.groupType === 'chama',
       );
 
@@ -752,7 +723,7 @@ export class MakerCheckerService {
   }
 
   private async detectSegregationConflict(
-    _user: SACCOAuthenticatedUser,
+    _member: AuthenticatedMember,
     _request: WorkflowRequest,
     _rule: SegregationRuleDocument,
   ): Promise<boolean> {
@@ -762,7 +733,7 @@ export class MakerCheckerService {
   }
 
   private async getApplicableTransactionLimits(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     request: WorkflowRequest,
   ): Promise<TransactionLimitDocument[]> {
     return this.transactionLimitModel.find({
@@ -772,7 +743,7 @@ export class MakerCheckerService {
             { scope: PermissionScope.GLOBAL },
             { scope: request.scope, organizationId: request.organizationId },
             { scope: request.scope, chamaId: request.chamaId },
-            { scope: PermissionScope.PERSONAL, userId: user.userId },
+            { scope: PermissionScope.PERSONAL, memberId: member.memberId },
           ],
         },
         { isActive: true },
@@ -788,7 +759,7 @@ export class MakerCheckerService {
   }
 
   private async checkLimitViolation(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     request: WorkflowRequest,
     limit: TransactionLimitDocument,
   ): Promise<boolean> {
@@ -797,24 +768,25 @@ export class MakerCheckerService {
   }
 
   private async canUserOverrideLimit(
-    user: SACCOAuthenticatedUser,
+    member: AuthenticatedMember,
     limit: TransactionLimitDocument,
   ): Promise<boolean> {
     if (!limit.overrideConditions.allowOverride) return false;
 
-    const userRoles = [
-      user.serviceRole,
-      ...this.getUserRoles(user, PermissionScope.GLOBAL),
+    const memberRoles = [
+      member.serviceRole,
+      ...this.getUserRoles(member, PermissionScope.GLOBAL),
     ];
     const hasOverrideRole = limit.overrideConditions.overrideRoles.some(
-      (role) => userRoles.includes(role),
+      (role) => memberRoles.includes(role),
     );
 
-    const hasOverridePermissions = this.permissionService.userHasAllPermissions(
-      user,
-      limit.overrideConditions.overridePermissions,
-      PermissionScope.GLOBAL,
-    );
+    const hasOverridePermissions =
+      this.permissionService.memberHasAllPermissions(
+        member,
+        limit.overrideConditions.overridePermissions,
+        PermissionScope.GLOBAL,
+      );
 
     return hasOverrideRole && hasOverridePermissions;
   }
