@@ -1,3 +1,5 @@
+'use client';
+
 import * as React from 'react';
 import RouterLink from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,6 +18,20 @@ import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
+import { ServiceRole } from '@bitsaccoserver/types';
+
+const getRoleLabel = (role: ServiceRole) => {
+  switch (role) {
+    case ServiceRole.SYSTEM_ADMIN:
+      return 'System Administrator';
+    case ServiceRole.ADMIN:
+      return 'Administrator';
+    case ServiceRole.MEMBER:
+      return 'Member';
+    default:
+      return 'Unknown';
+  }
+};
 
 export interface UserPopoverProps {
   anchorEl: Element | null;
@@ -28,7 +44,7 @@ export function UserPopover({
   onClose,
   open,
 }: UserPopoverProps): React.JSX.Element {
-  const { checkSession } = useUser();
+  const { user, checkSession } = useUser();
 
   const router = useRouter();
 
@@ -61,10 +77,22 @@ export function UserPopover({
       slotProps={{ paper: { sx: { width: '240px' } } }}
     >
       <Box sx={{ p: '16px 20px ' }}>
-        <Typography variant="subtitle1">Bitsacco Admin</Typography>
-        <Typography color="text.secondary" variant="body2">
-          admin@bitsacco.com
+        <Typography variant="subtitle1">
+          {user?.name ||
+            (user?.firstName || user?.lastName
+              ? `${user?.firstName || ''} ${user?.lastName || ''}`.trim()
+              : '') ||
+            user?.email?.split('@')[0] ||
+            'User'}
         </Typography>
+        <Typography color="text.secondary" variant="body2">
+          {user?.email || 'No email'}
+        </Typography>
+        {user?.serviceRole && (
+          <Typography color="text.secondary" variant="caption">
+            {getRoleLabel(user.serviceRole)}
+          </Typography>
+        )}
       </Box>
       <Divider />
       <MenuList

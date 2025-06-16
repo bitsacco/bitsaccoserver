@@ -176,22 +176,96 @@ export function MetricsDashboard(): React.JSX.Element {
           {/* Dashboard content */}
           {data && !isLoading && (
             <React.Fragment>
+              {/* System Health Status */}
+              {data.systemHealth && (
+                <Card>
+                  <CardHeader title="System Health Overview" />
+                  <CardContent>
+                    <Grid container spacing={3}>
+                      <Grid xs={12} md={3}>
+                        <Stack direction="row" alignItems="center" spacing={2}>
+                          <Box
+                            sx={{
+                              width: 12,
+                              height: 12,
+                              borderRadius: '50%',
+                              bgcolor:
+                                data.systemHealth.overall === 'healthy'
+                                  ? 'success.main'
+                                  : data.systemHealth.overall === 'degraded'
+                                    ? 'warning.main'
+                                    : 'error.main',
+                            }}
+                          />
+                          <Typography
+                            variant="h6"
+                            color={
+                              data.systemHealth.overall === 'healthy'
+                                ? 'success.main'
+                                : data.systemHealth.overall === 'degraded'
+                                  ? 'warning.main'
+                                  : 'error.main'
+                            }
+                          >
+                            {data.systemHealth.overall.toUpperCase()}
+                          </Typography>
+                        </Stack>
+                      </Grid>
+                      <Grid xs={12} md={3}>
+                        <Typography variant="body2" color="text.secondary">
+                          Services: {data.systemHealth.services?.length || 0}{' '}
+                          running
+                        </Typography>
+                      </Grid>
+                      <Grid xs={12} md={3}>
+                        <Typography variant="body2" color="text.secondary">
+                          Integrations:{' '}
+                          {data.systemHealth.integrations?.length || 0}{' '}
+                          connected
+                        </Typography>
+                      </Grid>
+                      <Grid xs={12} md={3}>
+                        <Typography variant="body2" color="text.secondary">
+                          Last checked:{' '}
+                          {new Date(
+                            data.systemHealth.lastChecked,
+                          ).toLocaleTimeString()}
+                        </Typography>
+                      </Grid>
+                    </Grid>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* KPI Summary Cards */}
               <Grid container spacing={3}>
-                {/* User engagement KPIs */}
+                {/* System Health KPI */}
                 <Grid xs={12} md={6} lg={3}>
                   <MetricSummary
-                    title="Daily Active Users"
+                    title="System Health"
                     value={
-                      data.business?.userEngagement.dailyActiveUsers.value || 0
+                      data.systemHealth?.overall === 'healthy'
+                        ? 100
+                        : data.systemHealth?.overall === 'degraded'
+                          ? 70
+                          : 30
                     }
-                    change={
-                      data.business?.userEngagement.dailyActiveUsers.change || 0
+                    change={0}
+                    trend="flat"
+                    suffix="%"
+                  />
+                </Grid>
+                {/* Service Availability */}
+                <Grid xs={12} md={6} lg={3}>
+                  <MetricSummary
+                    title="Service Availability"
+                    value={
+                      data.systemHealth?.services?.filter(
+                        (s: any) => s.status === 'healthy',
+                      ).length || 0
                     }
-                    trend={
-                      data.business?.userEngagement.dailyActiveUsers.trend ||
-                      'flat'
-                    }
+                    change={0}
+                    trend="flat"
                   />
                 </Grid>
                 <Grid xs={12} md={6} lg={3}>

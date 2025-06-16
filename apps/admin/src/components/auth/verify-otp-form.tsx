@@ -50,11 +50,10 @@ export function VerifyOtpForm({
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { error } = await authClient.verify({
-        phone,
-        npub,
-        otp: values.otp,
-      });
+      // This component is deprecated since we're using email verification now
+      // Redirect to sign in page instead
+      router.push(paths.auth.signIn);
+      return;
 
       if (error) {
         setError('root', { type: 'server', message: error });

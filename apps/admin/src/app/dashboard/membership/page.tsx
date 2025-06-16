@@ -23,7 +23,7 @@ import { MemberImportDialog } from '@/components/dashboard/member/member-import-
 import { DeleteConfirmDialog } from '@/components/dashboard/member/delete-confirm-dialog';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
-import { Role } from '@/types/user';
+import { ServiceRole } from '@bitsaccoserver/types';
 
 // Simple loading component
 function LoadingState() {

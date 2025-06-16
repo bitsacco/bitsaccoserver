@@ -23,7 +23,9 @@
       "mcp__ide__getDiagnostics",
       "Bash(npm test:*)",
       "Bash(mv:*)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(./get-token.sh:*)",
+      "Bash(jq:*)"
     ],
     "deny": []
   }

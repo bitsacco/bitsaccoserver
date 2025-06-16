@@ -39,7 +39,13 @@ export function Logo({
   }
 
   return (
-    <Box alt="logo" component="img" height={height} src={url} width={width} />
+    <Box
+      alt="Bitsaccoserver"
+      component="img"
+      height={height}
+      src={url}
+      width={width}
+    />
   );
 }
 

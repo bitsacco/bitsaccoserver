@@ -7,7 +7,7 @@ import Alert from '@mui/material/Alert';
 import { paths } from '@/paths';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
-import { Role } from '@/types/user';
+import { ServiceRole } from '@bitsaccoserver/types';
 import { authClient } from '@/lib/auth/client';
 
 export interface AuthGuardProps {
@@ -41,10 +41,10 @@ export function AuthGuard({
       return;
     }
 
-    // Check if user has admin or super admin role
-    const hasAdminRole = user.roles?.some(
-      (role) => role === Role.Admin || role === Role.SuperAdmin,
-    );
+    // Check if user has ADMIN or SYSTEM_ADMIN service role
+    const hasAdminRole =
+      user.serviceRole === ServiceRole.ADMIN ||
+      user.serviceRole === ServiceRole.SYSTEM_ADMIN;
 
     if (!hasAdminRole) {
       logger.debug(

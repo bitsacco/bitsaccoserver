@@ -113,12 +113,21 @@ export interface TimeRange {
   preset?: '1h' | '24h' | '7d' | '30d' | '90d' | 'custom';
 }
 
+export interface SystemHealthData {
+  overall: 'healthy' | 'degraded' | 'down';
+  server: any;
+  services: any[];
+  integrations: any[];
+  lastChecked: Date;
+}
+
 export interface MetricsResponse {
   business?: BusinessMetrics;
   operational?: OperationalMetrics;
   services?: ServiceMetrics;
-  timeRange: TimeRange;
-  lastUpdated: string;
+  systemHealth?: SystemHealthData;
+  timeRange?: TimeRange;
+  lastUpdated: string | Date;
 }
 
 export interface MetricsQueryParams {

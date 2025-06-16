@@ -26,6 +26,7 @@ import dayjs from 'dayjs';
 
 import { useSelection } from '@/hooks/use-selection';
 import { Member, isSuperAdmin } from '@/lib/members/client';
+import { ServiceRole } from '@bitsaccoserver/types';
 import { useUser } from '@/hooks/use-user';
 
 interface MembersTableProps {
@@ -152,7 +153,7 @@ export function MembersTable({
               </TableCell>
               <TableCell>Name</TableCell>
               <TableCell>Phone</TableCell>
-              <TableCell>Roles</TableCell>
+              <TableCell>Service Role</TableCell>
               <TableCell>Date Registered</TableCell>
               <TableCell>Date Updated</TableCell>
               <TableCell align="right">Actions</TableCell>
@@ -211,22 +212,7 @@ export function MembersTable({
                     </TableCell>
                     <TableCell>{row.phone || '-'}</TableCell>
                     <TableCell>
-                      {row.roles && row.roles.length > 0
-                        ? row.roles
-                            .map((role) => {
-                              switch (role) {
-                                case 0:
-                                  return 'Member';
-                                case 1:
-                                  return 'Admin';
-                                case 3:
-                                  return 'Super Admin';
-                                default:
-                                  return `Role ${role}`;
-                              }
-                            })
-                            .join(', ')
-                        : 'Member'}
+                      {row.serviceRole || ServiceRole.MEMBER}
                     </TableCell>
                     <TableCell>
                       {row.createdAt
