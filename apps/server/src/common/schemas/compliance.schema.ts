@@ -23,7 +23,7 @@ export enum ApprovalStatus {
 
 export enum WorkflowType {
   FINANCIAL_TRANSACTION = 'financial_transaction',
-  USER_MANAGEMENT = 'member_management',
+  MEMBER_MANAGEMENT = 'member_management',
   CONFIGURATION_CHANGE = 'configuration_change',
   LOAN_APPROVAL = 'loan_approval',
   SHARES_ISSUANCE = 'shares_issuance',

@@ -12,6 +12,8 @@ import Typography from '@mui/material/Typography';
 import type { NavItemConfig } from '@/types/nav';
 import { paths } from '@/paths';
 import { isNavItemActive } from '@/lib/is-nav-item-active';
+import { filterNavItemsByRole } from '@/lib/nav-filter';
+import { useUser } from '@/hooks/use-user';
 import { Logo } from '@/components/core/logo';
 
 import { navItems } from './config';
@@ -28,6 +30,10 @@ export function MobileNav({
   onClose,
 }: MobileNavProps): React.JSX.Element {
   const pathname = usePathname();
+  const { user } = useUser();
+
+  // Filter navigation items based on user's service role
+  const filteredNavItems = filterNavItemsByRole(navItems, user?.serviceRole);
 
   return (
     <Drawer
@@ -69,7 +75,7 @@ export function MobileNav({
       </Stack>
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
       <Box component="nav" sx={{ flex: '1 1 auto', p: '12px' }}>
-        {renderNavItems({ pathname, items: navItems })}
+        {renderNavItems({ pathname, items: filteredNavItems })}
       </Box>
       <Divider sx={{ borderColor: 'var(--mui-palette-neutral-700)' }} />
     </Drawer>
@@ -85,9 +91,19 @@ function renderNavItems({
 }): React.JSX.Element {
   const children = items.reduce(
     (acc: React.ReactNode[], curr: NavItemConfig): React.ReactNode[] => {
-      const { key, ...item } = curr;
+      const { key, separator, ...item } = curr;
+
+      // Add separator before item if specified
+      if (separator === 'before') {
+        acc.push(<Divider key={`${key}-separator-before`} sx={{ my: 1 }} />);
+      }
 
       acc.push(<NavItem key={key} pathname={pathname} {...item} />);
+
+      // Add separator after item if specified
+      if (separator === 'after') {
+        acc.push(<Divider key={`${key}-separator-after`} sx={{ my: 1 }} />);
+      }
 
       return acc;
     },
@@ -101,7 +117,7 @@ function renderNavItems({
   );
 }
 
-interface NavItemProps extends Omit<NavItemConfig, 'items'> {
+interface NavItemProps extends Omit<NavItemConfig, 'items' | 'separator'> {
   pathname: string;
 }
 

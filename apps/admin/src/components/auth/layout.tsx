@@ -22,19 +22,12 @@ export function Layout({ children }: LayoutProps): React.JSX.Element {
       }}
     >
       <Box sx={{ display: 'flex', flex: '1 1 auto', flexDirection: 'column' }}>
-        <Box sx={{ p: 3 }}>
-          <Box
-            component={RouterLink}
-            href={paths.home}
-            sx={{ display: 'inline-block', fontSize: 0 }}
-          >
-            <DynamicLogo
-              colorDark="light"
-              colorLight="dark"
-              height={32}
-              width={122}
-            />
-          </Box>
+        <Box
+          component={RouterLink}
+          href={paths.home}
+          sx={{ p: 3, display: 'flex', flexDirection: 'row' }}
+        >
+          <DynamicLogo colorDark="light" colorLight="dark" height={80} />
         </Box>
         <Box
           sx={{
@@ -63,14 +56,18 @@ export function Layout({ children }: LayoutProps): React.JSX.Element {
           <Stack spacing={1}>
             <Typography
               color="inherit"
-              sx={{ fontSize: '24px', lineHeight: '32px', textAlign: 'center' }}
+              sx={{ fontSize: '32px', lineHeight: '32px', textAlign: 'center' }}
               variant="h1"
             >
               <Box component="span" sx={{ color: '#15b79e' }}>
-                Bitsacco Dashboard
+                Admin Dashboard
               </Box>
             </Typography>
-            <Typography align="center" variant="subtitle1">
+            <Typography
+              align="center"
+              variant="subtitle1"
+              sx={{ fontSize: '22px', lineHeight: '24px', textAlign: 'center' }}
+            >
               Gateway to Community Service
             </Typography>
           </Stack>
@@ -78,8 +75,13 @@ export function Layout({ children }: LayoutProps): React.JSX.Element {
             <Box
               component="img"
               alt="Widgets"
-              src="/assets/svg/logo.svg"
-              sx={{ height: 'auto', width: '100%', maxWidth: '600px' }}
+              src="/assets/svg/bitsaccoserver.svg"
+              sx={{
+                height: 'auto',
+                width: '100%',
+                maxWidth: '600px',
+                opacity: '5%',
+              }}
             />
           </Box>
         </Stack>

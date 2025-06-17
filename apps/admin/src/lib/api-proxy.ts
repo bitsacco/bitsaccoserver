@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { ServiceRole } from '@bitsaccoserver/types';
 
 // API configuration
-const API_BASE_URL = process.env.API_URL || 'http://localhost:4000/v1';
+const API_BASE_URL = process.env.API_URL || 'http://localhost:4000/api/v1';
 
 // Rate limiting (simple in-memory store for demo)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -37,6 +38,77 @@ function getClientIp(request: NextRequest): string {
   const realIp = request.headers.get('x-real-ip');
   const clientIp = forwarded ? forwarded.split(',')[0] : realIp;
   return clientIp || 'unknown';
+}
+
+/**
+ * Decode JWT token without verification (for role checking)
+ * In production, this should verify the token signature
+ */
+function decodeJWT(token: string): { serviceRole?: ServiceRole } | null {
+  try {
+    const base64Url = token.split('.')[1];
+    if (!base64Url) return null;
+
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(''),
+    );
+
+    const payload = JSON.parse(jsonPayload);
+
+    // Extract service role - check direct serviceRole field first (server-generated tokens)
+    let serviceRole: ServiceRole = ServiceRole.MEMBER; // default role
+
+    // If the token already has a serviceRole field (server-generated token), use it
+    if (payload.serviceRole) {
+      serviceRole = payload.serviceRole;
+    } else {
+      // For Keycloak tokens, check for realm roles
+      if (payload.realm_access?.roles) {
+        if (payload.realm_access.roles.includes('system_admin')) {
+          serviceRole = ServiceRole.SYSTEM_ADMIN;
+        } else if (payload.realm_access.roles.includes('admin')) {
+          serviceRole = ServiceRole.ADMIN;
+        }
+      }
+    }
+
+    return { serviceRole };
+  } catch (error) {
+    console.error('Failed to decode JWT:', error);
+    return null;
+  }
+}
+
+/**
+ * Check if user has required admin role for accessing admin endpoints
+ */
+function hasAdminAccess(request: NextRequest, path: string[]): boolean {
+  // Allow non-admin endpoints
+  if (!path || path.length === 0 || path[0] !== 'admin') {
+    return true;
+  }
+
+  const authHeader = request.headers.get('authorization');
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return false;
+  }
+
+  const token = authHeader.slice(7);
+  const payload = decodeJWT(token);
+
+  if (!payload || !payload.serviceRole) {
+    return false;
+  }
+
+  // Allow SYSTEM_ADMIN and ADMIN roles for admin endpoints
+  return (
+    payload.serviceRole === ServiceRole.SYSTEM_ADMIN ||
+    payload.serviceRole === ServiceRole.ADMIN
+  );
 }
 
 /**
@@ -98,6 +170,14 @@ export async function handleApiProxy(
 
     // Validate and sanitize path
     const sanitizedPath = validateApiPath(path || []);
+
+    // Check admin access for admin endpoints
+    if (!hasAdminAccess(request, path || [])) {
+      return createErrorResponse(
+        'Insufficient permissions for admin access',
+        403,
+      );
+    }
 
     // Construct target URL
     const targetUrl = `${API_BASE_URL}/${sanitizedPath}`;

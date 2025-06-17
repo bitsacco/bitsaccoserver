@@ -1,74 +1,80 @@
 'use client';
 
-import type { User, Role } from '@/types/user';
+import type { User, ServiceRole } from '@bitsaccoserver/types';
 
 // All API calls go through the Next.js API proxy
 const API_URL = '/api';
 
-// Types based on the auth.proto definition
+// Types based on the server auth endpoints
 interface AuthResponse {
-  user: ProtoUser;
-  accessToken?: string;
-  refreshToken?: string;
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  token_type: string;
+  member: ServerMember;
 }
 
 interface TokensResponse {
-  accessToken: string;
-  refreshToken: string;
+  access_token: string;
+  refresh_token: string;
+  expires_in: number;
+  token_type: string;
 }
 
-interface ProtoUser {
+interface ServerMember {
   id: string;
-  phone?: {
-    number: string;
-    verified: boolean;
-  };
-  nostr?: {
-    npub: string;
-    verified: boolean;
-  };
-  profile?: {
-    name?: string;
-    avatar_url?: string;
-  };
-  roles: Role[];
+  email: string;
+  firstName: string;
+  lastName: string;
+  emailVerified: boolean;
+  phoneNumber?: string;
+  serviceRole?: ServiceRole;
 }
 
-// Convert ProtoUser to our app's User type
-function mapProtoUserToUser(protoUser: ProtoUser): User {
+// Convert ServerMember to our app's User type
+function mapServerMemberToUser(member: ServerMember): User {
   return {
-    id: protoUser.id,
-    name: protoUser.profile?.name,
-    avatar: protoUser.profile?.avatar_url,
-    email: protoUser.profile?.name, // Keep compatibility with previous version
-    phone: protoUser.phone?.number,
-    npub: protoUser.nostr?.npub,
-    roles: protoUser.roles,
+    id: member.id,
+    name: `${member.firstName} ${member.lastName}`.trim(),
+    firstName: member.firstName,
+    lastName: member.lastName,
+    avatar: undefined, // No avatar in current server schema
+    email: member.email,
+    phone: member.phoneNumber,
+    serviceRole: member.serviceRole,
   };
 }
 
 // Auth params
 export interface SignUpParams {
-  pin: string;
-  phone?: string;
-  npub?: string;
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  phoneNumber?: string;
 }
 
 export interface SignInParams {
-  pin: string;
-  phone?: string;
-  npub?: string;
+  email: string;
+  password: string;
 }
 
 export interface VerifyParams {
-  phone?: string;
-  npub?: string;
-  otp?: string;
+  token: string;
 }
 
 export interface RecoverParams {
-  phone?: string;
-  npub?: string;
+  email: string;
+}
+
+export interface ResetPasswordParams {
+  token: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordParams {
+  currentPassword: string;
+  newPassword: string;
 }
 
 class AuthClient {
@@ -141,13 +147,8 @@ class AuthClient {
         }
       }
 
-      const data: AuthResponse = await response.json();
-
-      if (data.accessToken && data.refreshToken) {
-        this.storeTokens(data.accessToken, data.refreshToken);
-      }
-
-      return { data: mapProtoUserToUser(data.user) };
+      const data = await response.json();
+      return { data: null }; // Registration doesn't return user data, just success message
     } catch (error) {
       console.error('Sign up error:', error);
       return {
@@ -176,13 +177,13 @@ class AuthClient {
 
       const data: AuthResponse = await response.json();
 
-      console.log('DATA:', data);
+      console.log('Login response:', data);
 
-      if (data.accessToken && data.refreshToken) {
-        this.storeTokens(data.accessToken, data.refreshToken);
+      if (data.access_token && data.refresh_token) {
+        this.storeTokens(data.access_token, data.refresh_token);
       }
 
-      return { data: mapProtoUserToUser(data.user) };
+      return { data: mapServerMemberToUser(data.member) };
     } catch (error) {
       console.error('Sign in error:', error);
       return {
@@ -191,62 +192,145 @@ class AuthClient {
     }
   }
 
-  async verify(params: VerifyParams): Promise<{ data?: User; error?: string }> {
+  async verifyEmail(params: VerifyParams): Promise<{ error?: string }> {
     try {
-      const response = await this.fetchWithAuth('/auth/verify', {
-        method: 'POST',
-        body: JSON.stringify(params),
-      });
+      const response = await this.fetchWithAuth(
+        `/auth/verify-email?token=${params.token}`,
+        {
+          method: 'GET',
+        },
+      );
 
       if (!response.ok) {
         try {
           const error = await response.json();
-          return { error: error.message || 'Failed to verify' };
+          return { error: error.message || 'Failed to verify email' };
         } catch (e) {
           return {
-            error: `Failed to verify: ${response.status} ${response.statusText}`,
-          };
-        }
-      }
-
-      const data: AuthResponse = await response.json();
-
-      console.log(data);
-
-      if (data.accessToken && data.refreshToken) {
-        this.storeTokens(data.accessToken, data.refreshToken);
-      }
-
-      return { data: mapProtoUserToUser(data.user) };
-    } catch (error) {
-      console.error('Verify error:', error);
-      return {
-        error: 'Network error. Please check your connection and try again.',
-      };
-    }
-  }
-
-  async recover(params: RecoverParams): Promise<{ error?: string }> {
-    try {
-      const response = await this.fetchWithAuth('/auth/recover', {
-        method: 'POST',
-        body: JSON.stringify(params),
-      });
-
-      if (!response.ok) {
-        try {
-          const error = await response.json();
-          return { error: error.message || 'Failed to recover account' };
-        } catch (e) {
-          return {
-            error: `Failed to recover account: ${response.status} ${response.statusText}`,
+            error: `Failed to verify email: ${response.status} ${response.statusText}`,
           };
         }
       }
 
       return {};
     } catch (error) {
-      console.error('Recover error:', error);
+      console.error('Email verification error:', error);
+      return {
+        error: 'Network error. Please check your connection and try again.',
+      };
+    }
+  }
+
+  async forgotPassword(params: RecoverParams): Promise<{ error?: string }> {
+    try {
+      const response = await this.fetchWithAuth('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      });
+
+      if (!response.ok) {
+        try {
+          const error = await response.json();
+          return {
+            error: error.message || 'Failed to send password reset email',
+          };
+        } catch (e) {
+          return {
+            error: `Failed to send password reset email: ${response.status} ${response.statusText}`,
+          };
+        }
+      }
+
+      return {};
+    } catch (error) {
+      console.error('Forgot password error:', error);
+      return {
+        error: 'Network error. Please check your connection and try again.',
+      };
+    }
+  }
+
+  async resetPassword(
+    params: ResetPasswordParams,
+  ): Promise<{ error?: string }> {
+    try {
+      const response = await this.fetchWithAuth('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      });
+
+      if (!response.ok) {
+        try {
+          const error = await response.json();
+          return { error: error.message || 'Failed to reset password' };
+        } catch (e) {
+          return {
+            error: `Failed to reset password: ${response.status} ${response.statusText}`,
+          };
+        }
+      }
+
+      return {};
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return {
+        error: 'Network error. Please check your connection and try again.',
+      };
+    }
+  }
+
+  async changePassword(
+    params: ChangePasswordParams,
+  ): Promise<{ error?: string }> {
+    try {
+      const response = await this.fetchWithAuth('/auth/change-password', {
+        method: 'POST',
+        body: JSON.stringify(params),
+      });
+
+      if (!response.ok) {
+        try {
+          const error = await response.json();
+          return { error: error.message || 'Failed to change password' };
+        } catch (e) {
+          return {
+            error: `Failed to change password: ${response.status} ${response.statusText}`,
+          };
+        }
+      }
+
+      return {};
+    } catch (error) {
+      console.error('Change password error:', error);
+      return {
+        error: 'Network error. Please check your connection and try again.',
+      };
+    }
+  }
+
+  async resendVerification(email: string): Promise<{ error?: string }> {
+    try {
+      const response = await this.fetchWithAuth('/auth/resend-verification', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        try {
+          const error = await response.json();
+          return {
+            error: error.message || 'Failed to resend verification email',
+          };
+        } catch (e) {
+          return {
+            error: `Failed to resend verification email: ${response.status} ${response.statusText}`,
+          };
+        }
+      }
+
+      return {};
+    } catch (error) {
+      console.error('Resend verification error:', error);
       return {
         error: 'Network error. Please check your connection and try again.',
       };
@@ -264,7 +348,7 @@ class AuthClient {
       console.log('Attempting to refresh token');
       const response = await this.fetchWithAuth('/auth/refresh', {
         method: 'POST',
-        body: JSON.stringify({ refreshToken }),
+        body: JSON.stringify({ refresh_token: refreshToken }),
       });
 
       if (!response.ok) {
@@ -283,15 +367,15 @@ class AuthClient {
         }
       }
 
-      const data = await response.json();
+      const data: TokensResponse = await response.json();
 
-      if (!data.accessToken || !data.refreshToken) {
+      if (!data.access_token || !data.refresh_token) {
         console.error('Invalid token refresh response:', data);
         return { error: 'Invalid token refresh response' };
       }
 
       console.log('Tokens refreshed successfully');
-      this.storeTokens(data.accessToken, data.refreshToken);
+      this.storeTokens(data.access_token, data.refresh_token);
 
       return {};
     } catch (error) {
@@ -313,10 +397,9 @@ class AuthClient {
     console.log('Access token found, fetching user data');
 
     try {
-      // Use the /auth/authenticate endpoint as it's equivalent to /auth/me according to the backend
-      const response = await this.fetchWithAuth('/auth/authenticate', {
-        method: 'POST',
-        body: JSON.stringify({}), // Empty body for POST request
+      // Use the /auth/member-info endpoint to get current user data
+      const response = await this.fetchWithAuth('/auth/member-info', {
+        method: 'GET',
       });
 
       if (response.status === 401) {
@@ -332,9 +415,8 @@ class AuthClient {
 
         console.log('Token refreshed, retrying user fetch');
         // Retry with new token
-        const retryResponse = await this.fetchWithAuth('/auth/authenticate', {
-          method: 'POST',
-          body: JSON.stringify({}),
+        const retryResponse = await this.fetchWithAuth('/auth/member-info', {
+          method: 'GET',
         });
 
         if (!retryResponse.ok) {
@@ -350,12 +432,7 @@ class AuthClient {
           const retryData = await retryResponse.json();
           console.log('User data retrieved after token refresh');
 
-          // Store new tokens if they're returned
-          if (retryData.accessToken && retryData.refreshToken) {
-            this.storeTokens(retryData.accessToken, retryData.refreshToken);
-          }
-
-          return { data: mapProtoUserToUser(retryData.user) };
+          return { data: mapServerMemberToUser(retryData) };
         } catch (parseError) {
           console.error('Failed to parse user data:', parseError);
           return { data: null, error: 'Invalid user data format' };
@@ -379,20 +456,15 @@ class AuthClient {
 
       try {
         const data = await response.json();
-        console.log('Authentication response:', data);
+        console.log('Member info response:', data);
 
-        if (!data.user) {
-          console.error('No user data in response');
+        if (!data.id) {
+          console.error('No member data in response');
           return { data: null };
         }
 
-        // Store new tokens if they're returned
-        if (data.accessToken && data.refreshToken) {
-          this.storeTokens(data.accessToken, data.refreshToken);
-        }
-
         console.log('User data retrieved successfully');
-        return { data: mapProtoUserToUser(data.user) };
+        return { data: mapServerMemberToUser(data) };
       } catch (parseError) {
         console.error('Failed to parse user data:', parseError);
         return { data: null, error: 'Invalid user data format' };
@@ -412,10 +484,10 @@ class AuthClient {
     if (refreshToken) {
       try {
         console.log('Revoking refresh token');
-        // Use /auth/logout instead of /auth/revoke based on backend API structure
+        // Use /auth/logout endpoint
         await this.fetchWithAuth('/auth/logout', {
           method: 'POST',
-          body: JSON.stringify({ refreshToken }),
+          body: JSON.stringify({ refresh_token: refreshToken }),
         });
       } catch (error) {
         console.error('Sign out error:', error);

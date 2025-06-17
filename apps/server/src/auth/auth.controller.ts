@@ -371,7 +371,7 @@ export class AuthController {
   @ApiSecurity('bearer')
   @ApiOperation({
     summary: 'Get member information',
-    description: 'Gets current member information from Keycloak',
+    description: 'Gets current member information from JWT token',
   })
   @ApiResponse({
     status: 200,
@@ -389,16 +389,59 @@ export class AuthController {
   })
   async getUserInfo(@Req() req: AuthenticatedRequest) {
     try {
-      const memberId = req.member?.sub;
-      if (!memberId) {
+      const member = req.member;
+      if (!member) {
         throw new HttpException(
           'Authentication required',
           HttpStatus.UNAUTHORIZED,
         );
       }
 
-      const memberInfo = await this.authService.getUserInfo(memberId);
-      return memberInfo;
+      // Extract basic info from the authenticated member context
+      // The member object should already contain the necessary information from the JWT token
+      const authHeader = req.headers.authorization;
+      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        throw new HttpException(
+          'Invalid authorization header',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      const token = authHeader.slice(7);
+
+      // Decode JWT token directly to get the raw payload
+      const tokenParts = token.split('.');
+      if (tokenParts.length !== 3) {
+        throw new HttpException(
+          'Invalid JWT token format',
+          HttpStatus.UNAUTHORIZED,
+        );
+      }
+
+      const payload = JSON.parse(
+        Buffer.from(tokenParts[1], 'base64url').toString('utf8'),
+      );
+
+      this.logger.debug(
+        `Member-info JWT payload: ${JSON.stringify(payload, null, 2)}`,
+      );
+
+      // Handle both server-generated tokens and Keycloak tokens
+      const firstName = payload.firstName || payload.given_name;
+      const lastName = payload.lastName || payload.family_name;
+
+      this.logger.debug(
+        `Extracted firstName: ${firstName}, lastName: ${lastName}`,
+      );
+
+      return {
+        id: payload.sub,
+        email: payload.email,
+        firstName,
+        lastName,
+        emailVerified: payload.email_verified || payload.emailVerified,
+        serviceRole: payload.serviceRole,
+      };
     } catch (error) {
       this.logger.error(
         `Get member info failed: ${error.message}`,

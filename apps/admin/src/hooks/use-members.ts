@@ -1,14 +1,14 @@
 import { useState, useCallback, useEffect } from 'react';
-import { membersClient, Member } from '@/lib/members/client';
+import { Member, ServiceRole } from '@bitsaccoserver/types';
+import { membersClient } from '@/lib/members/client';
 import { logger } from '@/lib/default-logger';
-import { Role } from '@/types/user';
 
 interface UseMembersOptions {
   page?: number;
   limit?: number;
   search?: string;
-  roleFilter?: Role | null;
-  sortBy?: string;
+  roleFilter?: ServiceRole | null;
+  sortBy?: 'name' | 'email' | 'createdAt' | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
   initialMembers?: Member[];
 }
@@ -20,10 +20,13 @@ interface UseMembersResult {
   error: string | null;
   refetch: () => Promise<void>;
   search: (term: string) => void;
-  filterByRole: (role: Role | null) => void;
+  filterByRole: (role: ServiceRole | null) => void;
   setPage: (page: number) => void;
   setLimit: (limit: number) => void;
-  setSort: (sortBy: string, sortOrder: 'asc' | 'desc') => void;
+  setSort: (
+    sortBy: 'name' | 'email' | 'createdAt' | 'updatedAt',
+    sortOrder: 'asc' | 'desc',
+  ) => void;
 }
 
 export function useMembers({
@@ -31,7 +34,7 @@ export function useMembers({
   limit = 10,
   search: initialSearch = '',
   roleFilter: initialRoleFilter = null,
-  sortBy: initialSortBy = 'createdAt',
+  sortBy: initialSortBy = 'createdAt' as const,
   sortOrder: initialSortOrder = 'desc',
   initialMembers = [],
 }: UseMembersOptions = {}): UseMembersResult {
@@ -53,18 +56,12 @@ export function useMembers({
     setError(null);
 
     try {
-      const { data, error } = await membersClient.getMembers(queryParams);
-
-      if (error) {
-        setError(error);
-        return;
-      }
-
-      if (data) {
-        setMembers(data.members);
-        setTotalCount(data.total);
-        logger.debug(`Loaded ${data.members.length} of ${data.total} members`);
-      }
+      const response = await membersClient.getMembers(queryParams);
+      setMembers(response.members);
+      setTotalCount(response.total);
+      logger.debug(
+        `Loaded ${response.members.length} of ${response.total} members`,
+      );
     } catch (err) {
       logger.error('Error fetching members:', err);
       setError('Failed to fetch members. Please try again.');
@@ -86,7 +83,7 @@ export function useMembers({
     }));
   }, []);
 
-  const filterByRole = useCallback((role: Role | null) => {
+  const filterByRole = useCallback((role: ServiceRole | null) => {
     setQueryParams((prev) => ({
       ...prev,
       roleFilter: role,
@@ -109,13 +106,19 @@ export function useMembers({
     }));
   }, []);
 
-  const setSort = useCallback((sortBy: string, sortOrder: 'asc' | 'desc') => {
-    setQueryParams((prev) => ({
-      ...prev,
-      sortBy,
-      sortOrder,
-    }));
-  }, []);
+  const setSort = useCallback(
+    (
+      sortBy: 'name' | 'email' | 'createdAt' | 'updatedAt',
+      sortOrder: 'asc' | 'desc',
+    ) => {
+      setQueryParams((prev) => ({
+        ...prev,
+        sortBy,
+        sortOrder,
+      }));
+    },
+    [],
+  );
 
   return {
     members,

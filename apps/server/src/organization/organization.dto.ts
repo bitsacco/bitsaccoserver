@@ -6,7 +6,7 @@ import {
   IsEnum,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
-import { GroupRole } from '@/common';
+import { GroupRole } from '@bitsaccoserver/types';
 
 export class CreateOrganizationDto {
   @ApiProperty({ description: 'Organization name' })

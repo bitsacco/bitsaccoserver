@@ -3,10 +3,10 @@
 # Get access token for Bitsaccoserver members
 # Usage: ./get-token.sh [admin|developer|test]
 
-USER_TYPE="${1:-admin}"
+MEMBER_TYPE="${1:-admin}"
 KEYCLOAK_URL="${KEYCLOAK_URL:-http://localhost:8080}"
 
-case "$USER_TYPE" in
+case "$MEMBER_TYPE" in
   "admin")
     USERNAME="admin@bitsaccoserver.org"
     PASSWORD="admin123"
@@ -63,9 +63,9 @@ if [ "$ACCESS_TOKEN" != "null" ] && [ -n "$ACCESS_TOKEN" ]; then
       3) PAYLOAD="${PAYLOAD}=" ;;
     esac
     
-    USER_INFO=$(echo "$PAYLOAD" | base64 -d 2>/dev/null | jq -r '"\(.preferred_username // .sub) (\(.email // "no email"))"' 2>/dev/null)
-    if [ -n "$USER_INFO" ] && [ "$USER_INFO" != "null" ]; then
-      echo "👤 Token is for: $USER_INFO"
+    MEMBER_INFO=$(echo "$PAYLOAD" | base64 -d 2>/dev/null | jq -r '"\(.preferred_username // .sub) (\(.email // "no email"))"' 2>/dev/null)
+    if [ -n "$MEMBER_INFO" ] && [ "$MEMBER_INFO" != "null" ]; then
+      echo "👤 Token is for: $MEMBER_INFO"
     fi
   fi
 else

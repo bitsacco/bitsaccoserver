@@ -403,7 +403,7 @@ export class AdminController {
 
   @Get('members')
   @RequireRole(ServiceRole.ADMIN)
-  @GlobalScope([Permission.USER_READ])
+  @GlobalScope([Permission.MEMBER_READ])
   @ApiOperation({ summary: 'Get system members (ADMIN+)' })
   async getSystemUsers(
     @CurrentUser() member: AuthenticatedMember,
@@ -437,7 +437,7 @@ export class AdminController {
 
   @Put('members/:memberId/role')
   @RequireRole(ServiceRole.SYSTEM_ADMIN)
-  @GlobalScope([Permission.USER_UPDATE])
+  @GlobalScope([Permission.MEMBER_UPDATE])
   @ApiOperation({ summary: 'Update member service role (SYSTEM-ADMIN only)' })
   @ApiParam({ name: 'memberId', description: 'Member ID' })
   async updateUserServiceRole(
@@ -451,7 +451,7 @@ export class AdminController {
 
   @Put('members/:memberId/status')
   @RequireRole(ServiceRole.ADMIN)
-  @GlobalScope([Permission.USER_UPDATE])
+  @GlobalScope([Permission.MEMBER_UPDATE])
   @ApiOperation({ summary: 'Update member status (ADMIN+)' })
   @ApiParam({ name: 'memberId', description: 'Member ID' })
   async updateUserStatus(
@@ -494,7 +494,7 @@ export class AdminController {
           id: 'audit-001',
           timestamp: new Date(),
           memberId: 'member-001',
-          action: 'USER_LOGIN',
+          action: 'MEMBER_LOGIN',
           resource: 'authentication',
           details: { ip: '192.168.1.1', memberAgent: 'Mozilla/5.0...' },
           result: 'success',

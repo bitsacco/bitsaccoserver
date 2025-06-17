@@ -13,8 +13,6 @@ import FormHelperText from '@mui/material/FormHelperText';
 import InputLabel from '@mui/material/InputLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
-import Checkbox from '@mui/material/Checkbox';
-import FormControlLabel from '@mui/material/FormControlLabel';
 import Alert from '@mui/material/Alert';
 import CircularProgress from '@mui/material/CircularProgress';
 import Typography from '@mui/material/Typography';
@@ -22,8 +20,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z as zod } from 'zod';
 
-import { Member, isSuperAdmin } from '@/lib/members/client';
-import { Role } from '@/types/user';
+import { Member, ServiceRole } from '@bitsaccoserver/types';
+import { isSuperAdmin } from '@/lib/members/client';
 import { useUser } from '@/hooks/use-user';
 
 // Define the schema for member form validation
@@ -35,7 +33,7 @@ const memberSchema = zod.object({
     .string()
     .min(6, { message: 'PIN must be at least 6 characters' })
     .optional(),
-  roles: zod.array(zod.number()),
+  serviceRole: zod.nativeEnum(ServiceRole),
 });
 
 type MemberFormValues = zod.infer<typeof memberSchema>;
@@ -67,7 +65,7 @@ export function MemberForm({
       phone: member?.phone || '',
       npub: member?.npub || '',
       pin: '', // PIN is always blank for security
-      roles: member?.roles || [Role.Member],
+      serviceRole: member?.serviceRole || ServiceRole.MEMBER,
     }),
     [member],
   );
@@ -92,7 +90,10 @@ export function MemberForm({
 
   const handleFormSubmit = async (data: MemberFormValues) => {
     // Security check: Prevent non-super-admins from setting SuperAdmin role
-    if (!currentUserIsSuperAdmin && data.roles.includes(Role.SuperAdmin)) {
+    if (
+      !currentUserIsSuperAdmin &&
+      data.serviceRole === ServiceRole.SYSTEM_ADMIN
+    ) {
       setFormError('You do not have permission to assign the Super Admin role');
       return;
     }
@@ -198,89 +199,33 @@ export function MemberForm({
               </Grid>
             )}
             <Grid item xs={12}>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Roles
-              </Typography>
-              <FormControl fullWidth error={!!errors.roles}>
-                <Controller
-                  name="roles"
-                  control={control}
-                  render={({ field }) => (
-                    <>
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={field.value.includes(Role.Member)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                field.onChange([...field.value, Role.Member]);
-                              } else {
-                                field.onChange(
-                                  field.value.filter(
-                                    (role) => role !== Role.Member,
-                                  ),
-                                );
-                              }
-                            }}
-                            disabled={isLoading}
-                          />
-                        }
-                        label="Member"
-                      />
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={field.value.includes(Role.Admin)}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                field.onChange([...field.value, Role.Admin]);
-                              } else {
-                                field.onChange(
-                                  field.value.filter(
-                                    (role) => role !== Role.Admin,
-                                  ),
-                                );
-                              }
-                            }}
-                            disabled={isLoading}
-                          />
-                        }
-                        label="Admin"
-                      />
+              <Controller
+                name="serviceRole"
+                control={control}
+                render={({ field }) => (
+                  <FormControl fullWidth error={!!errors.serviceRole}>
+                    <InputLabel>Service Role</InputLabel>
+                    <Select
+                      {...field}
+                      label="Service Role"
+                      disabled={isLoading}
+                    >
+                      <MenuItem value={ServiceRole.MEMBER}>Member</MenuItem>
+                      <MenuItem value={ServiceRole.ADMIN}>Admin</MenuItem>
                       {currentUserIsSuperAdmin && (
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={field.value.includes(Role.SuperAdmin)}
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  field.onChange([
-                                    ...field.value,
-                                    Role.SuperAdmin,
-                                  ]);
-                                } else {
-                                  field.onChange(
-                                    field.value.filter(
-                                      (role) => role !== Role.SuperAdmin,
-                                    ),
-                                  );
-                                }
-                              }}
-                              disabled={isLoading}
-                            />
-                          }
-                          label="Super Admin"
-                        />
+                        <MenuItem value={ServiceRole.SYSTEM_ADMIN}>
+                          System Admin
+                        </MenuItem>
                       )}
-                      {errors.roles && (
-                        <FormHelperText error>
-                          {errors.roles.message}
-                        </FormHelperText>
-                      )}
-                    </>
-                  )}
-                />
-              </FormControl>
+                    </Select>
+                    {errors.serviceRole && (
+                      <FormHelperText error>
+                        {errors.serviceRole.message}
+                      </FormHelperText>
+                    )}
+                  </FormControl>
+                )}
+              />
             </Grid>
           </Grid>
         </DialogContent>

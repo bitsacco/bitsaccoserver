@@ -29,7 +29,7 @@ yarn-error.log*
 *.pem
 
 # TypeScript
-*.tsbuildinfo
+**.tsbuildinfo
 next-env.d.ts
 
 # Docker

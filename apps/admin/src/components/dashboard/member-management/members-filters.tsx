@@ -15,17 +15,17 @@ import { MagnifyingGlass as MagnifyingGlassIcon } from '@phosphor-icons/react/di
 import { FunnelSimple as FilterIcon } from '@phosphor-icons/react/dist/ssr/FunnelSimple';
 import { X as ClearIcon } from '@phosphor-icons/react/dist/ssr/X';
 
-import { Role } from '@/types/user';
+import { ServiceRole } from '@bitsaccoserver/types';
 import { useUser } from '@/hooks/use-user';
 import { isSuperAdmin } from '@/lib/members/client';
 
 interface MembersFiltersProps {
   onSearch: (value: string) => void;
   onSort: (field: string, order: 'asc' | 'desc') => void;
-  onFilterRole?: (role: Role | null) => void;
+  onFilterRole?: (role: ServiceRole | null) => void;
   sortField?: string;
   sortOrder?: 'asc' | 'desc';
-  selectedRole?: Role | null;
+  selectedRole?: ServiceRole | null;
 }
 
 export function MembersFilters({
@@ -46,9 +46,8 @@ export function MembersFilters({
   const [localSortOrder, setLocalSortOrder] = React.useState<'asc' | 'desc'>(
     sortOrder,
   );
-  const [localSelectedRole, setLocalSelectedRole] = React.useState<Role | null>(
-    selectedRole,
-  );
+  const [localSelectedRole, setLocalSelectedRole] =
+    React.useState<ServiceRole | null>(selectedRole);
 
   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = event.target.value;
@@ -75,12 +74,12 @@ export function MembersFilters({
 
   const handleRoleFilterChange = (event: SelectChangeEvent) => {
     const value = event.target.value;
-    // If "all" is selected, set to null, otherwise convert to number
-    const newRole = value === 'all' ? null : (Number(value) as Role);
+    // If "all" is selected, set to null, otherwise use the ServiceRole value
+    const newRole = value === 'all' ? null : (value as ServiceRole);
 
-    // Prevent non-super-admins from filtering by SuperAdmin role
-    if (!currentUserIsSuperAdmin && newRole === Role.SuperAdmin) {
-      console.warn('Regular admins cannot filter by Super Admin role');
+    // Prevent non-super-admins from filtering by SYSTEM_ADMIN role
+    if (!currentUserIsSuperAdmin && newRole === ServiceRole.SYSTEM_ADMIN) {
+      console.warn('Regular admins cannot filter by System Admin role');
       return;
     }
 
@@ -170,21 +169,17 @@ export function MembersFilters({
               <InputLabel id="role-filter-label">Role</InputLabel>
               <Select
                 labelId="role-filter-label"
-                value={
-                  localSelectedRole === null
-                    ? 'all'
-                    : localSelectedRole.toString()
-                }
+                value={localSelectedRole === null ? 'all' : localSelectedRole}
                 onChange={handleRoleFilterChange}
                 label="Role"
                 size="small"
               >
                 <MenuItem value="all">All Roles</MenuItem>
-                <MenuItem value={Role.Member.toString()}>Member</MenuItem>
-                <MenuItem value={Role.Admin.toString()}>Admin</MenuItem>
+                <MenuItem value={ServiceRole.MEMBER}>Member</MenuItem>
+                <MenuItem value={ServiceRole.ADMIN}>Admin</MenuItem>
                 {currentUserIsSuperAdmin && (
-                  <MenuItem value={Role.SuperAdmin.toString()}>
-                    Super Admin
+                  <MenuItem value={ServiceRole.SYSTEM_ADMIN}>
+                    System Admin
                   </MenuItem>
                 )}
               </Select>

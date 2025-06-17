@@ -56,7 +56,7 @@ curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/clients" \
 
 # 3. Create roles
 echo "3️⃣ Creating roles..."
-for role in "bitsaccoserver-admin:Full access to console management" "bitsaccoserver-developer:Developer access" "bitsaccoserver-member:Basic member"; do
+for role in "system_admin:Full access to console management" "admin:Admin access to console management" "member:Basic bitsaccoserver member"; do
   name="${role%%:*}"
   desc="${role#*:}"
   curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/roles" \
@@ -65,11 +65,11 @@ for role in "bitsaccoserver-admin:Full access to console management" "bitsaccose
     -d "{\"name\": \"$name\", \"description\": \"$desc\"}"
 done
 
-# 4. Create members
-echo "4️⃣ Creating members..."
+# 4. Create users
+echo "4️⃣ Creating users..."
 
-# Admin member
-curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/members" \
+# Admin user
+ADMIN_USER_RESPONSE=$(curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -79,12 +79,29 @@ curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/members" \
     "lastName": "Member",
     "enabled": true,
     "emailVerified": true,
-    "credentials": [{"type": "password", "value": "admin123", "temporary": false}],
-    "realmRoles": ["bitsaccoserver-admin", "bitsaccoserver-member"]
-  }'
+    "credentials": [{"type": "password", "value": "admin123", "temporary": false}]
+  }')
 
-# Developer member  
-curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/members" \
+# Get admin user ID and assign roles
+ADMIN_USER_ID=$(curl -s "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users?username=admin@bitsaccoserver.org" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
+
+if [ "$ADMIN_USER_ID" != "null" ] && [ -n "$ADMIN_USER_ID" ]; then
+  # Get role representations
+  ADMIN_ROLE=$(curl -s "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/roles/admin" \
+    -H "Authorization: Bearer $ADMIN_TOKEN")
+  MEMBER_ROLE=$(curl -s "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/roles/member" \
+    -H "Authorization: Bearer $ADMIN_TOKEN")
+  
+  # Assign roles to admin user
+  curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users/$ADMIN_USER_ID/role-mappings/realm" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "[$ADMIN_ROLE, $MEMBER_ROLE]"
+fi
+
+# Developer user  
+curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
@@ -94,24 +111,58 @@ curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/members" \
     "lastName": "Member",
     "enabled": true,
     "emailVerified": true,
-    "credentials": [{"type": "password", "value": "dev123", "temporary": false}],
-    "realmRoles": ["bitsaccoserver-developer", "bitsaccoserver-member"]
+    "credentials": [{"type": "password", "value": "developer123", "temporary": false}]
   }'
 
-# Test member
-curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/members" \
+# Get developer user ID and assign roles
+DEV_USER_ID=$(curl -s "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users?username=developer@bitsaccoserver.org" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
+
+if [ "$DEV_USER_ID" != "null" ] && [ -n "$DEV_USER_ID" ]; then
+  # Get role representations
+  SYSTEM_ADMIN_ROLE=$(curl -s "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/roles/system_admin" \
+    -H "Authorization: Bearer $ADMIN_TOKEN")
+  MEMBER_ROLE=$(curl -s "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/roles/member" \
+    -H "Authorization: Bearer $ADMIN_TOKEN")
+  
+  # Assign roles to developer user
+  curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users/$DEV_USER_ID/role-mappings/realm" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "[$SYSTEM_ADMIN_ROLE, $MEMBER_ROLE]"
+fi
+
+# Basic member user
+curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users" \
   -H "Authorization: Bearer $ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{
     "username": "member@bitsaccoserver.org",
-    "email": "member@bitsaccoserver.org",
-    "firstName": "Test",
-    "lastName": "Member", 
+    "email": "member@bitsaccoserver.org", 
+    "firstName": "Common",
+    "lastName": "Member",
     "enabled": true,
     "emailVerified": true,
-    "credentials": [{"type": "password", "value": "member123", "temporary": false}],
-    "realmRoles": ["bitsaccoserver-member"]
+    "credentials": [{"type": "password", "value": "member123", "temporary": false}]
   }'
+
+# Get member user ID and assign role
+MEMBER_USER_ID=$(curl -s "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users?username=member@bitsaccoserver.org" \
+  -H "Authorization: Bearer $ADMIN_TOKEN" | jq -r '.[0].id')
+
+if [ "$MEMBER_USER_ID" != "null" ] && [ -n "$MEMBER_USER_ID" ]; then
+  # Get role representation
+  MEMBER_ROLE=$(curl -s "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/roles/member" \
+    -H "Authorization: Bearer $ADMIN_TOKEN")
+  
+  # Assign role to member user
+  curl -s -X POST "$KEYCLOAK_URL/admin/realms/bitsaccoserver-dev/users/$MEMBER_USER_ID/role-mappings/realm" \
+    -H "Authorization: Bearer $ADMIN_TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "[$MEMBER_ROLE]"
+fi
+
+# Note: Test member user already created above
 
 echo ""
 echo "✅ Manual realm setup complete!"

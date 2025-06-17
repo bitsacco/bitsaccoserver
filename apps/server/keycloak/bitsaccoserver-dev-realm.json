@@ -117,23 +117,42 @@
   "roles": {
     "realm": [
       {
-        "name": "bitsaccoserver-admin",
+        "name": "system_admin",
         "description": "Full access to console management",
         "composite": false
       },
       {
-        "name": "bitsaccoserver-developer",
-        "description": "Developer access - can manage API keys and view usage",
+        "name": "admin",
+        "description": "Admin access to console management",
         "composite": false
       },
       {
-        "name": "bitsaccoserver-member",
+        "name": "member",
         "description": "Basic bitsaccoserver member",
         "composite": false
       }
     ]
   },
-  "members": [
+  "users": [
+    {
+      "username": "developer@bitsaccoserver.org",
+      "email": "developer@bitsaccoserver.org",
+      "firstName": "Dev",
+      "lastName": "Member",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "developer123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["system_admin", "member"],
+      "attributes": {
+        "organization": ["demo"]
+      }
+    },
     {
       "username": "admin@bitsaccoserver.org",
       "email": "admin@bitsaccoserver.org",
@@ -148,34 +167,15 @@
           "temporary": false
         }
       ],
-      "realmRoles": ["bitsaccoserver-admin", "bitsaccoserver-member"],
+      "realmRoles": ["admin", "member"],
       "attributes": {
-        "organization": ["bitsaccoserver-demo"]
-      }
-    },
-    {
-      "username": "developer@bitsaccoserver.org",
-      "email": "developer@bitsaccoserver.org",
-      "firstName": "Dev",
-      "lastName": "Member",
-      "enabled": true,
-      "emailVerified": true,
-      "credentials": [
-        {
-          "type": "password",
-          "value": "dev123",
-          "temporary": false
-        }
-      ],
-      "realmRoles": ["bitsaccoserver-developer", "bitsaccoserver-member"],
-      "attributes": {
-        "organization": ["bitsaccoserver-demo"]
+        "organization": ["demo"]
       }
     },
     {
       "username": "member@bitsaccoserver.org",
       "email": "member@bitsaccoserver.org",
-      "firstName": "Test",
+      "firstName": "Common",
       "lastName": "Member",
       "enabled": true,
       "emailVerified": true,
@@ -186,10 +186,8 @@
           "temporary": false
         }
       ],
-      "realmRoles": ["bitsaccoserver-member"],
-      "attributes": {
-        "organization": ["bitsaccoserver-demo"]
-      }
+      "realmRoles": ["member"],
+      "attributes": {}
     },
     {
       "username": "service-account-bitsaccoserver",
@@ -213,12 +211,12 @@
         {
           "name": "admins",
           "path": "/bitsaccoserver-demo/admins",
-          "realmRoles": ["bitsaccoserver-admin"]
+          "realmRoles": ["system_admin"]
         },
         {
           "name": "developers", 
           "path": "/bitsaccoserver-demo/developers",
-          "realmRoles": ["bitsaccoserver-developer"]
+          "realmRoles": ["admin"]
         }
       ]
     }

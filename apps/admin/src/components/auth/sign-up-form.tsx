@@ -15,47 +15,60 @@ import Link from '@mui/material/Link';
 import OutlinedInput from '@mui/material/OutlinedInput';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
+import { Eye as EyeIcon } from '@phosphor-icons/react/dist/ssr/Eye';
+import { EyeSlash as EyeSlashIcon } from '@phosphor-icons/react/dist/ssr/EyeSlash';
 import { Controller, useForm } from 'react-hook-form';
 import { z as zod } from 'zod';
 
 import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
-import { useUser } from '@/hooks/use-user';
-import { PhoneInput } from './PhoneInput';
-import { PinInput } from './PinInput';
 
 const schema = zod
   .object({
-    phone: zod.string().optional(),
-    npub: zod.string().optional(),
-    pin: zod
+    email: zod.string().min(1, { message: 'Email is required' }).email(),
+    firstName: zod.string().min(1, { message: 'First name is required' }),
+    lastName: zod.string().min(1, { message: 'Last name is required' }),
+    phoneNumber: zod.string().optional(),
+    password: zod
       .string()
-      .min(6, { message: 'PIN should be exactly 6 digits' })
-      .max(6, { message: 'PIN should be exactly 6 digits' }),
+      .min(8, { message: 'Password must be at least 8 characters' })
+      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s])[^\s]*$/, {
+        message:
+          'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character',
+      }),
+    confirmPassword: zod
+      .string()
+      .min(1, { message: 'Please confirm your password' }),
     terms: zod
       .boolean()
       .refine((value) => value, 'You must accept the terms and conditions'),
   })
-  .refine((data) => data.phone || data.npub, {
-    message: 'Either phone number or Nostr public key is required',
-    path: ['phone'],
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
   });
 
 type Values = zod.infer<typeof schema>;
 
 const defaultValues = {
-  phone: '+254',
-  npub: '',
-  pin: '',
+  email: '',
+  firstName: '',
+  lastName: '',
+  phoneNumber: '',
+  password: '',
+  confirmPassword: '',
   terms: false,
 } satisfies Values;
 
 export function SignUpForm(): React.JSX.Element {
   const router = useRouter();
 
-  const { checkSession } = useUser();
-
+  const [showPassword, setShowPassword] = React.useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    React.useState<boolean>(false);
   const [isPending, setIsPending] = React.useState<boolean>(false);
+  const [registrationSuccess, setRegistrationSuccess] =
+    React.useState<boolean>(false);
 
   const {
     control,
@@ -68,27 +81,59 @@ export function SignUpForm(): React.JSX.Element {
     async (values: Values): Promise<void> => {
       setIsPending(true);
 
-      const { error } = await authClient.signUp({
-        pin: values.pin,
-        phone: values.phone || undefined,
-        npub: values.npub || undefined,
-      });
+      try {
+        const { error } = await authClient.signUp({
+          email: values.email,
+          firstName: values.firstName,
+          lastName: values.lastName,
+          password: values.password,
+          phoneNumber: values.phoneNumber || undefined,
+        });
 
-      if (error) {
-        setError('root', { type: 'server', message: error });
+        if (error) {
+          setError('root', { type: 'server', message: error });
+          setIsPending(false);
+          return;
+        }
+
+        setRegistrationSuccess(true);
         setIsPending(false);
-        return;
+      } catch (err) {
+        console.error('Registration error:', err);
+        setError('root', {
+          type: 'server',
+          message: 'An unexpected error occurred. Please try again.',
+        });
+        setIsPending(false);
       }
-
-      // Refresh the auth state
-      await checkSession?.();
-
-      // UserProvider, for this case, will not refresh the router
-      // After refresh, GuestGuard will handle the redirect
-      router.refresh();
     },
-    [checkSession, router, setError],
+    [setError],
   );
+
+  if (registrationSuccess) {
+    return (
+      <Stack spacing={3}>
+        <Stack spacing={1}>
+          <Typography variant="h4">Registration Successful!</Typography>
+          <Typography color="text.secondary" variant="body2">
+            Your account has been created successfully. Please check your email
+            to verify your account before signing in.
+          </Typography>
+        </Stack>
+        <Alert color="success">
+          A verification email has been sent to your email address. Please click
+          the link in the email to verify your account.
+        </Alert>
+        <Button
+          component={RouterLink}
+          href={paths.auth.signIn}
+          variant="contained"
+        >
+          Go to Sign In
+        </Button>
+      </Stack>
+    );
+  }
 
   return (
     <Stack spacing={3}>
@@ -110,45 +155,130 @@ export function SignUpForm(): React.JSX.Element {
         <Stack spacing={3}>
           <Controller
             control={control}
-            name="phone"
-            render={({ field: { value, onChange, ...restField } }) => (
-              <PhoneInput
-                value={value || ''}
-                onChange={onChange}
-                error={errors.phone?.message}
-                label="Phone number (required if no npub)"
-                {...restField}
-              />
+            name="email"
+            render={({ field }) => (
+              <FormControl error={Boolean(errors.email)}>
+                <InputLabel>Email address</InputLabel>
+                <OutlinedInput {...field} label="Email address" type="email" />
+                {errors.email ? (
+                  <FormHelperText>{errors.email.message}</FormHelperText>
+                ) : null}
+              </FormControl>
             )}
           />
+          <Stack direction="row" spacing={2}>
+            <Controller
+              control={control}
+              name="firstName"
+              render={({ field }) => (
+                <FormControl error={Boolean(errors.firstName)} fullWidth>
+                  <InputLabel>First name</InputLabel>
+                  <OutlinedInput {...field} label="First name" />
+                  {errors.firstName ? (
+                    <FormHelperText>{errors.firstName.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+            <Controller
+              control={control}
+              name="lastName"
+              render={({ field }) => (
+                <FormControl error={Boolean(errors.lastName)} fullWidth>
+                  <InputLabel>Last name</InputLabel>
+                  <OutlinedInput {...field} label="Last name" />
+                  {errors.lastName ? (
+                    <FormHelperText>{errors.lastName.message}</FormHelperText>
+                  ) : null}
+                </FormControl>
+              )}
+            />
+          </Stack>
           <Controller
             control={control}
-            name="npub"
+            name="phoneNumber"
             render={({ field }) => (
-              <FormControl error={Boolean(errors.npub)}>
-                <InputLabel>Nostr Public Key (npub)</InputLabel>
-                <OutlinedInput
-                  {...field}
-                  label="Nostr Public Key (npub)"
-                  placeholder="Required if no phone number"
-                />
-                {errors.npub ? (
-                  <FormHelperText>{errors.npub.message}</FormHelperText>
+              <FormControl error={Boolean(errors.phoneNumber)}>
+                <InputLabel>Phone number (optional)</InputLabel>
+                <OutlinedInput {...field} label="Phone number (optional)" />
+                {errors.phoneNumber ? (
+                  <FormHelperText>{errors.phoneNumber.message}</FormHelperText>
                 ) : null}
               </FormControl>
             )}
           />
           <Controller
             control={control}
-            name="pin"
-            render={({ field: { value, onChange, ...restField } }) => (
-              <PinInput
-                value={value || ''}
-                onChange={onChange}
-                error={errors.pin?.message}
-                label="PIN (6 digits)"
-                {...restField}
-              />
+            name="password"
+            render={({ field }) => (
+              <FormControl error={Boolean(errors.password)}>
+                <InputLabel>Password</InputLabel>
+                <OutlinedInput
+                  {...field}
+                  endAdornment={
+                    showPassword ? (
+                      <EyeIcon
+                        cursor="pointer"
+                        fontSize="var(--icon-fontSize-md)"
+                        onClick={(): void => {
+                          setShowPassword(false);
+                        }}
+                      />
+                    ) : (
+                      <EyeSlashIcon
+                        cursor="pointer"
+                        fontSize="var(--icon-fontSize-md)"
+                        onClick={(): void => {
+                          setShowPassword(true);
+                        }}
+                      />
+                    )
+                  }
+                  label="Password"
+                  type={showPassword ? 'text' : 'password'}
+                />
+                {errors.password ? (
+                  <FormHelperText>{errors.password.message}</FormHelperText>
+                ) : null}
+              </FormControl>
+            )}
+          />
+          <Controller
+            control={control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormControl error={Boolean(errors.confirmPassword)}>
+                <InputLabel>Confirm password</InputLabel>
+                <OutlinedInput
+                  {...field}
+                  endAdornment={
+                    showConfirmPassword ? (
+                      <EyeIcon
+                        cursor="pointer"
+                        fontSize="var(--icon-fontSize-md)"
+                        onClick={(): void => {
+                          setShowConfirmPassword(false);
+                        }}
+                      />
+                    ) : (
+                      <EyeSlashIcon
+                        cursor="pointer"
+                        fontSize="var(--icon-fontSize-md)"
+                        onClick={(): void => {
+                          setShowConfirmPassword(true);
+                        }}
+                      />
+                    )
+                  }
+                  label="Confirm password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                />
+                {errors.confirmPassword ? (
+                  <FormHelperText>
+                    {errors.confirmPassword.message}
+                  </FormHelperText>
+                ) : null}
+              </FormControl>
             )}
           />
           <Controller
@@ -174,13 +304,13 @@ export function SignUpForm(): React.JSX.Element {
             <Alert color="error">{errors.root.message}</Alert>
           ) : null}
           <Button disabled={isPending} type="submit" variant="contained">
-            Sign up
+            {isPending ? 'Creating Account...' : 'Sign up'}
           </Button>
         </Stack>
       </form>
-      <Alert color="warning">
-        You will need to verify your phone number or Nostr public key after
-        registration.
+      <Alert color="info">
+        After registration, you will receive an email verification link. You
+        must verify your email before you can sign in.
       </Alert>
     </Stack>
   );

@@ -1,6 +1,6 @@
 import { Document } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { GroupRole } from '../common/types';
+import { GroupRole } from '@bitsaccoserver/types';
 
 @Schema({ timestamps: true })
 export class OrganizationDocument {

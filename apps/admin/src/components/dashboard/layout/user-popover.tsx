@@ -1,3 +1,5 @@
+'use client';
+
 import * as React from 'react';
 import RouterLink from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -16,6 +18,21 @@ import { paths } from '@/paths';
 import { authClient } from '@/lib/auth/client';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
+import { ServiceRole } from '@bitsaccoserver/types';
+import { getUserDisplayName } from '@/lib/utils/user';
+
+const getRoleLabel = (role: ServiceRole) => {
+  switch (role) {
+    case ServiceRole.SYSTEM_ADMIN:
+      return 'System Administrator';
+    case ServiceRole.ADMIN:
+      return 'Administrator';
+    case ServiceRole.MEMBER:
+      return 'Member';
+    default:
+      return 'Unknown';
+  }
+};
 
 export interface UserPopoverProps {
   anchorEl: Element | null;
@@ -28,7 +45,7 @@ export function UserPopover({
   onClose,
   open,
 }: UserPopoverProps): React.JSX.Element {
-  const { checkSession } = useUser();
+  const { user, checkSession } = useUser();
 
   const router = useRouter();
 
@@ -61,10 +78,15 @@ export function UserPopover({
       slotProps={{ paper: { sx: { width: '240px' } } }}
     >
       <Box sx={{ p: '16px 20px ' }}>
-        <Typography variant="subtitle1">Bitsacco Admin</Typography>
+        <Typography variant="subtitle1">{getUserDisplayName(user)}</Typography>
         <Typography color="text.secondary" variant="body2">
-          admin@bitsacco.com
+          {user?.email || 'No email'}
         </Typography>
+        {user?.serviceRole && (
+          <Typography color="text.secondary" variant="caption">
+            {getRoleLabel(user.serviceRole)}
+          </Typography>
+        )}
       </Box>
       <Divider />
       <MenuList
@@ -80,16 +102,6 @@ export function UserPopover({
             <GearSixIcon fontSize="var(--icon-fontSize-md)" />
           </ListItemIcon>
           Settings
-        </MenuItem>
-        <MenuItem
-          component={RouterLink}
-          href={paths.dashboard.account}
-          onClick={onClose}
-        >
-          <ListItemIcon>
-            <UserIcon fontSize="var(--icon-fontSize-md)" />
-          </ListItemIcon>
-          Profile
         </MenuItem>
         <MenuItem onClick={handleSignOut}>
           <ListItemIcon>

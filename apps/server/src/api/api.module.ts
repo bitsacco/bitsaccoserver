@@ -1,7 +1,7 @@
 import * as Joi from 'joi';
 import type { RedisClientOptions } from 'redis';
 import { redisStore } from 'cache-manager-redis-store';
-import { Module } from '@nestjs/common';
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -20,6 +20,7 @@ import { SharesModule } from '../shares/shares.module';
 import { OrganizationModule } from '../organization';
 import { BaseModule } from '../base/base.module';
 import { CommonModule } from '../common/common.module';
+import { JwtAuthMiddleware } from '../common';
 import { LoanService } from '../loans';
 
 @Module({
@@ -131,4 +132,8 @@ import { LoanService } from '../loans';
   ],
   providers: [ApiService, LoanService],
 })
-export class ApiModule {}
+export class ApiModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(JwtAuthMiddleware).forRoutes('*'); // Apply to all routes
+  }
+}

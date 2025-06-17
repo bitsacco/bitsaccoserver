@@ -8,8 +8,8 @@ export const paths = {
   },
   dashboard: {
     overview: '/dashboard',
-    account: '/dashboard/account',
-    membership: '/dashboard/membership',
+    adminManagement: '/dashboard/admin-management',
+    memberManagement: '/dashboard/member-management',
     settings: '/dashboard/settings',
   },
   errors: { notFound: '/errors/not-found' },

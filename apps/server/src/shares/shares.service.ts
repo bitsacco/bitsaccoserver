@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
+import { Permission, PermissionScope } from '@bitsaccoserver/types';
 import {
   OfferSharesDto,
   BuySharesDto,
@@ -20,8 +21,6 @@ import {
   SharesTxStatus,
   PermissionService,
   SaccoService,
-  Permission,
-  PermissionScope,
   ServiceOperation,
   ServiceContext,
   PaginationDto,

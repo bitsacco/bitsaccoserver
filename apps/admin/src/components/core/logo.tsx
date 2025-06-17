@@ -29,17 +29,23 @@ export function Logo({
   if (emblem) {
     url =
       color === 'light'
-        ? '../../assets/svg/logo_full.svg'
-        : '../../assets/svg/logo_full.svg';
+        ? '../../assets/svg/bitsaccoserver.svg'
+        : '../../assets/svg/bitsaccoserver-dark.svg';
   } else {
     url =
       color === 'light'
-        ? '../../assets/svg/logo_full.svg'
-        : '../../assets/svg/logo_full.svg';
+        ? '../../assets/svg/bitsaccoserver.svg'
+        : '../../assets/svg/bitsaccoserver-dark.svg';
   }
 
   return (
-    <Box alt="logo" component="img" height={height} src={url} width={width} />
+    <Box
+      alt="Bitsaccoserver"
+      component="img"
+      height={height}
+      src={url}
+      width={width}
+    />
   );
 }
 
