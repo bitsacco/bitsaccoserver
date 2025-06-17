@@ -11,19 +11,18 @@ import { Download as DownloadIcon } from '@phosphor-icons/react/dist/ssr/Downloa
 import { Plus as PlusIcon } from '@phosphor-icons/react/dist/ssr/Plus';
 import { Upload as UploadIcon } from '@phosphor-icons/react/dist/ssr/Upload';
 import CircularProgress from '@mui/material/CircularProgress';
-import Box from '@mui/material/Box';
 
-import { config } from '@/config';
+import { Member, ServiceRole } from '@bitsaccoserver/types';
 import { useMembers } from '@/hooks/use-members';
-import { membersClient, Member, isSuperAdmin } from '@/lib/members/client';
-import { MembersFilters } from '@/components/dashboard/member/members-filters';
-import { MembersTable } from '@/components/dashboard/member/members-table';
-import { MemberForm } from '@/components/dashboard/member/member-form';
-import { MemberImportDialog } from '@/components/dashboard/member/member-import-dialog';
-import { DeleteConfirmDialog } from '@/components/dashboard/member/delete-confirm-dialog';
+import { membersClient, isSuperAdmin } from '@/lib/members/client';
+import { PermissionGuard } from '@/components/auth/permission-guard';
+import { MembersFilters } from '@/components/dashboard/member-management/members-filters';
+import { MembersTable } from '@/components/dashboard/member-management/members-table';
+import { MemberForm } from '@/components/dashboard/member-management/member-form';
+import { MemberImportDialog } from '@/components/dashboard/member-management/member-import-dialog';
+import { DeleteConfirmDialog } from '@/components/dashboard/member-management/delete-confirm-dialog';
 import { logger } from '@/lib/default-logger';
 import { useUser } from '@/hooks/use-user';
-import { ServiceRole } from '@bitsaccoserver/types';
 
 // Simple loading component
 function LoadingState() {
@@ -127,6 +126,7 @@ function MembershipPageContent() {
 
   // Handle copying member ID
   const handleCopyMemberId = (id: string) => {
+    navigator.clipboard.writeText(id);
     setNotification({
       open: true,
       message: 'Member ID copied to clipboard',
@@ -150,11 +150,14 @@ function MembershipPageContent() {
     search(term);
   };
 
-  const handleSort = (field: string, order: 'asc' | 'desc') => {
+  const handleSort = (
+    field: 'name' | 'email' | 'createdAt' | 'updatedAt',
+    order: 'asc' | 'desc',
+  ) => {
     setSort(field, order);
   };
 
-  const handleRoleFilter = (role: Role | null) => {
+  const handleRoleFilter = (role: ServiceRole | null) => {
     filterByRole(role);
   };
 
@@ -182,14 +185,7 @@ function MembershipPageContent() {
     try {
       if (selectedMember) {
         // Update existing member
-        const result = await membersClient.updateMember(
-          selectedMember.id,
-          data,
-        );
-        if (result.error) {
-          setFormError(result.error);
-          return;
-        }
+        await membersClient.updateMember(selectedMember.id, data);
 
         setNotification({
           open: true,
@@ -198,11 +194,7 @@ function MembershipPageContent() {
         });
       } else {
         // Create new member
-        const result = await membersClient.createMember(data);
-        if (result.error) {
-          setFormError(result.error);
-          return;
-        }
+        await membersClient.createMember(data);
 
         setNotification({
           open: true,
@@ -274,25 +266,14 @@ function MembershipPageContent() {
     setImportDialogOpen(false);
   };
 
-  const handleImport = async (data: any[]) => {
+  const handleImport = async (_data: any[]) => {
     setImportLoading(true);
     setImportError(null);
 
     try {
-      const result = await membersClient.bulkImport(data);
-      if (result.error) {
-        setImportError(result.error);
-        return;
-      }
-
-      setNotification({
-        open: true,
-        message: `${data.length} members imported successfully`,
-        severity: 'success',
-      });
-
-      setImportDialogOpen(false);
-      refetch();
+      // Note: bulkImport not implemented yet
+      setImportError('Bulk import feature is not yet implemented');
+      return;
     } catch (err) {
       logger.error('Import members error:', err);
       setImportError('An unexpected error occurred. Please try again.');
@@ -312,7 +293,8 @@ function MembershipPageContent() {
     }
 
     try {
-      const exportData = membersClient.createExportData(members);
+      // Simple JSON export
+      const exportData = JSON.stringify(members, null, 2);
       const blob = new Blob([exportData], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
 
@@ -452,8 +434,10 @@ function MembershipPageContent() {
 // Main page component
 export default function Page(): React.JSX.Element {
   return (
-    <>
+    <PermissionGuard
+      allowedRoles={[ServiceRole.ADMIN, ServiceRole.SYSTEM_ADMIN]}
+    >
       <MembershipPageContent />
-    </>
+    </PermissionGuard>
   );
 }

@@ -105,6 +105,16 @@ export async function fetchMetrics(
       business: {
         userEngagement: {
           dailyActiveUsers: { value: 0, change: 0, trend: 'flat' as const },
+          monthlyActiveUsers: { value: 0, change: 0, trend: 'flat' as const },
+          newUserRegistrations: { value: 0, change: 0, trend: 'flat' as const },
+          dau_mau_ratio: { value: 0, change: 0, trend: 'flat' as const },
+          sessionCount: { name: 'Sessions', data: [] },
+          retentionRates: {
+            day1: 0,
+            day7: 0,
+            day30: 0,
+            day90: 0,
+          },
         },
         transactions: {
           successRate: {
@@ -112,10 +122,34 @@ export async function fetchMetrics(
             change: 0,
             trend: 'flat' as const,
           },
-          volume: { KES: { value: 0, change: 0, trend: 'flat' as const } },
+          volume: {
+            KES: { value: 0, change: 0, trend: 'flat' as const },
+            BTC: { value: 0, change: 0, trend: 'flat' as const },
+          },
           total: { value: 0, change: 0, trend: 'flat' as const },
+          averageDuration: { value: 0, change: 0, trend: 'flat' as const },
           timeline: { name: 'Transactions', data: [] },
           byType: {},
+        },
+        features: {
+          usage: {
+            wallet: {
+              count: { value: 0, change: 0, trend: 'flat' as const },
+              successRate: { value: 0, change: 0, trend: 'flat' as const },
+              averageDuration: { value: 0, change: 0, trend: 'flat' as const },
+            },
+            swap: {
+              count: { value: 0, change: 0, trend: 'flat' as const },
+              successRate: { value: 0, change: 0, trend: 'flat' as const },
+              averageDuration: { value: 0, change: 0, trend: 'flat' as const },
+            },
+            chama: {
+              count: { value: 0, change: 0, trend: 'flat' as const },
+              successRate: { value: 0, change: 0, trend: 'flat' as const },
+              averageDuration: { value: 0, change: 0, trend: 'flat' as const },
+            },
+          },
+          timeline: { name: 'Feature Usage', data: [] },
         },
       },
       services: {

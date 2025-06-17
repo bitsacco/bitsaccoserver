@@ -65,14 +65,19 @@ class MembersClient {
 
       // Backend returns { members: [], total: number, limit: number, offset: number }
       if (data.members) {
+        // Filter out admin users - only show regular members
+        const regularMembers = data.members
+          .map(this.normalizeMember.bind(this))
+          .filter((member: any) => member.serviceRole === ServiceRole.MEMBER);
+
         const limit = data.limit || params.limit || 10;
         const offset = data.offset || 0;
         return {
-          members: data.members.map(this.normalizeMember.bind(this)),
-          total: data.total,
+          members: regularMembers,
+          total: regularMembers.length,
           page: Math.floor(offset / limit) + 1, // Convert offset back to page
           limit: limit,
-          totalPages: Math.ceil(data.total / limit),
+          totalPages: Math.ceil(regularMembers.length / limit),
         };
       } else {
         // Handle unexpected format

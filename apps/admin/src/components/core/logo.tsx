@@ -29,12 +29,12 @@ export function Logo({
   if (emblem) {
     url =
       color === 'light'
-        ? '../../assets/svg/bitsaccoserver-dark.svg'
+        ? '../../assets/svg/bitsaccoserver.svg'
         : '../../assets/svg/bitsaccoserver-dark.svg';
   } else {
     url =
       color === 'light'
-        ? '../../assets/svg/bitsaccoserver-dark.svg'
+        ? '../../assets/svg/bitsaccoserver.svg'
         : '../../assets/svg/bitsaccoserver-dark.svg';
   }
 

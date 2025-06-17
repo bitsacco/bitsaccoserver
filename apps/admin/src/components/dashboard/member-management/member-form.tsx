@@ -20,8 +20,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z as zod } from 'zod';
 
-import { Member, isSuperAdmin } from '@/lib/members/client';
-import { ServiceRole } from '@bitsaccoserver/types';
+import { Member, ServiceRole } from '@bitsaccoserver/types';
+import { isSuperAdmin } from '@/lib/members/client';
 import { useUser } from '@/hooks/use-user';
 
 // Define the schema for member form validation

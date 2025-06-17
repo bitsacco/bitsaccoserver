@@ -1,7 +1,6 @@
 'use client';
 
-import type { User } from '@/types/user';
-import { ServiceRole } from '@bitsaccoserver/types';
+import type { User, ServiceRole } from '@bitsaccoserver/types';
 
 // All API calls go through the Next.js API proxy
 const API_URL = '/api';

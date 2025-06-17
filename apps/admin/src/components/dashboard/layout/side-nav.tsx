@@ -81,9 +81,19 @@ function renderNavItems({
 }): React.JSX.Element {
   const children = items.reduce(
     (acc: React.ReactNode[], curr: NavItemConfig): React.ReactNode[] => {
-      const { key, ...item } = curr;
+      const { key, separator, ...item } = curr;
+
+      // Add separator before item if specified
+      if (separator === 'before') {
+        acc.push(<Divider key={`${key}-separator-before`} sx={{ my: 1 }} />);
+      }
 
       acc.push(<NavItem key={key} pathname={pathname} {...item} />);
+
+      // Add separator after item if specified
+      if (separator === 'after') {
+        acc.push(<Divider key={`${key}-separator-after`} sx={{ my: 1 }} />);
+      }
 
       return acc;
     },
@@ -97,7 +107,7 @@ function renderNavItems({
   );
 }
 
-interface NavItemProps extends Omit<NavItemConfig, 'items'> {
+interface NavItemProps extends Omit<NavItemConfig, 'items' | 'separator'> {
   pathname: string;
 }
 

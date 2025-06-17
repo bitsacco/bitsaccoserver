@@ -1,16 +1,20 @@
 import type { Icon } from '@phosphor-icons/react/dist/lib/types';
-import { ChartPie as ChartPieIcon } from '@phosphor-icons/react/dist/ssr/ChartPie';
-import { GearSix as GearSixIcon } from '@phosphor-icons/react/dist/ssr/GearSix';
-import { PlugsConnected as PlugsConnectedIcon } from '@phosphor-icons/react/dist/ssr/PlugsConnected';
-import { User as UserIcon } from '@phosphor-icons/react/dist/ssr/User';
-import { Users as UsersIcon } from '@phosphor-icons/react/dist/ssr/Users';
-import { XSquare } from '@phosphor-icons/react/dist/ssr/XSquare';
+import {
+  HouseLine,
+  ChartBar,
+  GearSix,
+  Heart,
+  User,
+  Users,
+  ShieldCheck,
+} from '@phosphor-icons/react';
 
 export const navIcons = {
-  'chart-pie': ChartPieIcon,
-  'gear-six': GearSixIcon,
-  'plugs-connected': PlugsConnectedIcon,
-  'x-square': XSquare,
-  user: UserIcon,
-  users: UsersIcon,
+  home: HouseLine,
+  chart: ChartBar,
+  gear: GearSix,
+  heart: Heart,
+  shield: ShieldCheck,
+  user: User,
+  users: Users,
 } as Record<string, Icon>;

@@ -1,26 +1,24 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Member, ServiceRole } from '@bitsaccoserver/types';
-import { membersClient } from '@/lib/members/client';
+import { User, ServiceRole } from '@bitsaccoserver/types';
+import { adminsClient } from '@/lib/admins/client';
 import { logger } from '@/lib/default-logger';
 
-interface UseMembersOptions {
+interface UseAdminsOptions {
   page?: number;
   limit?: number;
   search?: string;
-  roleFilter?: ServiceRole | null;
   sortBy?: 'name' | 'email' | 'createdAt' | 'updatedAt';
   sortOrder?: 'asc' | 'desc';
-  initialMembers?: Member[];
+  initialAdmins?: User[];
 }
 
-interface UseMembersResult {
-  members: Member[];
+interface UseAdminsResult {
+  admins: User[];
   totalCount: number;
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
   search: (term: string) => void;
-  filterByRole: (role: ServiceRole | null) => void;
   setPage: (page: number) => void;
   setLimit: (limit: number) => void;
   setSort: (
@@ -29,16 +27,15 @@ interface UseMembersResult {
   ) => void;
 }
 
-export function useMembers({
+export function useAdmins({
   page = 0,
   limit = 10,
   search: initialSearch = '',
-  roleFilter: initialRoleFilter = null,
   sortBy: initialSortBy = 'createdAt' as const,
   sortOrder: initialSortOrder = 'desc',
-  initialMembers = [],
-}: UseMembersOptions = {}): UseMembersResult {
-  const [members, setMembers] = useState<Member[]>(initialMembers);
+  initialAdmins = [],
+}: UseAdminsOptions = {}): UseAdminsResult {
+  const [admins, setAdmins] = useState<User[]>(initialAdmins);
   const [totalCount, setTotalCount] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,48 +43,38 @@ export function useMembers({
     page,
     limit,
     search: initialSearch,
-    roleFilter: initialRoleFilter,
     sortBy: initialSortBy,
     sortOrder: initialSortOrder,
   });
 
-  const fetchMembers = useCallback(async () => {
+  const fetchAdmins = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await membersClient.getMembers(queryParams);
-      setMembers(response.members);
+      const response = await adminsClient.getAdmins(queryParams);
+      setAdmins(response.admins);
       setTotalCount(response.total);
       logger.debug(
-        `Loaded ${response.members.length} of ${response.total} members`,
+        `Loaded ${response.admins.length} of ${response.total} admins`,
       );
     } catch (err) {
-      logger.error('Error fetching members:', err);
-      setError('Failed to fetch members. Please try again.');
+      logger.error('Error fetching admins:', err);
+      setError('Failed to fetch admins. Please try again.');
     } finally {
       setIsLoading(false);
     }
   }, [queryParams]);
 
-  // Fetch members on initial render and when params change
   useEffect(() => {
-    fetchMembers();
-  }, [fetchMembers]);
+    fetchAdmins();
+  }, [fetchAdmins]);
 
   const search = useCallback((term: string) => {
     setQueryParams((prev) => ({
       ...prev,
       search: term,
       page: 0, // Reset to first page when searching
-    }));
-  }, []);
-
-  const filterByRole = useCallback((role: ServiceRole | null) => {
-    setQueryParams((prev) => ({
-      ...prev,
-      roleFilter: role,
-      page: 0, // Reset to first page when filtering
     }));
   }, []);
 
@@ -121,13 +108,12 @@ export function useMembers({
   );
 
   return {
-    members,
+    admins,
     totalCount,
     isLoading,
     error,
-    refetch: fetchMembers,
+    refetch: fetchAdmins,
     search,
-    filterByRole,
     setPage,
     setLimit,
     setSort,

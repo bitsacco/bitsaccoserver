@@ -17,4 +17,6 @@ export interface NavItemConfig {
   // Role-based access control
   requiredRole?: ServiceRole;
   allowedRoles?: ServiceRole[];
+  // Visual separator
+  separator?: 'before' | 'after';
 }

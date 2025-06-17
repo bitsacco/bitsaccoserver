@@ -5,37 +5,37 @@ import { paths } from '@/paths';
 export const navItems = [
   {
     key: 'overview',
-    title: 'Overview',
+    title: 'System Overview',
     href: paths.dashboard.overview,
-    icon: 'chart-line',
+    icon: 'home',
     allowedRoles: [ServiceRole.ADMIN, ServiceRole.SYSTEM_ADMIN],
   },
   {
-    key: 'membership',
+    key: 'admin-management',
+    title: 'Admin Management',
+    href: paths.dashboard.adminManagement,
+    icon: 'shield',
+    requiredRole: ServiceRole.SYSTEM_ADMIN,
+  },
+  {
+    key: 'member-management',
     title: 'Member Management',
-    href: paths.dashboard.membership,
+    href: paths.dashboard.memberManagement,
     icon: 'users',
     allowedRoles: [ServiceRole.ADMIN, ServiceRole.SYSTEM_ADMIN],
   },
-  {
-    key: 'metrics',
-    title: 'Metrics & Analytics',
-    href: '/dashboard/metrics',
-    icon: 'chart-bar',
-    allowedRoles: [ServiceRole.ADMIN, ServiceRole.SYSTEM_ADMIN],
-  },
-  {
-    key: 'health',
-    title: 'System Health',
-    href: '/dashboard/health',
-    icon: 'heart',
-    allowedRoles: [ServiceRole.ADMIN, ServiceRole.SYSTEM_ADMIN],
-  },
+  // {
+  //   key: 'metrics',
+  //   title: 'Metrics & Analytics',
+  //   href: '/dashboard/metrics',
+  //   icon: 'chart',
+  //   allowedRoles: [ServiceRole.ADMIN, ServiceRole.SYSTEM_ADMIN],
+  // },
   {
     key: 'settings',
     title: 'Settings',
     href: paths.dashboard.settings,
-    icon: 'gear-six',
+    icon: 'gear',
     items: [
       {
         key: 'general-settings',
@@ -56,12 +56,6 @@ export const navItems = [
         allowedRoles: [ServiceRole.ADMIN, ServiceRole.SYSTEM_ADMIN],
       },
     ],
-  },
-  {
-    key: 'account',
-    title: 'Account',
-    href: paths.dashboard.account,
-    icon: 'user',
-    allowedRoles: [ServiceRole.ADMIN, ServiceRole.SYSTEM_ADMIN],
+    separator: 'before',
   },
 ] satisfies NavItemConfig[];
