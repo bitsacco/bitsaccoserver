@@ -43,7 +43,7 @@ export class AuthController {
   @ApiOperation({
     summary: 'Register a new member',
     description:
-      'Creates a new member account in Keycloak and optionally creates an organization',
+      'Creates a new member account in Keycloak',
   })
   @ApiResponse({
     status: 201,
@@ -524,9 +524,9 @@ export class AuthController {
   })
   @ApiResponse({ status: 404, description: 'Member not found' })
   @ApiResponse({ status: 403, description: 'Not available in production' })
-  async getUserStatus(@Param('email') email: string) {
+  async getMemberStatus(@Param('email') email: string) {
     try {
-      const memberStatus = await this.authService.getUserStatusForDev(email);
+      const memberStatus = await this.authService.getMemberStatusForDev(email);
       return memberStatus;
     } catch (error) {
       this.logger.error(
