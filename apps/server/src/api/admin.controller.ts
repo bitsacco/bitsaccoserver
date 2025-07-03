@@ -454,7 +454,7 @@ export class AdminController {
   @GlobalScope([Permission.MEMBER_UPDATE])
   @ApiOperation({ summary: 'Update member status (ADMIN+)' })
   @ApiParam({ name: 'memberId', description: 'Member ID' })
-  async updateUserStatus(
+  async updateMemberStatus(
     @CurrentUser() _member: AuthenticatedMember,
     @Param('memberId') _memberId: string,
     @Body()

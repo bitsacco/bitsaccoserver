@@ -1,30 +1,20 @@
 {
+  "extends": "@bitsaccoserver/tsconf/nest.json",
   "compilerOptions": {
-    "module": "commonjs",
-    "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "allowSyntheticDefaultImports": true,
-    "target": "ES2020",
-    "sourceMap": true,
-    "outDir": "./dist",
     "baseUrl": "./",
-    "incremental": true,
+    "outDir": "./dist",
     "tsBuildInfoFile": "./dist/.tsbuildinfo",
-    "skipLibCheck": true,
     "typeRoots": ["./node_modules/@types"],
-    "strictNullChecks": false,
-    "noImplicitAny": false,
-    "strictBindCallApply": false,
-    "types": ["node"],
-    "forceConsistentCasingInFileNames": false,
-    "noFallthroughCasesInSwitch": false,
-    "esModuleInterop": true,
     "paths": {
       "@/*": ["src/*"]
-    }
+    },
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false
   },
+  "include": ["src/**/*", "../../.okjodom/sacco.controller.ts"],
   "exclude": ["**/*.spec.ts", "**/*.test.ts", "test"],
   "watchOptions": {
     "watchFile": "useFsEvents",

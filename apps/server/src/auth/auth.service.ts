@@ -863,7 +863,7 @@ export class AuthService {
     }
   }
 
-  async getUserStatusForDev(email: string): Promise<any> {
+  async getMemberStatusForDev(email: string): Promise<any> {
     const nodeEnv = this.configService.get<string>('NODE_ENV');
     if (nodeEnv === 'production') {
       throw new HttpException(

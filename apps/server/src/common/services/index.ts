@@ -5,5 +5,4 @@ export * from './financial.service';
 // MakerCheckerService moved to base directory
 export * from './metrics.service';
 export * from './permission.service';
-export * from './sacco.service';
 export * from './service.registry';

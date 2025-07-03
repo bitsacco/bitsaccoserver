@@ -7,15 +7,12 @@ import {
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
 import { GroupRole } from '@bitsaccoserver/types';
-import {
-  OrganizationDocument,
-  OrganizationMember,
-  OrganizationMemberDocument,
-} from './organization.schema';
+import { OrganizationDocument } from './organization.schema';
 import {
   CreateOrganizationDto,
   UpdateOrganizationDto,
 } from './organization.dto';
+import { GroupMembership, Permission } from '@/common';
 
 @Injectable()
 export class OrganizationService {
@@ -24,8 +21,8 @@ export class OrganizationService {
   constructor(
     @InjectModel(OrganizationDocument.name)
     private organizationModel: Model<OrganizationDocument>,
-    @InjectModel(OrganizationMember.name)
-    private organizationMemberModel: Model<OrganizationMemberDocument>,
+    @InjectModel(GroupMembership.name)
+    private groupMemberModel: Model<GroupMembership>,
   ) {}
 
   async create(
@@ -61,7 +58,7 @@ export class OrganizationService {
       await this.addMember(
         savedOrg._id.toString(),
         memberId,
-        GroupRole.ORG_ADMIN,
+        GroupRole.GROUP_ADMIN,
         memberId,
       );
     } catch (error) {
@@ -82,7 +79,7 @@ export class OrganizationService {
 
   async findAll(memberId: string): Promise<OrganizationDocument[]> {
     // Find all organizations where member is a member
-    const memberships = await this.organizationMemberModel
+    const memberships = await this.groupMemberModel
       .find({ memberId, isActive: true })
       .select('organizationId');
 
@@ -131,7 +128,7 @@ export class OrganizationService {
     }
 
     // Deactivate all memberships
-    await this.organizationMemberModel.updateMany(
+    await this.groupMemberModel.updateMany(
       { organizationId: id },
       { isActive: false },
     );
@@ -142,7 +139,8 @@ export class OrganizationService {
     memberId: string,
     role: GroupRole,
     invitedBy: string,
-  ): Promise<OrganizationMember> {
+    customPermissions?: Permission[],
+  ): Promise<GroupMembership> {
     this.logger.debug(
       `Adding member - organizationId: ${organizationId}, memberId: ${memberId}, role: ${role}, invitedBy: ${invitedBy}`,
     );
@@ -156,7 +154,7 @@ export class OrganizationService {
     }
 
     // Check if member is already a member
-    const existingMember = await this.organizationMemberModel.findOne({
+    const existingMember = await this.groupMemberModel.findOne({
       organizationId,
       memberId,
     });
@@ -174,27 +172,39 @@ export class OrganizationService {
       return existingMember.save();
     }
 
-    const member = new this.organizationMemberModel({
+    const member = new this.groupMemberModel({
       organizationId,
       memberId,
       role,
       invitedBy,
       invitedAt: new Date(),
       joinedAt: new Date(),
+      customPermissions: customPermissions || [],
     });
 
     return member.save();
   }
 
-  async getMembers(organizationId: string): Promise<OrganizationMember[]> {
-    return this.organizationMemberModel.find({
-      organizationId,
-      isActive: true,
-    });
+  async getMembers(
+    organizationId: string,
+    includeInactive?: boolean,
+    role?: GroupRole,
+  ): Promise<GroupMembership[]> {
+    const query: any = { organizationId };
+
+    if (!includeInactive) {
+      query.isActive = true;
+    }
+
+    if (role) {
+      query.role = role;
+    }
+
+    return this.groupMemberModel.find(query);
   }
 
   async removeMember(organizationId: string, memberId: string): Promise<void> {
-    const result = await this.organizationMemberModel.findOneAndUpdate(
+    const result = await this.groupMemberModel.findOneAndUpdate(
       { organizationId, memberId },
       { isActive: false },
       { new: true },
@@ -209,10 +219,17 @@ export class OrganizationService {
     organizationId: string,
     memberId: string,
     role: GroupRole,
-  ): Promise<OrganizationMember> {
-    const member = await this.organizationMemberModel.findOneAndUpdate(
+    customPermissions?: Permission[],
+  ): Promise<GroupMembership> {
+    const updateData: any = { role };
+
+    if (customPermissions !== undefined) {
+      updateData.customPermissions = customPermissions;
+    }
+
+    const member = await this.groupMemberModel.findOneAndUpdate(
       { organizationId, memberId, isActive: true },
-      { role },
+      updateData,
       { new: true },
     );
 
@@ -221,5 +238,60 @@ export class OrganizationService {
     }
 
     return member;
+  }
+
+  async getMemberWithPermissions(
+    organizationId: string,
+    memberId: string,
+  ): Promise<GroupMembership | null> {
+    return this.groupMemberModel.findOne({
+      organizationId,
+      memberId,
+      isActive: true,
+    });
+  }
+
+  async validateMemberAccess(
+    organizationId: string,
+    memberId: string,
+    requiredPermissions: Permission[],
+  ): Promise<boolean> {
+    const member = await this.getMemberWithPermissions(
+      organizationId,
+      memberId,
+    );
+
+    if (!member) {
+      return false;
+    }
+
+    // Check if member has required permissions through role or custom permissions
+    // This would integrate with the permission service
+    return true; // Simplified for now
+  }
+
+  async getOrganizationStats(organizationId: string): Promise<any> {
+    const [organization, members] = await Promise.all([
+      this.findOne(organizationId),
+      this.getMembers(organizationId),
+    ]);
+
+    const activeMembers = members.filter((m) => m.isActive);
+    const membersByRole = activeMembers.reduce(
+      (acc, member) => {
+        acc[member.role] = (acc[member.role] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>,
+    );
+
+    return {
+      id: organization._id,
+      name: organization.name,
+      totalMembers: activeMembers.length,
+      membersByRole,
+      createdAt: organization.createdAt,
+      isActive: organization.isActive,
+    };
   }
 }

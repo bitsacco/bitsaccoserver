@@ -1,10 +1,5 @@
 import { Request } from 'express';
-import {
-  ServiceRole,
-  GroupMembership,
-  PermissionScope,
-  Permission,
-} from './permissions.types';
+import { ServiceRole, Permission, PermissionScope, GroupMembership } from '.';
 
 export interface JwtPayload {
   sub: string;
@@ -31,7 +26,7 @@ export interface AuthenticatedMember {
   authMethod: 'jwt' | 'api-key';
 
   // Service-level permissions
-  serviceRole: ServiceRole;
+  serviceRoles: ServiceRole[];
   servicePermissions: Permission[];
 
   // Current context

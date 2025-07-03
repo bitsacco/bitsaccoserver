@@ -1,12 +1,12 @@
 import { Document } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import {
-  ServiceRole,
   GroupRole,
   Permission,
   PermissionScope,
-  RiskLevel,
-} from '../types';
+  ServiceRole,
+} from '@bitsaccoserver/types';
+import { RiskLevel } from '../types';
 
 /**
  * Maker-Checker Workflow Schema
@@ -100,7 +100,7 @@ export class ApprovalWorkflow {
   ])
   approvals: Array<{
     approverId: string;
-    approverRole: ServiceRole | GroupRole;
+    approverRoles: (ServiceRole | GroupRole)[];
     status: ApprovalStatus;
     comment?: string;
     approvedAt?: Date;

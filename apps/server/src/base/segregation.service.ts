@@ -161,7 +161,7 @@ export class SegregationService {
     },
   ): Promise<SegregationRuleDocument> {
     // Validate member permissions (only SYSTEM_ADMIN can create SoD rules)
-    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (!member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN)) {
       throw new ForbiddenException(
         'Only SYSTEM_ADMIN can create segregation rules',
       );
@@ -196,7 +196,7 @@ export class SegregationService {
     ruleId: string,
     updateData: Partial<SegregationRule>,
   ): Promise<SegregationRuleDocument> {
-    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (!member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN)) {
       throw new ForbiddenException(
         'Only SYSTEM_ADMIN can update segregation rules',
       );
@@ -234,7 +234,7 @@ export class SegregationService {
   ): Promise<SegregationRuleDocument[]> {
     // ADMIN and above can view SoD rules
     if (
-      member.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
+      !member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN) &&
       member.serviceRole !== ServiceRole.ADMIN
     ) {
       throw new ForbiddenException(
@@ -257,7 +257,7 @@ export class SegregationService {
     ruleId: string,
     isActive: boolean,
   ): Promise<SegregationRuleDocument> {
-    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (!member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN)) {
       throw new ForbiddenException(
         'Only SYSTEM_ADMIN can toggle segregation rules',
       );
@@ -375,7 +375,7 @@ export class SegregationService {
           operation2: {
             action: 'financial_transaction_approve',
             permissions: [Permission.FINANCE_APPROVE],
-            roles: [GroupRole.CHAMA_ADMIN, GroupRole.ORG_ADMIN],
+            roles: [GroupRole.CHAMA_ADMIN, GroupRole.GROUP_ADMIN],
           },
           conflictType: 'same_member' as const,
         },
@@ -398,12 +398,12 @@ export class SegregationService {
           operation1: {
             action: 'member_create',
             permissions: [Permission.MEMBER_CREATE],
-            roles: [ServiceRole.ADMIN, GroupRole.ORG_ADMIN],
+            roles: [ServiceRole.ADMIN, GroupRole.GROUP_ADMIN],
           },
           operation2: {
             action: 'member_role_assign',
             permissions: [Permission.MEMBER_UPDATE],
-            roles: [ServiceRole.ADMIN, GroupRole.ORG_ADMIN],
+            roles: [ServiceRole.ADMIN, GroupRole.GROUP_ADMIN],
           },
           conflictType: 'same_member' as const,
         },

@@ -153,7 +153,7 @@ export class MakerCheckerService {
     // Add approval
     workflow.approvals.push({
       approverId: member.memberId,
-      approverRole: this.getUserHighestRole(member, workflow.scope),
+      approverRoles: this.getUserHighestRole(member, workflow.scope),
       status: request.status,
       comment: request.comment,
       approvedAt: new Date(),
@@ -226,7 +226,7 @@ export class MakerCheckerService {
         ?.filter((m) => m.groupType === 'chama')
         .map((m) => m.groupId) || [];
 
-    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (!member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN)) {
       query.$or = [
         { organizationId: { $in: accessibleOrgs } },
         { chamaId: { $in: accessibleChamas } },
@@ -294,7 +294,7 @@ export class MakerCheckerService {
     // Only initiator or admin can cancel
     if (
       workflow.initiatedBy !== member.memberId &&
-      member.serviceRole !== ServiceRole.SYSTEM_ADMIN
+      !member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN)
     ) {
       throw new ForbiddenException(
         'Only workflow initiator or system admin can cancel',
@@ -453,7 +453,7 @@ export class MakerCheckerService {
   ): Promise<any> {
     const chain = {
       requiredApprovals: 1,
-      requiredRoles: [GroupRole.CHAMA_ADMIN] as (ServiceRole | GroupRole)[],
+      requiredRoles: [GroupRole.GROUP_ADMIN] as (ServiceRole | GroupRole)[],
       requiredPermissions: [] as Permission[],
       allowSelfApproval: false,
       sequentialApproval: false,
@@ -464,26 +464,26 @@ export class MakerCheckerService {
     switch (riskLevel) {
       case RiskLevel.CRITICAL:
         chain.requiredApprovals = 3;
-        chain.requiredRoles = [ServiceRole.SYSTEM_ADMIN, GroupRole.ORG_ADMIN];
+        chain.requiredRoles = [ServiceRole.SYSTEM_ADMIN, GroupRole.GROUP_ADMIN];
         chain.allowSelfApproval = false;
         chain.sequentialApproval = true;
         chain.timeoutHours = 48;
         break;
       case RiskLevel.HIGH:
         chain.requiredApprovals = 2;
-        chain.requiredRoles = [GroupRole.ORG_ADMIN, GroupRole.CHAMA_ADMIN];
+        chain.requiredRoles = [GroupRole.GROUP_ADMIN];
         chain.allowSelfApproval = false;
         chain.timeoutHours = 24;
         break;
       case RiskLevel.MEDIUM:
         chain.requiredApprovals = 1;
-        chain.requiredRoles = [GroupRole.CHAMA_ADMIN, GroupRole.ORG_ADMIN];
+        chain.requiredRoles = [GroupRole.GROUP_ADMIN];
         chain.allowSelfApproval = true;
         chain.timeoutHours = 12;
         break;
       case RiskLevel.LOW:
         chain.requiredApprovals = 1;
-        chain.requiredRoles = [GroupRole.CHAMA_ADMIN];
+        chain.requiredRoles = [GroupRole.GROUP_ADMIN];
         chain.allowSelfApproval = true;
         chain.timeoutHours = 8;
         break;
@@ -624,9 +624,9 @@ export class MakerCheckerService {
   private getUserHighestRole(
     member: AuthenticatedMember,
     scope: PermissionScope,
-  ): ServiceRole | GroupRole {
+  ): (ServiceRole | GroupRole)[] {
     if (scope === PermissionScope.GLOBAL) {
-      return member.serviceRole;
+      return member.serviceRoles;
     }
 
     // Get highest group role in context
@@ -638,15 +638,13 @@ export class MakerCheckerService {
         return false;
       }) || [];
 
-    if (relevantMemberships.length === 0) return member.serviceRole;
+    if (relevantMemberships.length === 0) return member.serviceRoles;
 
     // Return highest privilege role
     const roleHierarchy = {
-      [GroupRole.ORG_ADMIN]: 1,
-      [GroupRole.CHAMA_ADMIN]: 2,
-      [GroupRole.ORG_MEMBER]: 3,
-      [GroupRole.CHAMA_MEMBER]: 4,
-      [GroupRole.VIEWER]: 5,
+      [GroupRole.GROUP_ADMIN]: 1,
+      [GroupRole.GROUP_MEMBER]: 2,
+      [GroupRole.GROUP_VIEWER]: 3,
     };
 
     return relevantMemberships
@@ -658,7 +656,7 @@ export class MakerCheckerService {
     member: AuthenticatedMember,
     scope: PermissionScope,
   ): (ServiceRole | GroupRole)[] {
-    const roles: (ServiceRole | GroupRole)[] = [member.serviceRole];
+    const roles: (ServiceRole | GroupRole)[] = member.serviceRoles;
 
     if (scope !== PermissionScope.GLOBAL) {
       const groupRoles =
@@ -682,7 +680,7 @@ export class MakerCheckerService {
     workflow: ApprovalWorkflowDocument,
   ): Promise<boolean> {
     // System admin can access all workflows
-    if (member.serviceRole === ServiceRole.SYSTEM_ADMIN) return true;
+    if (member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN)) return true;
 
     // Initiator can access their own workflows
     if (workflow.initiatedBy === member.memberId) return true;
@@ -776,7 +774,7 @@ export class MakerCheckerService {
     if (!limit.overrideConditions.allowOverride) return false;
 
     const memberRoles = [
-      member.serviceRole,
+      ...member.serviceRoles,
       ...this.getUserRoles(member, PermissionScope.GLOBAL),
     ];
     const hasOverrideRole = limit.overrideConditions.overrideRoles.some(
