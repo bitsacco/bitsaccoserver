@@ -246,11 +246,11 @@ export class PermissionService {
    */
   private sortRolesByHierarchy(roles: GroupRole[]): GroupRole[] {
     const roleHierarchyOrder = {
-      [GroupRole.ORG_ADMIN]: 1,
+      [GroupRole.GROUP_ADMIN]: 1,
       [GroupRole.CHAMA_ADMIN]: 2,
-      [GroupRole.ORG_MEMBER]: 3,
+      [GroupRole.GROUP_MEMBER]: 3,
       [GroupRole.CHAMA_MEMBER]: 4,
-      [GroupRole.VIEWER]: 5,
+      [GroupRole.GROUP_VIEWER]: 5,
     };
 
     return roles.sort((a, b) => roleHierarchyOrder[a] - roleHierarchyOrder[b]);

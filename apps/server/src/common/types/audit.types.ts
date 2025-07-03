@@ -1,6 +1,6 @@
 // Audit and monitoring types
+import { Permission, PermissionScope } from '@bitsaccoserver/types';
 import { AuthenticatedMember } from './auth.types';
-import { PermissionScope, Permission } from './permissions.types';
 import { RiskLevel } from './compliance.types';
 
 export interface AuditEventData {

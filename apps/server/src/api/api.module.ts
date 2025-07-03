@@ -11,7 +11,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 import { ApiController } from './api.controller';
 import { ComplianceController } from './compliance.controller';
 import { ApiKeyController } from './api-key.controller';
-import { SaccoController } from './sacco.controller';
 import { AdminController } from './admin.controller';
 import { ApiService } from './api.service';
 import { AuthModule } from '../auth/auth.module';
@@ -127,7 +126,6 @@ import { LoanService } from '../loans';
     ApiController,
     ComplianceController,
     ApiKeyController,
-    SaccoController,
     AdminController,
   ],
   providers: [ApiService, LoanService],

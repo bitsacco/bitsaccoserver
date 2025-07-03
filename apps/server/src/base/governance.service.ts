@@ -222,8 +222,8 @@ export class GovernanceService {
   ): Promise<ServiceIntegration[]> {
     // ADMIN members can view service integrations
     if (
-      member.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
-      member.serviceRole !== ServiceRole.ADMIN
+      !member.serviceRoles.includes[ServiceRole.SYSTEM_ADMIN] &&
+      !member.serviceRoles.includes[ServiceRole.SYSTEM_ADMIN]
     ) {
       throw new ForbiddenException(
         'Insufficient permissions to view service integrations',
@@ -233,7 +233,7 @@ export class GovernanceService {
     const integrations = Array.from(this.serviceIntegrations.values());
 
     // Filter sensitive information for non-system admins
-    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (!member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN)) {
       integrations.forEach((integration) => {
         delete integration.configuration.credentials;
         delete integration.configuration.apiKey;
@@ -306,8 +306,8 @@ export class GovernanceService {
   ): Promise<TelemetryConfig[]> {
     // ADMIN members can view telemetry configuration
     if (
-      member.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
-      member.serviceRole !== ServiceRole.ADMIN
+      !member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN) &&
+      !member.serviceRoles.includes(ServiceRole.ADMIN)
     ) {
       throw new ForbiddenException(
         'Insufficient permissions to view telemetry configuration',
@@ -332,8 +332,8 @@ export class GovernanceService {
   }> {
     // ADMIN and SYSTEM_ADMIN can view system health
     if (
-      member.serviceRole !== ServiceRole.SYSTEM_ADMIN &&
-      member.serviceRole !== ServiceRole.ADMIN
+      !member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN) &&
+      !member.serviceRoles.includes(ServiceRole.ADMIN)
     ) {
       throw new ForbiddenException(
         'Insufficient permissions to view system health',
@@ -378,7 +378,10 @@ export class GovernanceService {
         membership.permissions.includes(Permission.REPORTS_READ),
     );
 
-    if (!hasPermission && member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (
+      !hasPermission &&
+      !member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN)
+    ) {
       throw new ForbiddenException(
         'Insufficient permissions to view organization metrics',
       );
@@ -425,7 +428,10 @@ export class GovernanceService {
         membership.permissions.includes(Permission.REPORTS_READ),
     );
 
-    if (!hasPermission && member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (
+      !hasPermission &&
+      !member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN)
+    ) {
       throw new ForbiddenException(
         'Insufficient permissions to view chama metrics',
       );
@@ -473,7 +479,7 @@ export class GovernanceService {
   // Private Methods
 
   private validateSystemAdminAccess(member: AuthenticatedMember): void {
-    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (!member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN)) {
       throw new ForbiddenException('SYSTEM_ADMIN role required');
     }
   }

@@ -42,8 +42,7 @@ export class AuthController {
   @Post('register')
   @ApiOperation({
     summary: 'Register a new member',
-    description:
-      'Creates a new member account in Keycloak',
+    description: 'Creates a new member account in Keycloak',
   })
   @ApiResponse({
     status: 201,
@@ -68,18 +67,25 @@ export class AuthController {
       this.logger.log(`Member registered successfully: ${result.memberId}`);
       return result;
     } catch (error) {
-      this.logger.error(`Registration failed: ${error.message}`, error.stack);
-
-      if (error.response?.status === 409) {
+      if (error instanceof Error) {
+        this.logger.error(`Registration failed: ${error.message}`, error.stack);
+      } else {
+        this.logger.error(`Registration failed: ${JSON.stringify(error)}`);
+      }
+      if (
+        typeof error === 'object' &&
+        error !== null &&
+        'response' in error &&
+        (error as any).response?.status === 409
+      ) {
         throw new HttpException(
           'Member with this email already exists',
           HttpStatus.CONFLICT,
         );
       }
-
       throw new HttpException(
-        error.message || 'Registration failed',
-        error.status || HttpStatus.BAD_REQUEST,
+        (error as any).message || 'Registration failed',
+        (error as any).status || HttpStatus.BAD_REQUEST,
       );
     }
   }
@@ -147,8 +153,11 @@ export class AuthController {
       this.logger.log(`Login successful for member: ${result.member.id}`);
       return result;
     } catch (error) {
-      this.logger.error(`Login failed: ${error.message}`, error.stack);
-
+      if (error instanceof Error) {
+        this.logger.error(`Login failed: ${error.message}`, error.stack);
+      } else {
+        this.logger.error(`Login failed: ${JSON.stringify(error)}`);
+      }
       throw new HttpException(
         'Invalid email or password',
         HttpStatus.UNAUTHORIZED,
@@ -183,8 +192,14 @@ export class AuthController {
       );
       return result;
     } catch (error) {
-      this.logger.error(`Token refresh failed: ${error.message}`, error.stack);
-
+      if (error instanceof Error) {
+        this.logger.error(
+          `Token refresh failed: ${error.message}`,
+          error.stack,
+        );
+      } else {
+        this.logger.error(`Token refresh failed: ${JSON.stringify(error)}`);
+      }
       throw new HttpException('Invalid refresh token', HttpStatus.UNAUTHORIZED);
     }
   }
@@ -201,8 +216,11 @@ export class AuthController {
       await this.authService.logout(logoutDto.refresh_token);
       return { message: 'Logout successful' };
     } catch (error) {
-      this.logger.error(`Logout failed: ${error.message}`, error.stack);
-
+      if (error instanceof Error) {
+        this.logger.error(`Logout failed: ${error.message}`, error.stack);
+      } else {
+        this.logger.error(`Logout failed: ${JSON.stringify(error)}`);
+      }
       // Even if logout fails, return success to client
       return { message: 'Logout completed' };
     }
@@ -229,11 +247,16 @@ export class AuthController {
       await this.authService.requestPasswordReset(body.email);
       return { message: 'Password reset email sent if member exists' };
     } catch (error) {
-      this.logger.error(
-        `Password reset request failed: ${error.message}`,
-        error.stack,
-      );
-
+      if (error instanceof Error) {
+        this.logger.error(
+          `Password reset request failed: ${error.message}`,
+          error.stack,
+        );
+      } else {
+        this.logger.error(
+          `Password reset request failed: ${JSON.stringify(error)}`,
+        );
+      }
       // Always return success for security (don't reveal if member exists)
       return { message: 'Password reset email sent if member exists' };
     }
@@ -255,8 +278,14 @@ export class AuthController {
       );
       return { message: 'Password reset successful' };
     } catch (error) {
-      this.logger.error(`Password reset failed: ${error.message}`, error.stack);
-
+      if (error instanceof Error) {
+        this.logger.error(
+          `Password reset failed: ${error.message}`,
+          error.stack,
+        );
+      } else {
+        this.logger.error(`Password reset failed: ${JSON.stringify(error)}`);
+      }
       throw new HttpException(
         'Invalid or expired reset token',
         HttpStatus.BAD_REQUEST,
@@ -294,14 +323,17 @@ export class AuthController {
 
       return { message: 'Password changed successfully' };
     } catch (error) {
-      this.logger.error(
-        `Password change failed: ${error.message}`,
-        error.stack,
-      );
-
+      if (error instanceof Error) {
+        this.logger.error(
+          `Password change failed: ${error.message}`,
+          error.stack,
+        );
+      } else {
+        this.logger.error(`Password change failed: ${JSON.stringify(error)}`);
+      }
       throw new HttpException(
-        error.message || 'Password change failed',
-        error.status || HttpStatus.BAD_REQUEST,
+        (error as any).message || 'Password change failed',
+        (error as any).status || HttpStatus.BAD_REQUEST,
       );
     }
   }
@@ -324,11 +356,16 @@ export class AuthController {
       // Redirect to success page or return success response
       res.json({ message: 'Email verified successfully' });
     } catch (error) {
-      this.logger.error(
-        `Email verification failed: ${error.message}`,
-        error.stack,
-      );
-
+      if (error instanceof Error) {
+        this.logger.error(
+          `Email verification failed: ${error.message}`,
+          error.stack,
+        );
+      } else {
+        this.logger.error(
+          `Email verification failed: ${JSON.stringify(error)}`,
+        );
+      }
       throw new HttpException(
         'Invalid or expired verification token',
         HttpStatus.BAD_REQUEST,
@@ -356,11 +393,16 @@ export class AuthController {
       await this.authService.resendEmailVerification(body.email);
       return { message: 'Verification email sent' };
     } catch (error) {
-      this.logger.error(
-        `Resend verification failed: ${error.message}`,
-        error.stack,
-      );
-
+      if (error instanceof Error) {
+        this.logger.error(
+          `Resend verification failed: ${error.message}`,
+          error.stack,
+        );
+      } else {
+        this.logger.error(
+          `Resend verification failed: ${JSON.stringify(error)}`,
+        );
+      }
       // Always return success for security
       return { message: 'Verification email sent if member exists' };
     }
@@ -443,11 +485,14 @@ export class AuthController {
         serviceRole: payload.serviceRole,
       };
     } catch (error) {
-      this.logger.error(
-        `Get member info failed: ${error.message}`,
-        error.stack,
-      );
-
+      if (error instanceof Error) {
+        this.logger.error(
+          `Get member info failed: ${error.message}`,
+          error.stack,
+        );
+      } else {
+        this.logger.error(`Get member info failed: ${JSON.stringify(error)}`);
+      }
       throw new HttpException(
         'Failed to retrieve member information',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -482,15 +527,19 @@ export class AuthController {
         verified: true,
       };
     } catch (error) {
-      this.logger.error(
-        `Manual verification failed: ${error.message}`,
-        error.stack,
-      );
-
-      if (error.status === HttpStatus.FORBIDDEN) {
+      if (error instanceof Error) {
+        this.logger.error(
+          `Manual verification failed: ${error.message}`,
+          error.stack,
+        );
+      } else {
+        this.logger.error(
+          `Manual verification failed: ${JSON.stringify(error)}`,
+        );
+      }
+      if ((error as any).status === HttpStatus.FORBIDDEN) {
         throw error;
       }
-
       throw new HttpException(
         'Member not found or verification failed',
         HttpStatus.NOT_FOUND,
@@ -529,15 +578,17 @@ export class AuthController {
       const memberStatus = await this.authService.getMemberStatusForDev(email);
       return memberStatus;
     } catch (error) {
-      this.logger.error(
-        `Get member status failed: ${error.message}`,
-        error.stack,
-      );
-
-      if (error.status === HttpStatus.FORBIDDEN) {
+      if (error instanceof Error) {
+        this.logger.error(
+          `Get member status failed: ${error.message}`,
+          error.stack,
+        );
+      } else {
+        this.logger.error(`Get member status failed: ${JSON.stringify(error)}`);
+      }
+      if ((error as any).status === HttpStatus.FORBIDDEN) {
         throw error;
       }
-
       throw new HttpException('Member not found', HttpStatus.NOT_FOUND);
     }
   }

@@ -421,7 +421,7 @@ export class RiskManagementService {
     if (isActive !== undefined) query.isActive = isActive;
 
     // Filter based on member permissions
-    if (member.serviceRole !== ServiceRole.SYSTEM_ADMIN) {
+    if (!member.serviceRoles.includes(ServiceRole.SYSTEM_ADMIN)) {
       // Users can only see limits they have access to
       const accessibleOrgs =
         member.groupMemberships
@@ -630,7 +630,7 @@ export class RiskManagementService {
         applicableOperations: ['deposit', 'withdraw', 'transfer'],
         overrideConditions: {
           allowOverride: true,
-          overrideRoles: [GroupRole.ORG_ADMIN, GroupRole.CHAMA_ADMIN],
+          overrideRoles: [GroupRole.GROUP_ADMIN, GroupRole.CHAMA_ADMIN],
           overridePermissions: [Permission.FINANCE_APPROVE],
           requiresApproval: true,
           maxOverridePercentage: 50,

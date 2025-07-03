@@ -6,7 +6,11 @@ import {
 } from '@nestjs/common';
 import { Model } from 'mongoose';
 import { InjectModel } from '@nestjs/mongoose';
-import { Permission, PermissionScope } from '@bitsaccoserver/types';
+import {
+  Permission,
+  PermissionScope,
+  ServiceRole,
+} from '@bitsaccoserver/types';
 import {
   OfferSharesDto,
   BuySharesDto,
@@ -20,7 +24,6 @@ import {
   SharesOfferDocument,
   SharesTxStatus,
   PermissionService,
-  SaccoService,
   ServiceOperation,
   ServiceContext,
   PaginationDto,
@@ -41,9 +44,8 @@ export class SharesService extends ContextAwareService {
     private readonly sharesOfferModel: Model<SharesOfferDocument>,
     private readonly metricsService: MetricsService,
     protected permissionService: PermissionService,
-    protected saccoService: SaccoService,
   ) {
-    super(permissionService, saccoService);
+    super(permissionService);
     this.logger.log('SharesService created');
   }
 
@@ -127,7 +129,7 @@ export class SharesService extends ContextAwareService {
       sub: 'current-member',
       email: 'member@example.com',
       authMethod: 'jwt',
-      serviceRole: 'MEMBER' as any,
+      serviceRoles: [ServiceRole.MEMBER],
       servicePermissions: [],
       currentOrganizationId: 'current-org',
       currentScope: PermissionScope.ORGANIZATION,

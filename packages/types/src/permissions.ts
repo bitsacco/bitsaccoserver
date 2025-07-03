@@ -13,22 +13,15 @@ export enum ServiceRole {
 
 // Group-level roles (context-specific within organizations/chamas)
 export enum GroupRole {
-  // Organization-level roles
-  ORG_ADMIN = 'org_admin', // Full organization management with elevated privileges
-  ORG_MEMBER = 'org_member', // Basic organization participation
-
-  // Chama-level roles
-  CHAMA_ADMIN = 'chama_admin', // Full chama management with elevated privileges
-  CHAMA_MEMBER = 'chama_member', // Basic chama participation
-
-  // Cross-group roles
-  VIEWER = 'viewer', // Read-only access to groups
+  GROUP_ADMIN = 'group_admin', // Full group management with elevated privileges
+  GROUP_MEMBER = 'group_member', // Basic group participation
+  GROUP_VIEWER = 'group_viewer', // Read-only access to groups
 }
 
 // Permission scopes for context-aware access
 export enum PermissionScope {
   GLOBAL = 'global', // System-wide access
-  ORGANIZATION = 'organization', // SACCO-level access
+  ORGANIZATION = 'organization', // Organization-level access
   CHAMA = 'chama', // Chama-level access
   PERSONAL = 'personal', // Individual access
 }
@@ -130,6 +123,10 @@ export const ROLE_PERMISSIONS: Record<ServiceRole | GroupRole, Permission[]> = {
     Permission.ORG_READ,
     Permission.ORG_UPDATE,
     Permission.ORG_DELETE,
+    Permission.CHAMA_CREATE,
+    Permission.CHAMA_READ,
+    Permission.CHAMA_UPDATE,
+    Permission.CHAMA_DELETE,
     Permission.REPORTS_READ,
     Permission.REPORTS_EXPORT,
   ],
@@ -139,10 +136,21 @@ export const ROLE_PERMISSIONS: Record<ServiceRole | GroupRole, Permission[]> = {
     Permission.MEMBER_READ,
     Permission.MEMBER_UPDATE,
     Permission.MEMBER_INVITE,
+    Permission.ORG_CREATE,
     Permission.ORG_READ,
     Permission.ORG_UPDATE,
     Permission.ORG_SETTINGS,
+    Permission.ORG_DELETE,
+    Permission.CHAMA_CREATE,
+    Permission.CHAMA_READ,
+    Permission.CHAMA_UPDATE,
+    Permission.CHAMA_DELETE,
     Permission.REPORTS_READ,
+    Permission.REPORTS_EXPORT,
+    Permission.SHARES_APPROVE,
+    Permission.SHARES_CREATE,
+    Permission.SHARES_READ,
+    Permission.SHARES_TRADE,
   ],
 
   [ServiceRole.MEMBER]: [
@@ -150,13 +158,14 @@ export const ROLE_PERMISSIONS: Record<ServiceRole | GroupRole, Permission[]> = {
     Permission.ORG_READ,
     Permission.FINANCE_READ,
     Permission.SHARES_READ,
+    Permission.SHARES_TRADE,
     Permission.LOAN_READ,
   ],
 
   // Group-level role permissions
 
-  // Organization roles with elevated privileges (subject to maker-checker)
-  [GroupRole.ORG_ADMIN]: [
+  // Group roles with elevated privileges (subject to maker-checker)
+  [GroupRole.GROUP_ADMIN]: [
     Permission.ORG_READ,
     Permission.ORG_UPDATE,
     Permission.ORG_DELETE,
@@ -172,7 +181,6 @@ export const ROLE_PERMISSIONS: Record<ServiceRole | GroupRole, Permission[]> = {
     Permission.FINANCE_WITHDRAW,
     Permission.FINANCE_TRANSFER,
     Permission.FINANCE_APPROVE,
-    Permission.SHARES_CREATE,
     Permission.SHARES_READ,
     Permission.SHARES_TRADE,
     Permission.SHARES_APPROVE,
@@ -188,7 +196,7 @@ export const ROLE_PERMISSIONS: Record<ServiceRole | GroupRole, Permission[]> = {
   ],
 
   // Organization basic membership with safe operations
-  [GroupRole.ORG_MEMBER]: [
+  [GroupRole.GROUP_MEMBER]: [
     Permission.ORG_READ,
     Permission.CHAMA_READ,
     Permission.FINANCE_READ,
@@ -201,47 +209,8 @@ export const ROLE_PERMISSIONS: Record<ServiceRole | GroupRole, Permission[]> = {
     Permission.GOVERNANCE_VOTE,
   ],
 
-  // Chama roles with elevated privileges (subject to maker-checker)
-  [GroupRole.CHAMA_ADMIN]: [
-    Permission.CHAMA_READ,
-    Permission.CHAMA_UPDATE,
-    Permission.CHAMA_DELETE,
-    Permission.CHAMA_INVITE,
-    Permission.MEMBER_UPDATE,
-    Permission.FINANCE_READ,
-    Permission.FINANCE_DEPOSIT,
-    Permission.FINANCE_WITHDRAW,
-    Permission.FINANCE_TRANSFER,
-    Permission.FINANCE_APPROVE,
-    Permission.SHARES_READ,
-    Permission.SHARES_TRADE,
-    Permission.SHARES_APPROVE,
-    Permission.LOAN_READ,
-    Permission.LOAN_APPLY,
-    Permission.LOAN_APPROVE,
-    Permission.LOAN_DISBURSE,
-    Permission.REPORTS_READ,
-    Permission.REPORTS_EXPORT,
-    Permission.GOVERNANCE_VOTE,
-    Permission.GOVERNANCE_PROPOSE,
-    Permission.GOVERNANCE_MODERATE,
-  ],
-
-  // Chama basic membership with safe operations
-  [GroupRole.CHAMA_MEMBER]: [
-    Permission.CHAMA_READ,
-    Permission.FINANCE_READ,
-    Permission.FINANCE_DEPOSIT,
-    Permission.SHARES_READ,
-    Permission.SHARES_TRADE,
-    Permission.LOAN_READ,
-    Permission.LOAN_APPLY,
-    Permission.REPORTS_READ,
-    Permission.GOVERNANCE_VOTE,
-  ],
-
   // Cross-group read-only access
-  [GroupRole.VIEWER]: [
+  [GroupRole.GROUP_VIEWER]: [
     Permission.ORG_READ,
     Permission.CHAMA_READ,
     Permission.FINANCE_READ,
@@ -264,16 +233,12 @@ export const ROLE_HIERARCHY: Record<
   [ServiceRole.ADMIN]: [ServiceRole.MEMBER],
   [ServiceRole.MEMBER]: [],
 
-  // Organization-level hierarchy
-  [GroupRole.ORG_ADMIN]: [GroupRole.ORG_MEMBER, GroupRole.VIEWER],
-  [GroupRole.ORG_MEMBER]: [GroupRole.VIEWER],
-
-  // Chama-level hierarchy
-  [GroupRole.CHAMA_ADMIN]: [GroupRole.CHAMA_MEMBER, GroupRole.VIEWER],
-  [GroupRole.CHAMA_MEMBER]: [GroupRole.VIEWER],
+  // Group-level hierarchy
+  [GroupRole.GROUP_ADMIN]: [GroupRole.GROUP_MEMBER, GroupRole.GROUP_VIEWER],
+  [GroupRole.GROUP_MEMBER]: [GroupRole.GROUP_VIEWER],
 
   // Cross-group roles
-  [GroupRole.VIEWER]: [],
+  [GroupRole.GROUP_VIEWER]: [],
 };
 
 /**

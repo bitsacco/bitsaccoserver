@@ -11,6 +11,7 @@
     "dev": "tsc --watch"
   },
   "devDependencies": {
+    "@bitsaccoserver/tsconf": "*",
     "typescript": "^5.1.3"
   }
 }
