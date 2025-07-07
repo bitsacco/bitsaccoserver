@@ -9,9 +9,6 @@ on:
       docker_repository:
         required: true
         type: string
-      image_name:
-        required: true
-        type: string
       readme_path:
         required: true
         type: string
