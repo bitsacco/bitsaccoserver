@@ -1,0 +1,8 @@
+# Rust formatting configuration
+
+# Basic formatting
+edition = "2021"
+hard_tabs = false
+tab_spaces = 4
+newline_style = "Unix"
+use_small_heuristics = "Default"

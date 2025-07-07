@@ -1,0 +1,87 @@
+[workspace]
+members = ["app", "entity", "migration"]
+resolver = "2"
+
+[workspace.dependencies]
+# Web Framework
+axum = { version = "0.8", features = ["ws", "multipart", "macros", "tracing"] }
+leptos = { version = "0.8", features = ["ssr"] }
+leptos_axum = { version = "0.8", features = ["default"] }
+leptos_router = { version = "0.8" }
+leptos_meta = { version = "0.8" }
+tower = { version = "0.4", features = ["full"] }
+tower-http = { version = "0.5", features = ["full"] }
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "uuid", "chrono", "json", "macros"] }
+sea-orm = { version = "0.12", features = ["sqlx-postgres", "runtime-tokio-rustls", "macros"] }
+sea-orm-migration = { version = "0.12", features = ["sqlx-postgres", "runtime-tokio-rustls"] }
+
+# Authentication
+jsonwebtoken = "9"
+keycloak = "22"
+
+# Async Runtime
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync", "time"] }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Caching
+moka = { version = "0.12", features = ["future"] }
+
+# Utilities
+uuid = { version = "1", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+rust_decimal = { version = "1", features = ["serde"] }
+thiserror = "1"
+anyhow = "1"
+
+# Logging and Tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Configuration
+dotenvy = "0.15"
+config = "0.14"
+
+# HTTP Client
+reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
+
+# Development
+
+[[workspace.metadata.leptos]]
+# The name used by cargo-leptos for the server binary
+name = "app"
+bin-package = "app"
+
+# The site root folder is where cargo-leptos generate all output
+site-root = "target/site"
+
+# The site-root relative folder where all compiled output (CSS) is written
+site-pkg-dir = "pkg"
+
+# The source CSS file
+style-file = "style/main.scss"
+
+# Assets source dir
+assets-dir = "public"
+
+# The IP and port where the server serves the content
+site-addr = "127.0.0.1:3000"
+
+# The port to use for automatic reload monitoring
+reload-port = 3001
+
+# The browserlist query used for optimizing the CSS
+browserquery = "defaults"
+
+# The environment Leptos will run in
+env = "DEV"
+
+# The features to use when compiling the bin target
+bin-features = ["ssr"]
+
+# Only build server binary, no client lib
+lib-features = []

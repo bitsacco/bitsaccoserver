@@ -1,0 +1,24 @@
+name: publish-bitsaccoserver
+
+on:
+  push:
+    paths:
+      - Cargo.toml
+      - Leptos.toml
+      - app/**
+      - entity/**
+      - migration/**
+      - public/**
+      - style/**
+      - .github/workflows/publish-bitsaccoserver.yml
+
+jobs:
+  build:
+    uses: ./.github/workflows/docker-build-push.yml
+    with:
+      dockerfile_path: ./Dockerfile
+      docker_repository: bitsaccoserver
+      readme_path: ./README.md
+    secrets:
+      DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+      DOCKER_HUB_PUBLISH_TOKEN: ${{ secrets.DOCKER_HUB_PUBLISH_TOKEN }}

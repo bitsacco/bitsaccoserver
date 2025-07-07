@@ -1,0 +1,23 @@
+[package]
+name = "migration"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "migration"
+path = "src/main.rs"
+required-features = ["cli"]
+
+[dependencies]
+# Workspace dependencies
+sea-orm-migration = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+
+# Additional dependencies
+async-trait = "0.1"
+async-std = { version = "1", features = ["attributes", "tokio1"], optional = true }
+
+[features]
+default = []
+cli = ["async-std"]

@@ -1,79 +1,35 @@
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# Rust build artifacts
+target/
+Cargo.lock
 
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+# Node modules
+node_modules/
 
-# Coverage directory used by tools like istanbul
-coverage
-
-# nyc test coverage
-.nyc_output
-
-# Grunt intermediate storage (https://gruntjs.com/creating-plugins#storing-task-files)
-.grunt
-
-# Bower dependency directory (https://bower.io/)
-bower_components
-
-# node_modules (will be reinstalled in container)
-node_modules
-*/node_modules
-**/node_modules
-
-# Build outputs
-dist
-build
-.next
-.turbo
-
-# IDEs and editors
-.vscode
-.idea
-*.swp
-*.swo
-*~
-
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Docker
-Dockerfile*
-docker-compose*
-compose*.yml
+# Environment files
+.env
+.env.local
 
 # Git
-.git
+.git/
 .gitignore
 
-# Environment files (will be mounted separately)
-.env*
-!.env.example
+# IDE
+.claude/
+.cursor/
+.vscode/
+.idea/
 
-# Testing
-coverage
-.pytest_cache
-
-# Temporary files
-tmp
-temp
+# OS files
+.DS_Store
+Thumbs.db
 
 # Documentation
-README.md
 *.md
-docs
+docs/
 
-# Linting
-.eslintcache
+# Test files
+tests/
+
+# Build cache
+.cargo/
+.rustup/

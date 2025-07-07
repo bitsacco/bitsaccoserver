@@ -1,132 +1,96 @@
-services: 
-  admin:
-    container_name: admin
+services:
+  app:
     build:
       context: .
-      dockerfile: ./apps/admin/Dockerfile
-      target: development
-    restart: unless-stopped
-    env_file:
-      - ./apps/admin/.env.local
-    ports:
-      - "3000:3000"
-    volumes:
-      # Mount source code for hot reload
-      - ./apps/admin:/app/apps/admin
-      - ./packages:/app/packages
-      - ./package.json:/app/package.json
-      - ./yarn.lock:/app/yarn.lock
-      - ./turbo.json:/app/turbo.json
-      # Exclude node_modules to prevent conflicts
-      - /app/node_modules
-      - /app/apps/admin/node_modules
+      dockerfile: Dockerfile
+      target: ${BUILD_TARGET:-development}
+    container_name: app
     environment:
-      - CHOKIDAR_USEPOLLING=true
-      - WATCHPACK_POLLING=true
-
-  server:
-    container_name: server
-    build:
-      context: .
-      dockerfile: ./apps/server/Dockerfile
-      target: development
-    restart: unless-stopped
-    user: "1000:1000"
-    env_file:
-      - ./apps/server/.env.local
+      DATABASE_URL: postgres://bitsaccoserver:${DB_PASSWORD:-password}@postgres:5432/bitsaccoserver
+      KEYCLOAK_AUTH_SERVER_URL: http://keycloak:8080
+      KEYCLOAK_REALM: bitsaccoserver
+      KEYCLOAK_CLIENT_ID: bitsaccoserver-app
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
+      ENVIRONMENT: ${ENVIRONMENT:-development}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      SERVER_ADDR: 0.0.0.0:5000
     ports:
-      - "4000:4000"
-    volumes:
-      # Mount source code for hot reload
-      - ./apps/server:/workspace/apps/server
-      - ./package.json:/workspace/package.json
-      - ./yarn.lock:/workspace/yarn.lock
-      # Exclude node_modules to prevent conflicts
-      - /workspace/node_modules
-      - /workspace/apps/server/node_modules
-    environment:
-      - CHOKIDAR_USEPOLLING=true
+      - "5000:5000"
+      - "5001:5001"  # Hot reload port for development
     depends_on:
-      - mongodb
-      - redis
-      - keycloak
-
-  clientd:
-    image: okjodom/fedimint-clientd:v0.4.1
-    container_name: clientd
-    environment:
-      - FEDIMINT_CLIENTD_DB_PATH=/var/lib/clientd
-      - FEDIMINT_CLIENTD_PASSWORD=fmcdpass
-      - FEDIMINT_CLIENTD_ADDR=clientd:7070
-      - FEDIMINT_CLIENTD_MODE=rest
-      - FEDIMINT_CLIENTD_INVITE_CODE=fed11qgqrsdnhwden5te0dp6k6mtfdenj6mr0v3nk2tfk09jkkeekxechqmphdvm8wdttxauxvufwwahx27r59eshqup0waej7qqpyq8kqe90ktshlvw3f88ztywxz559ag0yjvljvvtd3kepx2sfg2qdjn7s5m0
-    ports:
-      - 7070:7070
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
     volumes:
-      - clientd_datadir:/var/lib/clientd
-    restart: always
-
-  mongodb:
-    container_name: mongodb
-    image: mongo:7
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-    environment:
-      - MONGO_INITDB_DATABASE=bitsaccoserverdb
-      - MONGO_INITDB_ROOT_USERNAME=bitsaccoserver
-      - MONGO_INITDB_ROOT_PASSWORD=password
-
-  redis:
-    container_name: redis
-    image: redis:7-alpine
-    restart: unless-stopped
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    command: redis-server --appendonly yes
-
+      # Development volumes - these are ignored in production
+      - ./app:/app/app:${VOLUME_MODE:-delegated}
+      - ./entity:/app/entity:${VOLUME_MODE:-delegated}
+      - ./migration:/app/migration:${VOLUME_MODE:-delegated}
+      - ./Cargo.toml:/app/Cargo.toml:${VOLUME_MODE:-delegated}
+      - ./Leptos.toml:/app/Leptos.toml:${VOLUME_MODE:-delegated}
+      - ./style:/app/style:${VOLUME_MODE:-delegated}
+      - ./public:/app/public:${VOLUME_MODE:-delegated}
+      # Cache volumes for development
+      - cargo-cache:/app/.cargo
+      - target-cache:/app/target
+      # Exclude node_modules
+      - /app/node_modules
+    networks:
+      - bitsacconetwork
+    tty: true
+    stdin_open: true
+  
   keycloak:
-    container_name: keycloak
     image: quay.io/keycloak/keycloak:23.0
-    restart: unless-stopped
+    container_name: keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: bitsaccoserver
+      KC_DB_PASSWORD: ${DB_PASSWORD:-password}
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: false
+      KC_HOSTNAME_STRICT_HTTPS: false
+      KC_LOG_LEVEL: info
+    command: ["start-dev", "--import-realm"]
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
     ports:
       - "8080:8080"
-    environment:
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=admin123
-      - KC_DB=postgres
-      - KC_DB_URL=jdbc:postgresql://postgres:5432/minmodb
-      - KC_DB_USERNAME=minmodb
-      - KC_DB_PASSWORD=minmodb123
-      - KC_HOSTNAME_STRICT=false
-      - KC_HOSTNAME_STRICT_HTTPS=false
-      - KC_HTTP_ENABLED=true
     depends_on:
-      - postgres
-    command: start-dev
-    volumes:
-      - keycloak_data:/opt/keycloak/data
+      postgres:
+        condition: service_healthy
+    networks:
+      - bitsacconetwork
 
   postgres:
+    image: postgres:16-alpine
     container_name: postgres
-    image: postgres:15
-    restart: unless-stopped
-    ports:
-      - "5432:5432"
     environment:
-      - POSTGRES_DB=minmodb
-      - POSTGRES_USER=minmodb
-      - POSTGRES_PASSWORD=minmodb123
+      POSTGRES_DB: bitsaccoserver
+      POSTGRES_USER: bitsaccoserver
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - bitsacconetwork
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bitsaccoserver -d bitsaccoserver"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  clientd_datadir:
-  redis_data:
-  mongodb_data:
-  keycloak_data:
   postgres_data:
+  cargo-cache:
+  target-cache:
+
+networks:
+  bitsacconetwork:
+    driver: bridge
