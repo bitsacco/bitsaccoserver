@@ -1,43 +1,31 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
-# Dependencies
-node_modules
-.pnp
-.pnp.js
-
-# Local env files
+# Environment
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
 
-# Testing
-coverage
+# IDE
+.claude/
+.cursor/
+.vscode/
+.idea/
+*.swp
+*.swo
 
-# Turbo
-.turbo
-
-# Vercel
-.vercel
-
-# Build Outputs
-.next/
-out/
-build
-dist
-
-
-# Debug
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Misc
+# OS
 .DS_Store
-*.pem
+Thumbs.db
 
-**features.json
+# Logs
+*.log
 
-# Next
-*.d.ts
+# Rust
+Cargo.lock
+
+# Node (for TailwindCSS)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build artifacts
+dist/
+build/
+target/

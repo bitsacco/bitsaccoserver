@@ -1,0 +1,18 @@
+# Minimal Leptos configuration for SSR-only mode
+# Most of these settings are not used since we're using cargo-watch instead of cargo-leptos
+
+[package]
+name = "bitsaccoserver"
+version = "0.1.0"
+
+# Basic configuration
+site-addr = "0.0.0.0:3000"
+env = "DEV"
+
+# Output configuration
+output-name = "app"
+site-root = "target/site"
+site-pkg-dir = "pkg"
+
+# Assets
+assets-dir = "public"
