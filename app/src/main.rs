@@ -97,9 +97,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Leptos routes first
         .leptos_routes(&leptos_options, routes, App)
         // Legacy NestJS-compatible auth routes (no /api prefix)
+        // TODO: Re-enable when auth_compat dependencies are fixed
+        // .nest(
+        //     "/auth",
+        //     app::api::auth_compat::compat_router(repositories.clone(), services.clone()),
+        // )
+        // Legacy NestJS-compatible shares routes (no /api prefix)
         .nest(
-            "/auth",
-            app::api::auth_compat::compat_router(repositories.clone(), services.clone()),
+            "/shares",
+            app::api::shares_compat::compat_router(repositories.clone(), services.clone()),
         )
         // API routes - comprehensive REST API
         .nest(

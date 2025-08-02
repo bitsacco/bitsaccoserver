@@ -1,11 +1,12 @@
 pub mod analytics;
 pub mod auth;
-pub mod auth_compat;
+// pub mod auth_compat; // TODO: Re-enable when dependencies are fixed
 pub mod client;
 pub mod groups;
 pub mod members;
 pub mod share_offers;
 pub mod shares;
+pub mod shares_compat;
 pub mod validation;
 
 // Re-export commonly used items for SSR mode
