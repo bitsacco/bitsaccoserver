@@ -1,5 +1,6 @@
 pub mod analytics;
 pub mod auth;
+pub mod auth_compat;
 pub mod client;
 pub mod groups;
 pub mod members;

@@ -58,7 +58,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )?;
 
     // Create application state
-    let app_state = Arc::new(AppState {
+    let _app_state = Arc::new(AppState {
         database: database.clone(),
         config: config.clone(),
         jwt_config,
@@ -96,6 +96,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         // Leptos routes first
         .leptos_routes(&leptos_options, routes, App)
+        // Legacy NestJS-compatible auth routes (no /api prefix)
+        .nest(
+            "/auth",
+            app::api::auth_compat::compat_router(repositories.clone(), services.clone()),
+        )
         // API routes - comprehensive REST API
         .nest(
             "/api",
