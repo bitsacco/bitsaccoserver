@@ -55,6 +55,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &config.jwt.public_key,
         &config.jwt.issuer,
         &config.jwt.audience,
+        &config.environment,
     )?;
 
     // Create application state
