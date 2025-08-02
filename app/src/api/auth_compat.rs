@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 use crate::middleware::auth::{extract_user_context, UserContext};
 use crate::middleware::auth_compat::{AuthCompatLayer, AuthTokens};
 use crate::repositories::Repositories;
-use crate::services::auth::{AuthServiceError, LoginRequest, RefreshTokenRequest};
+use crate::services::auth::{AuthServiceError, LoginRequest, RefreshTokenRequest, RegisterRequest, VerifyRequest, RecoverRequest};
 use crate::services::Services;
 
 /// NestJS-compatible login response format
@@ -45,6 +45,30 @@ pub struct NestJSAuthenticateResponse {
     pub user: Option<UserContext>,
 }
 
+/// NestJS-compatible register response
+#[derive(Debug, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct NestJSRegisterResponse {
+    pub userId: String,
+    pub message: String,
+    pub verificationRequired: bool,
+}
+
+/// NestJS-compatible verify response
+#[derive(Debug, Serialize, Deserialize)]
+pub struct NestJSVerifyResponse {
+    pub verified: bool,
+    pub message: String,
+}
+
+/// NestJS-compatible recover response
+#[derive(Debug, Serialize, Deserialize)]
+#[allow(non_snake_case)]
+pub struct NestJSRecoverResponse {
+    pub message: String,
+    pub resetTokenSent: bool,
+}
+
 /// Router for NestJS-compatible auth endpoints (without /api prefix)
 pub fn compat_router<S>(repositories: Repositories, services: Services) -> Router<S>
 where
@@ -55,10 +79,9 @@ where
         .route("/logout", post(compat_logout))
         .route("/refresh", post(compat_refresh))
         .route("/authenticate", post(authenticate_session))
-        // Future endpoints to implement
-        // .route("/register", post(register_user))
-        // .route("/verify", post(verify_user))
-        // .route("/recover", post(recover_account))
+        .route("/register", post(register_user))
+        .route("/verify", post(verify_user))
+        .route("/recover", post(recover_account))
         .with_state((repositories, services))
 }
 
@@ -232,6 +255,79 @@ pub async fn authenticate_session(
     }
 }
 
+/// NestJS-compatible user registration endpoint
+pub async fn register_user(
+    State((_, services)): State<(Repositories, Services)>,
+    Json(register_request): Json<RegisterRequest>,
+) -> Result<Json<NestJSRegisterResponse>, (StatusCode, Json<NestJSErrorResponse>)> {
+    match services.auth.register(register_request).await {
+        Ok(register_response) => {
+            let response = NestJSRegisterResponse {
+                userId: register_response.user_id,
+                message: register_response.message,
+                verificationRequired: register_response.verification_required,
+            };
+            Ok(Json(response))
+        }
+        Err(e) => {
+            let error_response = NestJSErrorResponse {
+                statusCode: 400,
+                message: e.to_string(),
+                error: "Bad Request".to_string(),
+            };
+            Err((StatusCode::BAD_REQUEST, Json(error_response)))
+        }
+    }
+}
+
+/// NestJS-compatible user verification endpoint
+pub async fn verify_user(
+    State((_, services)): State<(Repositories, Services)>,
+    Json(verify_request): Json<VerifyRequest>,
+) -> Result<Json<NestJSVerifyResponse>, (StatusCode, Json<NestJSErrorResponse>)> {
+    match services.auth.verify(verify_request).await {
+        Ok(verify_response) => {
+            let response = NestJSVerifyResponse {
+                verified: verify_response.verified,
+                message: verify_response.message,
+            };
+            Ok(Json(response))
+        }
+        Err(e) => {
+            let error_response = NestJSErrorResponse {
+                statusCode: 400,
+                message: e.to_string(),
+                error: "Bad Request".to_string(),
+            };
+            Err((StatusCode::BAD_REQUEST, Json(error_response)))
+        }
+    }
+}
+
+/// NestJS-compatible account recovery endpoint
+pub async fn recover_account(
+    State((_, services)): State<(Repositories, Services)>,
+    Json(recover_request): Json<RecoverRequest>,
+) -> Result<Json<NestJSRecoverResponse>, (StatusCode, Json<NestJSErrorResponse>)> {
+    match services.auth.recover(recover_request).await {
+        Ok(recover_response) => {
+            let response = NestJSRecoverResponse {
+                message: recover_response.message,
+                resetTokenSent: recover_response.reset_token_sent,
+            };
+            Ok(Json(response))
+        }
+        Err(e) => {
+            let error_response = NestJSErrorResponse {
+                statusCode: 500,
+                message: e.to_string(),
+                error: "Internal Server Error".to_string(),
+            };
+            Err((StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)))
+        }
+    }
+}
+
 /// Helper function to convert AuthServiceError to NestJS error response
 #[allow(dead_code)]
 fn auth_error_to_nestjs_response(
@@ -321,5 +417,48 @@ mod tests {
 
         assert!(!unauth_response.authenticated);
         assert!(unauth_response.user.is_none());
+    }
+
+    #[test]
+    fn test_register_response_format() {
+        let response = NestJSRegisterResponse {
+            userId: "test-user-id".to_string(),
+            message: "User registered successfully".to_string(),
+            verificationRequired: true,
+        };
+
+        assert_eq!(response.userId, "test-user-id");
+        assert_eq!(response.message, "User registered successfully");
+        assert!(response.verificationRequired);
+    }
+
+    #[test]
+    fn test_verify_response_format() {
+        let success_response = NestJSVerifyResponse {
+            verified: true,
+            message: "Email verified successfully".to_string(),
+        };
+
+        assert!(success_response.verified);
+        assert_eq!(success_response.message, "Email verified successfully");
+
+        let error_response = NestJSVerifyResponse {
+            verified: false,
+            message: "Invalid OTP code".to_string(),
+        };
+
+        assert!(!error_response.verified);
+        assert_eq!(error_response.message, "Invalid OTP code");
+    }
+
+    #[test]
+    fn test_recover_response_format() {
+        let response = NestJSRecoverResponse {
+            message: "Password reset email sent".to_string(),
+            resetTokenSent: true,
+        };
+
+        assert_eq!(response.message, "Password reset email sent");
+        assert!(response.resetTokenSent);
     }
 }
