@@ -1,18 +1,19 @@
 use ::entity::shares::OwnerType;
 use axum::{
-    extract::{Path, Query, State, Request},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::{IntoResponse, Json},
     routing::{get, post},
     Router,
     middleware,
+    Extension,
 };
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
-    middleware::auth::{auth_middleware, extract_user_context},
+    middleware::auth::{auth_middleware, UserContext},
     repositories::Repositories,
     server::state::AppState as MainAppState,
     services::{
@@ -21,71 +22,155 @@ use crate::{
     },
 };
 
-/// Creates the shares compatibility router for NestJS API compatibility
-/// This router provides endpoints without the /api prefix for direct NestJS compatibility
-pub fn compat_router<S>(repositories: Repositories, services: Services) -> Router<S> {
-    Router::new()
-        .route("/offer", post(create_share_offer))
-        .route("/offers", get(get_all_share_offers))
-        .route("/subscribe", post(subscribe_to_shares))
-        .route("/transfer", post(transfer_shares))
-        .route("/update", post(update_shares))
-        .route("/transactions", get(get_all_transactions))
-        .route("/transactions/:userId", get(get_user_transactions))
-        .route("/transactions/find/:sharesId", get(find_transaction_by_shares_id))
-        .with_state(AppState {
+/// Builder for creating shares compatibility routers
+struct SharesRouterBuilder {
+    repositories: Repositories,
+    services: Services,
+}
+
+impl SharesRouterBuilder {
+    /// Create a new router builder
+    pub fn new(repositories: Repositories, services: Services) -> Self {
+        Self {
             repositories,
             services,
-        })
+        }
+    }
+
+    /// Build the base router with all routes defined
+    fn build_base_router() -> Router<UnifiedAppState> {
+        Router::new()
+            .route("/offer", post(create_share_offer))
+            .route("/offers", get(get_all_share_offers))
+            .route("/subscribe", post(subscribe_to_shares))
+            .route("/transfer", post(transfer_shares))
+            .route("/update", post(update_shares))
+            .route("/transactions", get(get_all_transactions))
+            .route("/transactions/:userId", get(get_user_transactions))
+            .route("/transactions/find/:sharesId", get(find_transaction_by_shares_id))
+    }
+
+    /// Build a secure router with all routes using secure handlers
+    fn build_secure_router() -> Router<UnifiedAppState> {
+        Router::new()
+            .route("/offer", post(secure_create_share_offer))
+            .route("/offers", get(secure_get_all_share_offers))
+            .route("/subscribe", post(secure_subscribe_to_shares))
+            .route("/transfer", post(secure_transfer_shares))
+            .route("/update", post(secure_update_shares))
+            .route("/transactions", get(secure_get_all_transactions))
+            .route("/transactions/:userId", get(secure_get_user_transactions))
+            .route("/transactions/find/:sharesId", get(secure_find_transaction_by_shares_id))
+    }
+
+    /// Creates the shares compatibility router for NestJS API compatibility
+    /// This router provides endpoints without the /api prefix for direct NestJS compatibility
+    pub fn build<S>(self) -> Router<S> {
+        Self::build_base_router()
+            .with_state(UnifiedAppState {
+                main_state: None,
+                repositories: self.repositories,
+                services: self.services,
+            })
+    }
+
+    /// Creates the shares compatibility router (non-generic version)
+    pub fn build_concrete(self) -> Router {
+        Self::build_base_router()
+            .with_state(UnifiedAppState {
+                main_state: None,
+                repositories: self.repositories,
+                services: self.services,
+            })
+    }
+
+    /// Creates a secure shares compatibility router with authentication middleware
+    pub fn build_secure(self, main_state: MainAppState) -> Router {
+        // Apply auth middleware first with the main state
+        Self::build_secure_router()
+            .layer(middleware::from_fn_with_state(main_state.clone(), auth_middleware))
+            .with_state(UnifiedAppState {
+                main_state: Some(main_state),
+                repositories: self.repositories,
+                services: self.services,
+            })
+    }
 }
 
 /// Creates the shares compatibility router for NestJS API compatibility
+/// This router provides endpoints without the /api prefix for direct NestJS compatibility
+pub fn compat_router<S>(repositories: Repositories, services: Services) -> Router<S> {
+    SharesRouterBuilder::new(repositories, services).build()
+}
+
+/// Creates the shares compatibility router for NestJS API compatibility (concrete type)
 pub fn router(repositories: Repositories, services: Services) -> Router {
-    Router::new()
-        .route("/offer", post(create_share_offer))
-        .route("/offers", get(get_all_share_offers))
-        .route("/subscribe", post(subscribe_to_shares))
-        .route("/transfer", post(transfer_shares))
-        .route("/update", post(update_shares))
-        .route("/transactions", get(get_all_transactions))
-        .route("/transactions/:userId", get(get_user_transactions))
-        .route("/transactions/find/:sharesId", get(find_transaction_by_shares_id))
-        .with_state(AppState {
-            repositories,
-            services,
-        })
+    SharesRouterBuilder::new(repositories, services).build_concrete()
 }
 
 /// Creates a secure shares compatibility router with authentication middleware
 pub fn secure_compat_router(main_state: MainAppState, repositories: Repositories, services: Services) -> Router {
-    Router::new()
-        .route("/offer", post(secure_create_share_offer))
-        .route("/offers", get(secure_get_all_share_offers))
-        .route("/subscribe", post(secure_subscribe_to_shares))
-        .route("/transfer", post(secure_transfer_shares))
-        .route("/update", post(secure_update_shares))
-        .route("/transactions", get(secure_get_all_transactions))
-        .route("/transactions/:userId", get(secure_get_user_transactions))
-        .route("/transactions/find/:sharesId", get(secure_find_transaction_by_shares_id))
-        .layer(middleware::from_fn_with_state(main_state.clone(), auth_middleware))
-        .with_state(SecureAppState {
-            main_state,
-            repositories,
-            services,
-        })
+    SharesRouterBuilder::new(repositories, services).build_secure(main_state)
 }
 
+/// Legacy app state for backward compatibility
 #[derive(Clone)]
 pub struct AppState {
     repositories: Repositories,
     services: Services,
 }
 
+/// Legacy secure app state for backward compatibility
 #[derive(Clone)]
 pub struct SecureAppState {
     pub main_state: MainAppState,
     pub repositories: Repositories,
     pub services: Services,
+}
+
+/// Unified app state that can work with or without authentication
+#[derive(Clone)]
+pub struct UnifiedAppState {
+    pub main_state: Option<MainAppState>,
+    pub repositories: Repositories,
+    pub services: Services,
+}
+
+impl UnifiedAppState {
+    /// Create a new unified state without authentication
+    pub fn new(repositories: Repositories, services: Services) -> Self {
+        Self {
+            main_state: None,
+            repositories,
+            services,
+        }
+    }
+
+    /// Create a new unified state with authentication
+    pub fn with_auth(main_state: MainAppState, repositories: Repositories, services: Services) -> Self {
+        Self {
+            main_state: Some(main_state),
+            repositories,
+            services,
+        }
+    }
+
+    /// Convert to legacy AppState for compatibility
+    pub fn to_app_state(&self) -> AppState {
+        AppState {
+            repositories: self.repositories.clone(),
+            services: self.services.clone(),
+        }
+    }
+
+    /// Convert to legacy SecureAppState for compatibility (requires main_state)
+    pub fn to_secure_app_state(&self) -> Option<SecureAppState> {
+        self.main_state.as_ref().map(|main_state| SecureAppState {
+            main_state: main_state.clone(),
+            repositories: self.repositories.clone(),
+            services: self.services.clone(),
+        })
+    }
 }
 
 // DTO structs matching NestJS API
@@ -250,7 +335,7 @@ fn format_datetime(dt: chrono::DateTime<chrono::Utc>) -> String {
 
 /// POST /shares/offer - Create a new share offer (NestJS compatibility)
 pub async fn create_share_offer(
-    State(state): State<AppState>,
+    State(state): State<UnifiedAppState>,
     Json(request): Json<OfferSharesDto>,
 ) -> impl IntoResponse {
     // Parse and validate input
@@ -418,7 +503,7 @@ pub async fn create_share_offer(
 }
 
 /// GET /shares/offers - Get all share offers (NestJS compatibility)
-pub async fn get_all_share_offers(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn get_all_share_offers(State(state): State<UnifiedAppState>) -> impl IntoResponse {
     match state.repositories.share_offers.find_all().await {
         Ok(offers) => {
             // Convert all offers to compatible format
@@ -473,7 +558,7 @@ pub async fn get_all_share_offers(State(state): State<AppState>) -> impl IntoRes
 
 /// POST /shares/subscribe - Subscribe to shares (maps to purchase) (NestJS compatibility)
 pub async fn subscribe_to_shares(
-    State(state): State<AppState>,
+    State(state): State<UnifiedAppState>,
     Json(request): Json<SubscribeSharesDto>,
 ) -> impl IntoResponse {
     // Parse and validate input
@@ -592,7 +677,7 @@ pub async fn subscribe_to_shares(
 
 /// POST /shares/transfer - Transfer shares (NestJS compatibility)
 pub async fn transfer_shares(
-    State(state): State<AppState>,
+    State(state): State<UnifiedAppState>,
     Json(request): Json<TransferSharesDto>,
 ) -> impl IntoResponse {
     // Parse and validate input
@@ -704,7 +789,7 @@ pub async fn transfer_shares(
 
 /// POST /shares/update - Update shares (NestJS compatibility)
 pub async fn update_shares(
-    State(state): State<AppState>,
+    State(state): State<UnifiedAppState>,
     Json(request): Json<UpdateSharesDto>,
 ) -> impl IntoResponse {
     // Parse and validate input
@@ -753,7 +838,7 @@ pub async fn update_shares(
 
 /// GET /shares/transactions - Get all share transactions (NestJS compatibility)
 pub async fn get_all_transactions(
-    State(state): State<AppState>,
+    State(state): State<UnifiedAppState>,
     Query(query): Query<PaginationQuery>,
 ) -> impl IntoResponse {
     // Get all shares as transactions (our current model doesn't have separate transactions)
@@ -819,7 +904,7 @@ pub async fn get_all_transactions(
 
 /// GET /shares/transactions/:userId - Get user's share transactions with pagination (NestJS compatibility)
 pub async fn get_user_transactions(
-    State(state): State<AppState>,
+    State(state): State<UnifiedAppState>,
     Path(user_id_str): Path<String>,
     Query(query): Query<PaginationQuery>,
 ) -> impl IntoResponse {
@@ -897,7 +982,7 @@ pub async fn get_user_transactions(
 
 /// GET /shares/transactions/find/:sharesId - Find specific transaction by shares ID (NestJS compatibility)
 pub async fn find_transaction_by_shares_id(
-    State(state): State<AppState>,
+    State(state): State<UnifiedAppState>,
     Path(shares_id_str): Path<String>,
 ) -> impl IntoResponse {
     let shares_id = match parse_uuid(&shares_id_str) {
@@ -951,15 +1036,10 @@ pub async fn find_transaction_by_shares_id(
 
 /// POST /shares/offer - Create a new share offer (Secure version with authentication)
 pub async fn secure_create_share_offer(
-    State(state): State<SecureAppState>,
-    request: Request,
+    State(state): State<UnifiedAppState>,
+    Extension(user_context): Extension<UserContext>,
     Json(offer_request): Json<OfferSharesDto>,
 ) -> impl IntoResponse {
-    // Extract user context from authenticated request
-    let user_context = match extract_user_context(&request) {
-        Ok(user) => user,
-        Err(status) => return status.into_response(),
-    };
 
     // Set the created_by field to the authenticated user
     let mut secure_request = offer_request;
@@ -967,45 +1047,29 @@ pub async fn secure_create_share_offer(
 
     // Call the original implementation with the modified request
     create_share_offer(
-        State(AppState {
-            repositories: state.repositories,
-            services: state.services,
-        }),
+        State(state.clone()),
         Json(secure_request),
-    ).await
+    ).await.into_response()
 }
 
 /// GET /shares/offers - Get all share offers (Secure version with authentication)  
 pub async fn secure_get_all_share_offers(
-    State(state): State<SecureAppState>,
-    request: Request,
+    State(state): State<UnifiedAppState>,
+    Extension(_user_context): Extension<UserContext>,
 ) -> impl IntoResponse {
-    // Extract user context from authenticated request
-    let _user_context = match extract_user_context(&request) {
-        Ok(user) => user,
-        Err(status) => return status.into_response(),
-    };
 
     // Call the original implementation
     get_all_share_offers(
-        State(AppState {
-            repositories: state.repositories,
-            services: state.services,
-        }),
-    ).await
+        State(state.clone()),
+    ).await.into_response()
 }
 
 /// POST /shares/subscribe - Subscribe to shares (Secure version with authentication)
 pub async fn secure_subscribe_to_shares(
-    State(state): State<SecureAppState>,
-    request: Request,
+    State(state): State<UnifiedAppState>,
+    Extension(user_context): Extension<UserContext>,
     Json(subscribe_request): Json<SubscribeSharesDto>,
 ) -> impl IntoResponse {
-    // Extract user context from authenticated request
-    let user_context = match extract_user_context(&request) {
-        Ok(user) => user,
-        Err(status) => return status.into_response(),
-    };
 
     // Validate that the user can only subscribe for themselves (if owner_type is member)
     if subscribe_request.owner_type.to_lowercase() == "member" {
@@ -1037,25 +1101,17 @@ pub async fn secure_subscribe_to_shares(
 
     // Call the original implementation
     subscribe_to_shares(
-        State(AppState {
-            repositories: state.repositories,
-            services: state.services,
-        }),
+        State(state.clone()),
         Json(secure_request),
-    ).await
+    ).await.into_response()
 }
 
 /// POST /shares/transfer - Transfer shares (Secure version with authentication)
 pub async fn secure_transfer_shares(
-    State(state): State<SecureAppState>,
-    request: Request,
+    State(state): State<UnifiedAppState>,
+    Extension(user_context): Extension<UserContext>,
     Json(transfer_request): Json<TransferSharesDto>,
 ) -> impl IntoResponse {
-    // Extract user context from authenticated request
-    let user_context = match extract_user_context(&request) {
-        Ok(user) => user,
-        Err(status) => return status.into_response(),
-    };
 
     // Validate ownership of the share being transferred
     let share_id = match Uuid::parse_str(&transfer_request.share_id) {
@@ -1104,43 +1160,29 @@ pub async fn secure_transfer_shares(
 
     // Call the original implementation
     transfer_shares(
-        State(AppState {
-            repositories: state.repositories,
-            services: state.services,
-        }),
+        State(state.clone()),
         Json(secure_request),
-    ).await
+    ).await.into_response()
 }
 
 // Placeholder implementations for remaining secure handlers
 pub async fn secure_update_shares(
-    State(state): State<SecureAppState>,
-    request: Request,
+    State(state): State<UnifiedAppState>,
+    Extension(_user_context): Extension<UserContext>,
     Json(update_request): Json<UpdateSharesDto>,
 ) -> impl IntoResponse {
-    let _user_context = match extract_user_context(&request) {
-        Ok(user) => user,
-        Err(status) => return status.into_response(),
-    };
 
     update_shares(
-        State(AppState {
-            repositories: state.repositories,
-            services: state.services,
-        }),
+        State(state.clone()),
         Json(update_request),
-    ).await
+    ).await.into_response()
 }
 
 pub async fn secure_get_all_transactions(
-    State(state): State<SecureAppState>,
-    request: Request,
+    State(state): State<UnifiedAppState>,
+    Extension(user_context): Extension<UserContext>,
     Query(query): Query<PaginationQuery>,
 ) -> impl IntoResponse {
-    let user_context = match extract_user_context(&request) {
-        Ok(user) => user,
-        Err(status) => return status.into_response(),
-    };
 
     if !user_context.roles.contains(&"admin".to_string()) {
         return (
@@ -1153,24 +1195,17 @@ pub async fn secure_get_all_transactions(
     }
 
     get_all_transactions(
-        State(AppState {
-            repositories: state.repositories,
-            services: state.services,
-        }),
+        State(state.clone()),
         Query(query),
-    ).await
+    ).await.into_response()
 }
 
 pub async fn secure_get_user_transactions(
-    State(state): State<SecureAppState>,
-    request: Request,
+    State(state): State<UnifiedAppState>,
+    Extension(user_context): Extension<UserContext>,
     Path(user_id_str): Path<String>,
     Query(query): Query<PaginationQuery>,
 ) -> impl IntoResponse {
-    let user_context = match extract_user_context(&request) {
-        Ok(user) => user,
-        Err(status) => return status.into_response(),
-    };
 
     let requested_user_id = match Uuid::parse_str(&user_id_str) {
         Ok(id) => id,
@@ -1194,30 +1229,20 @@ pub async fn secure_get_user_transactions(
     }
 
     get_user_transactions(
-        State(AppState {
-            repositories: state.repositories,
-            services: state.services,
-        }),
+        State(state.clone()),
         Path(user_id_str),
         Query(query),
-    ).await
+    ).await.into_response()
 }
 
 pub async fn secure_find_transaction_by_shares_id(
-    State(state): State<SecureAppState>,
-    request: Request,
+    State(state): State<UnifiedAppState>,
+    Extension(_user_context): Extension<UserContext>,
     Path(shares_id_str): Path<String>,
 ) -> impl IntoResponse {
-    let _user_context = match extract_user_context(&request) {
-        Ok(user) => user,
-        Err(status) => return status.into_response(),
-    };
 
     find_transaction_by_shares_id(
-        State(AppState {
-            repositories: state.repositories,
-            services: state.services,
-        }),
+        State(state.clone()),
         Path(shares_id_str),
-    ).await
+    ).await.into_response()
 }
