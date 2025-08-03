@@ -1,10 +1,13 @@
-use crate::middleware::auth::UserContext;
+use crate::middleware::auth::{UserContext, Claims};
+#[cfg(test)]
+use crate::middleware::auth::{RealmAccess, ResourceAccess};
 use crate::repositories::Repositories;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
 use uuid::Uuid;
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 
 #[derive(Debug, Error)]
 pub enum AuthServiceError {
@@ -127,6 +130,7 @@ impl KeycloakConfig {
     }
 }
 
+
 #[derive(Clone)]
 pub struct AuthService {
     #[allow(dead_code)]
@@ -234,9 +238,56 @@ impl AuthService {
         }
     }
 
-    pub async fn get_user_info(&self, _access_token: &str) -> Result<UserContext, AuthServiceError> {
-        // TODO: Add base64 dependency and implement JWT decoding
-        Err(AuthServiceError::AuthenticationFailed("JWT decoding not implemented yet".to_string()))
+    pub async fn get_user_info(&self, access_token: &str) -> Result<UserContext, AuthServiceError> {
+        // Decode JWT without signature validation since this is typically called after middleware validation
+        // We disable signature validation but still parse the claims structure
+        let mut validation = Validation::new(Algorithm::HS256);
+        validation.insecure_disable_signature_validation();
+        validation.validate_exp = false;
+        validation.validate_nbf = false;
+        validation.validate_aud = false;
+        
+        let token_data = decode::<Claims>(
+            access_token,
+            &DecodingKey::from_secret(&[]), // Dummy key since signature validation is disabled
+            &validation,
+        ).map_err(|e| AuthServiceError::AuthenticationFailed(
+            format!("Failed to decode JWT: {}", e)
+        ))?;
+
+        let claims = token_data.claims;
+
+        // Extract user ID from subject claim
+        let user_id = Uuid::parse_str(&claims.sub)
+            .map_err(|_| AuthServiceError::AuthenticationFailed(
+                "Invalid user ID in JWT".to_string()
+            ))?;
+
+        // Extract roles from realm access
+        let roles = claims.realm_access
+            .as_ref()
+            .map(|ra| ra.roles.clone())
+            .unwrap_or_default();
+
+        // Extract groups
+        let groups = claims.groups.unwrap_or_default();
+
+        // Extract resource access
+        let resource_access = claims.resource_access.unwrap_or_default();
+
+        // Create UserContext
+        let user_context = UserContext {
+            user_id,
+            email: claims.email,
+            username: claims.preferred_username,
+            given_name: claims.given_name,
+            family_name: claims.family_name,
+            roles,
+            groups,
+            resource_access,
+        };
+
+        Ok(user_context)
     }
 
     pub async fn validate_user_permissions(
@@ -436,3 +487,147 @@ impl AuthService {
 }
 
 pub type AuthServiceResult<T> = Result<T, AuthServiceError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repositories::Repositories;
+    use std::collections::HashMap;
+    use uuid::Uuid;
+    use jsonwebtoken::{encode, EncodingKey, Header, Algorithm};
+
+    fn create_test_auth_service() -> AuthService {
+        let repositories = Repositories::new(std::sync::Arc::new(
+            sea_orm::DatabaseConnection::Disconnected
+        ));
+        let keycloak_config = KeycloakConfig {
+            realm: "test".to_string(),
+            client_id: "test-client".to_string(),
+            client_secret: "test-secret".to_string(),
+            server_url: "http://localhost:8080".to_string(),
+        };
+        AuthService::new(repositories, keycloak_config)
+    }
+
+    fn create_test_jwt(claims: Claims) -> String {
+        let header = Header::new(Algorithm::HS256);
+        let encoding_key = EncodingKey::from_secret(b"test-secret");
+        encode(&header, &claims, &encoding_key).unwrap()
+    }
+
+    #[tokio::test]
+    async fn test_get_user_info_success() {
+        let auth_service = create_test_auth_service();
+        
+        let user_id = Uuid::new_v4();
+        let claims = Claims {
+            sub: user_id.to_string(),
+            exp: 9999999999,
+            iat: 1234567890,
+            iss: "http://localhost:8080/realms/test".to_string(),
+            aud: serde_json::Value::String("test-client".to_string()),
+            email: "test@example.com".to_string(),
+            preferred_username: "testuser".to_string(),
+            given_name: Some("Test".to_string()),
+            family_name: Some("User".to_string()),
+            realm_access: Some(RealmAccess {
+                roles: vec!["user".to_string(), "admin".to_string()],
+            }),
+            resource_access: Some({
+                let mut map = HashMap::new();
+                map.insert("test-client".to_string(), ResourceAccess {
+                    roles: vec!["client-role".to_string()],
+                });
+                map
+            }),
+            groups: Some(vec!["group1".to_string(), "group2".to_string()]),
+        };
+
+        let jwt = create_test_jwt(claims);
+        let result = auth_service.get_user_info(&jwt).await;
+        
+        assert!(result.is_ok());
+        let user_context = result.unwrap();
+        
+        assert_eq!(user_context.user_id, user_id);
+        assert_eq!(user_context.email, "test@example.com");
+        assert_eq!(user_context.username, "testuser");
+        assert_eq!(user_context.given_name, Some("Test".to_string()));
+        assert_eq!(user_context.family_name, Some("User".to_string()));
+        assert_eq!(user_context.roles, vec!["user", "admin"]);
+        assert_eq!(user_context.groups, vec!["group1", "group2"]);
+        assert!(user_context.resource_access.contains_key("test-client"));
+    }
+
+    #[tokio::test]
+    async fn test_get_user_info_invalid_user_id() {
+        let auth_service = create_test_auth_service();
+        
+        let claims = Claims {
+            sub: "invalid-uuid".to_string(),
+            exp: 9999999999,
+            iat: 1234567890,
+            iss: "http://localhost:8080/realms/test".to_string(),
+            aud: serde_json::Value::String("test-client".to_string()),
+            email: "test@example.com".to_string(),
+            preferred_username: "testuser".to_string(),
+            given_name: None,
+            family_name: None,
+            realm_access: None,
+            resource_access: None,
+            groups: None,
+        };
+
+        let jwt = create_test_jwt(claims);
+        let result = auth_service.get_user_info(&jwt).await;
+        
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Invalid user ID"));
+    }
+
+    #[tokio::test]
+    async fn test_get_user_info_minimal_claims() {
+        let auth_service = create_test_auth_service();
+        
+        let user_id = Uuid::new_v4();
+        let claims = Claims {
+            sub: user_id.to_string(),
+            exp: 9999999999,
+            iat: 1234567890,
+            iss: "http://localhost:8080/realms/test".to_string(),
+            aud: serde_json::Value::String("test-client".to_string()),
+            email: "test@example.com".to_string(),
+            preferred_username: "testuser".to_string(),
+            given_name: None,
+            family_name: None,
+            realm_access: None,
+            resource_access: None,
+            groups: None,
+        };
+
+        let jwt = create_test_jwt(claims);
+        let result = auth_service.get_user_info(&jwt).await;
+        
+        assert!(result.is_ok());
+        let user_context = result.unwrap();
+        
+        assert_eq!(user_context.user_id, user_id);
+        assert_eq!(user_context.email, "test@example.com");
+        assert_eq!(user_context.username, "testuser");
+        assert_eq!(user_context.given_name, None);
+        assert_eq!(user_context.family_name, None);
+        assert!(user_context.roles.is_empty());
+        assert!(user_context.groups.is_empty());
+        assert!(user_context.resource_access.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_get_user_info_invalid_jwt() {
+        let auth_service = create_test_auth_service();
+        
+        let result = auth_service.get_user_info("invalid.jwt.token").await;
+        
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Failed to decode JWT"));
+    }
+}
