@@ -1,17 +1,20 @@
 use ::entity::shares::OwnerType;
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, Query, State, Request},
     http::StatusCode,
     response::{IntoResponse, Json},
     routing::{get, post},
     Router,
+    middleware,
 };
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::{
+    middleware::auth::{auth_middleware, extract_user_context},
     repositories::Repositories,
+    server::state::AppState as MainAppState,
     services::{
         share_purchase::{SharePurchaseRequest, ShareTransferRequest},
         Services,
@@ -53,10 +56,36 @@ pub fn router(repositories: Repositories, services: Services) -> Router {
         })
 }
 
+/// Creates a secure shares compatibility router with authentication middleware
+pub fn secure_compat_router(main_state: MainAppState, repositories: Repositories, services: Services) -> Router {
+    Router::new()
+        .route("/offer", post(secure_create_share_offer))
+        .route("/offers", get(secure_get_all_share_offers))
+        .route("/subscribe", post(secure_subscribe_to_shares))
+        .route("/transfer", post(secure_transfer_shares))
+        .route("/update", post(secure_update_shares))
+        .route("/transactions", get(secure_get_all_transactions))
+        .route("/transactions/:userId", get(secure_get_user_transactions))
+        .route("/transactions/find/:sharesId", get(secure_find_transaction_by_shares_id))
+        .layer(middleware::from_fn_with_state(main_state.clone(), auth_middleware))
+        .with_state(SecureAppState {
+            main_state,
+            repositories,
+            services,
+        })
+}
+
 #[derive(Clone)]
 pub struct AppState {
     repositories: Repositories,
     services: Services,
+}
+
+#[derive(Clone)]
+pub struct SecureAppState {
+    pub main_state: MainAppState,
+    pub repositories: Repositories,
+    pub services: Services,
 }
 
 // DTO structs matching NestJS API
@@ -916,4 +945,279 @@ pub async fn find_transaction_by_shares_id(
             ).into_response()
         }
     }
+}
+
+// Secure endpoint implementations with authentication
+
+/// POST /shares/offer - Create a new share offer (Secure version with authentication)
+pub async fn secure_create_share_offer(
+    State(state): State<SecureAppState>,
+    request: Request,
+    Json(offer_request): Json<OfferSharesDto>,
+) -> impl IntoResponse {
+    // Extract user context from authenticated request
+    let user_context = match extract_user_context(&request) {
+        Ok(user) => user,
+        Err(status) => return status.into_response(),
+    };
+
+    // Set the created_by field to the authenticated user
+    let mut secure_request = offer_request;
+    secure_request.created_by = Some(user_context.user_id.to_string());
+
+    // Call the original implementation with the modified request
+    create_share_offer(
+        State(AppState {
+            repositories: state.repositories,
+            services: state.services,
+        }),
+        Json(secure_request),
+    ).await
+}
+
+/// GET /shares/offers - Get all share offers (Secure version with authentication)  
+pub async fn secure_get_all_share_offers(
+    State(state): State<SecureAppState>,
+    request: Request,
+) -> impl IntoResponse {
+    // Extract user context from authenticated request
+    let _user_context = match extract_user_context(&request) {
+        Ok(user) => user,
+        Err(status) => return status.into_response(),
+    };
+
+    // Call the original implementation
+    get_all_share_offers(
+        State(AppState {
+            repositories: state.repositories,
+            services: state.services,
+        }),
+    ).await
+}
+
+/// POST /shares/subscribe - Subscribe to shares (Secure version with authentication)
+pub async fn secure_subscribe_to_shares(
+    State(state): State<SecureAppState>,
+    request: Request,
+    Json(subscribe_request): Json<SubscribeSharesDto>,
+) -> impl IntoResponse {
+    // Extract user context from authenticated request
+    let user_context = match extract_user_context(&request) {
+        Ok(user) => user,
+        Err(status) => return status.into_response(),
+    };
+
+    // Validate that the user can only subscribe for themselves (if owner_type is member)
+    if subscribe_request.owner_type.to_lowercase() == "member" {
+        let owner_id = match Uuid::parse_str(&subscribe_request.owner_id) {
+            Ok(id) => id,
+            Err(_) => return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_owner_id",
+                    "message": "Invalid owner ID format"
+                }))
+            ).into_response(),
+        };
+
+        if owner_id != user_context.user_id {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "error": "unauthorized",
+                    "message": "Users can only subscribe to shares for themselves"
+                }))
+            ).into_response();
+        }
+    }
+
+    // Set the purchased_by field to the authenticated user
+    let mut secure_request = subscribe_request;
+    secure_request.purchased_by = Some(user_context.user_id.to_string());
+
+    // Call the original implementation
+    subscribe_to_shares(
+        State(AppState {
+            repositories: state.repositories,
+            services: state.services,
+        }),
+        Json(secure_request),
+    ).await
+}
+
+/// POST /shares/transfer - Transfer shares (Secure version with authentication)
+pub async fn secure_transfer_shares(
+    State(state): State<SecureAppState>,
+    request: Request,
+    Json(transfer_request): Json<TransferSharesDto>,
+) -> impl IntoResponse {
+    // Extract user context from authenticated request
+    let user_context = match extract_user_context(&request) {
+        Ok(user) => user,
+        Err(status) => return status.into_response(),
+    };
+
+    // Validate ownership of the share being transferred
+    let share_id = match Uuid::parse_str(&transfer_request.share_id) {
+        Ok(id) => id,
+        Err(_) => return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "invalid_share_id",
+                "message": "Invalid share ID format"
+            }))
+        ).into_response(),
+    };
+
+    // Check if the user owns the share they're trying to transfer
+    match state.repositories.shares.find_by_id(share_id).await {
+        Ok(Some(share)) => {
+            if share.owner_id != user_context.user_id {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(serde_json::json!({
+                        "error": "unauthorized",
+                        "message": "You can only transfer shares you own"
+                    }))
+                ).into_response();
+            }
+        }
+        Ok(None) => return (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({
+                "error": "share_not_found",
+                "message": "Share not found"
+            }))
+        ).into_response(),
+        Err(_) => return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({
+                "error": "database_error",
+                "message": "Failed to verify share ownership"
+            }))
+        ).into_response(),
+    }
+
+    // Set the transferred_by field to the authenticated user
+    let mut secure_request = transfer_request;
+    secure_request.transferred_by = Some(user_context.user_id.to_string());
+
+    // Call the original implementation
+    transfer_shares(
+        State(AppState {
+            repositories: state.repositories,
+            services: state.services,
+        }),
+        Json(secure_request),
+    ).await
+}
+
+// Placeholder implementations for remaining secure handlers
+pub async fn secure_update_shares(
+    State(state): State<SecureAppState>,
+    request: Request,
+    Json(update_request): Json<UpdateSharesDto>,
+) -> impl IntoResponse {
+    let _user_context = match extract_user_context(&request) {
+        Ok(user) => user,
+        Err(status) => return status.into_response(),
+    };
+
+    update_shares(
+        State(AppState {
+            repositories: state.repositories,
+            services: state.services,
+        }),
+        Json(update_request),
+    ).await
+}
+
+pub async fn secure_get_all_transactions(
+    State(state): State<SecureAppState>,
+    request: Request,
+    Query(query): Query<PaginationQuery>,
+) -> impl IntoResponse {
+    let user_context = match extract_user_context(&request) {
+        Ok(user) => user,
+        Err(status) => return status.into_response(),
+    };
+
+    if !user_context.roles.contains(&"admin".to_string()) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({
+                "error": "unauthorized",
+                "message": "Only administrators can view all transactions"
+            }))
+        ).into_response();
+    }
+
+    get_all_transactions(
+        State(AppState {
+            repositories: state.repositories,
+            services: state.services,
+        }),
+        Query(query),
+    ).await
+}
+
+pub async fn secure_get_user_transactions(
+    State(state): State<SecureAppState>,
+    request: Request,
+    Path(user_id_str): Path<String>,
+    Query(query): Query<PaginationQuery>,
+) -> impl IntoResponse {
+    let user_context = match extract_user_context(&request) {
+        Ok(user) => user,
+        Err(status) => return status.into_response(),
+    };
+
+    let requested_user_id = match Uuid::parse_str(&user_id_str) {
+        Ok(id) => id,
+        Err(_) => return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "invalid_user_id",
+                "message": "Invalid user ID format"
+            }))
+        ).into_response(),
+    };
+
+    if requested_user_id != user_context.user_id && !user_context.roles.contains(&"admin".to_string()) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({
+                "error": "unauthorized",
+                "message": "You can only view your own transactions"
+            }))
+        ).into_response();
+    }
+
+    get_user_transactions(
+        State(AppState {
+            repositories: state.repositories,
+            services: state.services,
+        }),
+        Path(user_id_str),
+        Query(query),
+    ).await
+}
+
+pub async fn secure_find_transaction_by_shares_id(
+    State(state): State<SecureAppState>,
+    request: Request,
+    Path(shares_id_str): Path<String>,
+) -> impl IntoResponse {
+    let _user_context = match extract_user_context(&request) {
+        Ok(user) => user,
+        Err(status) => return status.into_response(),
+    };
+
+    find_transaction_by_shares_id(
+        State(AppState {
+            repositories: state.repositories,
+            services: state.services,
+        }),
+        Path(shares_id_str),
+    ).await
 }
