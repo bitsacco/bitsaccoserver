@@ -4,6 +4,8 @@ mod m20250703_000001_initial_schema;
 mod m20250703_000002_indexes_and_views;
 mod m20250703_000003_cache_triggers;
 mod m20250703_000004_advanced_triggers;
+mod m20250803_000001_wallet_tables;
+mod m20250803_000002_wallet_indexes;
 
 pub struct Migrator;
 
@@ -15,6 +17,8 @@ impl MigratorTrait for Migrator {
             Box::new(m20250703_000002_indexes_and_views::Migration),
             Box::new(m20250703_000003_cache_triggers::Migration),
             Box::new(m20250703_000004_advanced_triggers::Migration),
+            Box::new(m20250803_000001_wallet_tables::Migration),
+            Box::new(m20250803_000002_wallet_indexes::Migration),
         ]
     }
 }
