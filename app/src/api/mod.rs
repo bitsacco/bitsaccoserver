@@ -3,6 +3,7 @@ pub mod auth;
 // pub mod auth_compat; // TODO: Re-enable when dependencies are fixed
 pub mod client;
 pub mod groups;
+pub mod lnurl;
 pub mod members;
 pub mod share_offers;
 pub mod shares;
@@ -41,6 +42,10 @@ pub fn create_api_router(repositories: Repositories, services: Services) -> Rout
             groups::router(repositories.clone(), services.clone()),
         )
         .nest(
+            "/lnurl",
+            lnurl::router(repositories.clone(), services.clone()),
+        )
+        .nest(
             "/members",
             members::router(repositories.clone(), services.clone()),
         )
@@ -74,6 +79,7 @@ pub async fn api_info() -> impl IntoResponse {
             "analytics": "/api/analytics",
             "auth": "/api/auth",
             "groups": "/api/groups",
+            "lnurl": "/api/lnurl",
             "members": "/api/members",
             "share_offers": "/api/share-offers",
             "shares": "/api/shares",

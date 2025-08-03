@@ -2,6 +2,8 @@ pub mod audit_logs;
 pub mod fedimint_operations;
 pub mod group_memberships;
 pub mod groups;
+pub mod lightning_addresses;
+pub mod lnurl_transactions;
 pub mod members;
 pub mod share_offers;
 pub mod shares;
@@ -25,6 +27,8 @@ pub struct Repositories {
     pub wallet_transactions: wallet_transactions::WalletTransactionRepository,
     pub wallet_reserves: wallet_reserves::WalletReserveRepository,
     pub fedimint_operations: fedimint_operations::FedimintOperationRepository,
+    pub lightning_addresses: lightning_addresses::LightningAddressRepository,
+    pub lnurl_transactions: lnurl_transactions::LnurlTransactionRepository,
 }
 
 impl Repositories {
@@ -40,7 +44,9 @@ impl Repositories {
             wallets: wallets::WalletRepository::new(db.clone()),
             wallet_transactions: wallet_transactions::WalletTransactionRepository::new(db.clone()),
             wallet_reserves: wallet_reserves::WalletReserveRepository::new(db.clone()),
-            fedimint_operations: fedimint_operations::FedimintOperationRepository::new(db),
+            fedimint_operations: fedimint_operations::FedimintOperationRepository::new(db.clone()),
+            lightning_addresses: lightning_addresses::LightningAddressRepository::new(db.clone()),
+            lnurl_transactions: lnurl_transactions::LnurlTransactionRepository::new(db),
         }
     }
 }
