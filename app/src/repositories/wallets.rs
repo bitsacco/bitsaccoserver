@@ -69,6 +69,20 @@ impl WalletRepository {
         Ok(wallets)
     }
 
+    /// Find wallets by owner and federation
+    pub async fn find_by_owner_and_federation(
+        &self,
+        owner_id: Uuid,
+        federation_id: &str,
+    ) -> RepositoryResult<Vec<wallets::Model>> {
+        let wallets = wallets::Entity::find()
+            .filter(wallets::Column::OwnerId.eq(owner_id))
+            .filter(wallets::Column::FederationId.eq(federation_id))
+            .all(self.db.as_ref())
+            .await?;
+        Ok(wallets)
+    }
+
     /// Find wallets by status
     pub async fn find_by_status(&self, status: WalletStatus) -> RepositoryResult<Vec<wallets::Model>> {
         let wallets = wallets::Entity::find()
@@ -120,6 +134,11 @@ impl WalletRepository {
 
         let result = wallet.update(self.db.as_ref()).await?;
         Ok(result)
+    }
+
+    /// Alias for update_sync_timestamp
+    pub async fn update_last_sync(&self, wallet_id: Uuid) -> RepositoryResult<wallets::Model> {
+        self.update_sync_timestamp(wallet_id).await
     }
 
     /// Update wallet status

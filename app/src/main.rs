@@ -77,10 +77,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Initialize services
+    let fedimint_config = app::services::fedimint::FedimintConfig::default();
     let services = Services::new(
         Arc::new(database.clone()),
         repositories.clone(),
         keycloak_config,
+        fedimint_config,
     );
 
     // Create Leptos options for SSR-only mode
