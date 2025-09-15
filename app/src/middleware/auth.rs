@@ -56,12 +56,37 @@ pub struct JwtConfig {
     pub cache: Cache<String, UserContext>,
 }
 
+impl std::fmt::Debug for JwtConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("JwtConfig")
+            .field("validation", &self.validation)
+            .field("cache", &"<cache>")
+            .field("decoding_key", &"<redacted>")
+            .finish()
+    }
+}
+
 impl JwtConfig {
     pub fn new(
         public_key: &str,
         issuer: &str,
         audience: &str,
+        environment: &str,
     ) -> Result<Self, jsonwebtoken::errors::Error> {
+        // SECURITY FIX: Strict environment validation for JWT public key
+        if public_key.is_empty() {
+            if environment != "development" {
+                return Err(jsonwebtoken::errors::Error::from(
+                    jsonwebtoken::errors::ErrorKind::InvalidRsaKey("JWT public key required in non-development environments".to_string())
+                ));
+            }
+            // Add warning log for development mode
+            tracing::warn!(
+                "Using development JWT validation - NOT FOR PRODUCTION. Environment: {}",
+                environment
+            );
+        }
+
         // For development, if no key is provided, use HS256 with a dummy secret
         let (validation, decoding_key) = if public_key.is_empty() {
             let mut validation = Validation::new(Algorithm::HS256);
@@ -260,5 +285,64 @@ mod tests {
         assert!(!has_role(&user, "manager"));
         assert!(has_any_role(&user, &["admin", "manager"]));
         assert!(!has_any_role(&user, &["manager", "supervisor"]));
+    }
+
+    #[test]
+    fn test_jwt_config_development_environment() {
+        // Should allow empty public key in development
+        let result = JwtConfig::new(
+            "",
+            "http://localhost:8080/realms/test",
+            "test-client",
+            "development",
+        );
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_jwt_config_production_environment_requires_key() {
+        // Should reject empty public key in production
+        let result = JwtConfig::new(
+            "",
+            "http://localhost:8080/realms/test",
+            "test-client",
+            "production",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_jwt_config_staging_environment_requires_key() {
+        // Should reject empty public key in staging
+        let result = JwtConfig::new(
+            "",
+            "http://localhost:8080/realms/test",
+            "test-client",
+            "staging",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_jwt_config_with_valid_key_works_in_any_environment() {
+        // With any key (even invalid format), should not fail due to environment validation
+        let test_key = "some-key";
+        
+        for env in &["development", "staging", "production"] {
+            let result = JwtConfig::new(
+                test_key,
+                "http://localhost:8080/realms/test",
+                "test-client",
+                env,
+            );
+            // The key might be invalid, but should not fail due to environment check
+            // since we provided a non-empty key
+            if let Err(e) = &result {
+                assert!(
+                    !e.to_string().contains("non-development environments"),
+                    "Environment validation should not fail for non-empty key in {}", env
+                );
+            }
+        }
     }
 }

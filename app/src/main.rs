@@ -55,10 +55,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         &config.jwt.public_key,
         &config.jwt.issuer,
         &config.jwt.audience,
+        &config.environment,
     )?;
 
     // Create application state
-    let app_state = Arc::new(AppState {
+    let _app_state = Arc::new(AppState {
         database: database.clone(),
         config: config.clone(),
         jwt_config,
@@ -76,10 +77,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     // Initialize services
+    let fedimint_config = app::services::fedimint::FedimintConfig::default();
     let services = Services::new(
         Arc::new(database.clone()),
         repositories.clone(),
         keycloak_config,
+        fedimint_config,
     );
 
     // Create Leptos options for SSR-only mode
@@ -96,6 +99,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = Router::new()
         // Leptos routes first
         .leptos_routes(&leptos_options, routes, App)
+        // Legacy NestJS-compatible auth routes (no /api prefix)
+        // TODO: Re-enable when auth_compat dependencies are fixed
+        // .nest(
+        //     "/auth",
+        //     app::api::auth_compat::compat_router(repositories.clone(), services.clone()),
+        // )
+        // Legacy NestJS-compatible shares routes (no /api prefix)
+        .nest(
+            "/shares",
+            app::api::shares_compat::compat_router(repositories.clone(), services.clone()),
+        )
         // API routes - comprehensive REST API
         .nest(
             "/api",

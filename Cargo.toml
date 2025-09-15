@@ -49,6 +49,16 @@ config = "0.14"
 # HTTP Client
 reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
 
+# Fedimint
+fedimint-core = "0.8.0"
+fedimint-client = "0.8.0"
+fedimint-mint-client = "0.8.0"
+fedimint-wallet-client = "0.8.0"
+fedimint-ln-client = "0.8.0"
+fedimint-ln-common = "0.8.0"
+bitcoin = "0.32"
+lightning-invoice = "0.26"
+
 # Development
 
 [[workspace.metadata.leptos]]

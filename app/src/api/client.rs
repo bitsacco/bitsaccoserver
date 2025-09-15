@@ -295,7 +295,8 @@ pub async fn get_dashboard_metrics(
         server_url: config.keycloak.auth_server_url.clone(),
     };
     
-    let services = Services::new(Arc::new(database), repositories, keycloak_config);
+    let fedimint_config = crate::services::fedimint::FedimintConfig::default();
+    let services = Services::new(Arc::new(database), repositories, keycloak_config, fedimint_config);
 
     // Call real analytics service methods
     let shareholder_summary = services.analytics.get_shareholder_summary().await

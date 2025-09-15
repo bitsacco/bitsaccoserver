@@ -4,23 +4,18 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
 // Re-export the enum for external use
-pub use super::sea_orm_active_enums::OwnerType;
+pub use super::sea_orm_active_enums::ReserveType;
 
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
-#[sea_orm(table_name = "shares")]
+#[sea_orm(table_name = "wallet_reserves")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
-    pub owner_id: Uuid,
-    pub owner_type: OwnerType,
-    pub share_offer_id: Uuid,
-    #[sea_orm(column_type = "Decimal(Some((15, 2)))")]
-    pub share_quantity: Decimal,
-    #[sea_orm(column_type = "Decimal(Some((15, 2)))")]
-    pub share_value: Decimal,
-    #[sea_orm(column_type = "Decimal(Some((15, 2)))")]
-    pub total_value: Decimal,
-    pub last_transaction_at: Option<DateTimeWithTimeZone>,
+    pub wallet_id: Uuid,
+    pub reserve_type: ReserveType,
+    pub amount_msat: i64,
+    pub reference: Option<String>,
+    pub expires_at: Option<DateTimeWithTimeZone>,
     pub created_at: DateTimeWithTimeZone,
     pub updated_at: DateTimeWithTimeZone,
     pub created_by: Option<Uuid>,
@@ -30,18 +25,18 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::share_offers::Entity",
-        from = "Column::ShareOfferId",
-        to = "super::share_offers::Column::Id",
+        belongs_to = "super::wallets::Entity",
+        from = "Column::WalletId",
+        to = "super::wallets::Column::Id",
         on_update = "NoAction",
         on_delete = "Cascade"
     )]
-    ShareOffers,
+    Wallets,
 }
 
-impl Related<super::share_offers::Entity> for Entity {
+impl Related<super::wallets::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::ShareOffers.def()
+        Relation::Wallets.def()
     }
 }
 

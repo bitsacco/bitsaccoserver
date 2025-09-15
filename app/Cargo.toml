@@ -37,6 +37,14 @@ sea-orm = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
 keycloak = { workspace = true, optional = true }
 moka = { workspace = true, optional = true }
+fedimint-core = { workspace = true, optional = true }
+fedimint-client = { workspace = true, optional = true }
+fedimint-mint-client = { workspace = true, optional = true }
+fedimint-wallet-client = { workspace = true, optional = true }
+fedimint-ln-client = { workspace = true, optional = true }
+fedimint-ln-common = { workspace = true, optional = true }
+bitcoin = { workspace = true, optional = true }
+lightning-invoice = { workspace = true, optional = true }
 
 # Local dependencies
 entity = { path = "../entity", optional = true }
@@ -77,4 +85,12 @@ ssr = [
     "dep:hyper",
     "dep:entity",
     "dep:migration",
+    "dep:fedimint-core",
+    "dep:fedimint-client",
+    "dep:fedimint-mint-client",
+    "dep:fedimint-wallet-client",
+    "dep:fedimint-ln-client",
+    "dep:fedimint-ln-common",
+    "dep:bitcoin",
+    "dep:lightning-invoice",
 ]

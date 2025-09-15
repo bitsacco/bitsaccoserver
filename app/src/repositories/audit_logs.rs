@@ -1,6 +1,6 @@
 use super::RepositoryResult;
 use ::entity::{audit_logs, prelude::*};
-use sea_orm::*;
+use sea_orm::{prelude::Expr, *};
 use std::sync::Arc;
 use uuid::Uuid;
 
