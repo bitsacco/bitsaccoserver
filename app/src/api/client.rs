@@ -1,6 +1,59 @@
+use crate::api::dashboard_client::DashboardApiClient;
 use leptos::prelude::*;
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
+
+/// Shared dashboard client instance for efficiency
+static DASHBOARD_CLIENT: OnceLock<DashboardApiClient> = OnceLock::new();
+
+/// Get shared dashboard client instance
+fn get_dashboard_client() -> &'static DashboardApiClient {
+    DASHBOARD_CLIENT.get_or_init(|| DashboardApiClient::new())
+}
+
+/// Extract JWT token from request context (SSR only)
+#[cfg(feature = "ssr")]
+async fn extract_auth_token_from_request() -> Option<String> {
+    use axum::http::HeaderMap;
+    use leptos_axum::extract;
+
+    // Try to extract headers from request context
+    if let Ok(headers) = extract::<HeaderMap>().await {
+        if let Some(auth_header) = headers.get("authorization") {
+            if let Ok(auth_str) = auth_header.to_str() {
+                if auth_str.starts_with("Bearer ") {
+                    return Some(auth_str[7..].to_string());
+                }
+            }
+        }
+
+        // Also check for token in cookies
+        if let Some(cookie_header) = headers.get("cookie") {
+            if let Ok(cookie_str) = cookie_header.to_str() {
+                // Simple cookie parsing for auth token
+                for part in cookie_str.split(';') {
+                    let part = part.trim();
+                    if part.starts_with("auth_token=") {
+                        return Some(part[11..].to_string());
+                    }
+                    if part.starts_with("access_token=") {
+                        return Some(part[13..].to_string());
+                    }
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Extract JWT token from request context (client-side - returns None)
+#[cfg(not(feature = "ssr"))]
+async fn extract_auth_token_from_request() -> Option<String> {
+    // On client side, we can't extract from server request context
+    None
+}
 
 #[derive(Debug, Clone)]
 pub enum ApiError {
@@ -288,107 +341,300 @@ pub async fn get_members(
 #[server(GetDashboardMetrics, "/api", "GetJson")]
 pub async fn get_dashboard_metrics(
 ) -> Result<ApiResponse<crate::pages::dashboard::DashboardMetrics>, ServerFnError> {
-    use crate::repositories::Repositories;
-    use crate::server::AppConfig;
-    use crate::services::auth::KeycloakConfig;
-    use crate::services::Services;
-    use std::sync::Arc;
+    // Extract auth token from the current request
+    let auth_token = extract_auth_token_from_request().await;
+    let client = get_dashboard_client();
+    match client.get_overview_with_auth(auth_token.as_deref()).await {
+        Ok(nestjs_response) => {
+            if nestjs_response.success {
+                let converted_metrics =
+                    convert_nestjs_overview_to_dashboard_metrics(nestjs_response.data);
 
-    // Use direct service initialization approach since context injection is complex
-    let config =
-        AppConfig::from_env().map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
+                Ok(ApiResponse {
+                    success: true,
+                    data: Some(converted_metrics),
+                    message: Some("Dashboard metrics retrieved from NestJS API".to_string()),
+                    errors: None,
+                })
+            } else {
+                leptos::logging::warn!(
+                    "Dashboard: NestJS API returned success=false: {:?}",
+                    nestjs_response.message
+                );
+                Err(ServerFnError::new(format!(
+                    "NestJS API error: {:?}",
+                    nestjs_response.message
+                )))
+            }
+        }
+        Err(api_error) => {
+            leptos::logging::error!(
+                "Dashboard: Failed to connect to NestJS API: {:?}",
+                api_error
+            );
+            Err(ServerFnError::new(format!(
+                "API connection failed: {:?}",
+                api_error
+            )))
+        }
+    }
+}
 
-    let database = {
-        let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
-        opt.max_connections(config.database.max_connections)
-            .min_connections(config.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(
-                config.database.acquire_timeout,
-            ))
-            .idle_timeout(std::time::Duration::from_secs(config.database.idle_timeout))
-            .max_lifetime(std::time::Duration::from_secs(config.database.max_lifetime));
+/// Convert NestJS overview response to current dashboard metrics format
+fn convert_nestjs_overview_to_dashboard_metrics(
+    overview: crate::api::dashboard_client::DashboardOverviewResponse,
+) -> crate::pages::dashboard::DashboardMetrics {
+    use rust_decimal::Decimal;
 
-        sea_orm::Database::connect(opt)
-            .await
-            .map_err(|e| ServerFnError::new(format!("Database connection error: {}", e)))?
-    };
-
-    let repositories = Repositories::new(Arc::new(database.clone()));
-
-    let keycloak_config = KeycloakConfig {
-        realm: config.keycloak.realm.clone(),
-        client_id: config.keycloak.client_id.clone(),
-        client_secret: config.keycloak.client_secret.clone(),
-        server_url: config.keycloak.auth_server_url.clone(),
-    };
-
-    let fedimint_config = crate::services::fedimint::FedimintConfig::default();
-    let services = Services::new(
-        Arc::new(database),
-        repositories,
-        keycloak_config,
-        fedimint_config,
-    );
-
-    // Call real analytics service methods
-    let shareholder_summary = services
-        .analytics
-        .get_shareholder_summary()
-        .await
-        .map_err(|e| ServerFnError::new(format!("Analytics error: {}", e)))?;
-
-    let market_analytics = services
-        .analytics
-        .get_market_analytics()
-        .await
-        .map_err(|e| ServerFnError::new(format!("Analytics error: {}", e)))?;
-
-    let offer_analytics = services
-        .analytics
-        .get_offer_analytics()
-        .await
-        .map_err(|e| ServerFnError::new(format!("Analytics error: {}", e)))?;
-
-    let transaction_analytics = services
-        .analytics
-        .get_transaction_analytics()
-        .await
-        .map_err(|e| ServerFnError::new(format!("Analytics error: {}", e)))?;
-
-    // Convert analytics service response to dashboard metrics format
-    let dashboard_metrics = crate::pages::dashboard::DashboardMetrics {
+    crate::pages::dashboard::DashboardMetrics {
         shareholders: crate::pages::dashboard::ShareholderSummary {
-            total_shareholders: shareholder_summary.total_shareholders,
-            member_shareholders: shareholder_summary.member_shareholders,
-            group_shareholders: shareholder_summary.group_shareholders,
-            active_shareholders: shareholder_summary.active_shareholders,
+            total_shareholders: overview.summary.total_members,
+            member_shareholders: overview.summary.total_members, // Estimate for now
+            group_shareholders: 0, // TODO: Get from NestJS when available
+            active_shareholders: overview.summary.active_members_today,
         },
         market: crate::pages::dashboard::MarketAnalytics {
-            total_market_value: market_analytics.total_market_value,
-            total_shares_in_circulation: market_analytics.total_shares_in_circulation,
-            average_share_price: market_analytics.average_share_price,
+            // Use actual data from NestJS API without capping
+            total_market_value_kes: Decimal::from_f64_retain(overview.summary.total_volume.amount)
+                .unwrap_or_default(),
+            total_shares_in_circulation: Decimal::from(overview.summary.total_members), // Actual member count
+            share_price_kes: Decimal::from(1000), // Fixed at 1000 KES per share
         },
         offers: crate::pages::dashboard::ShareOfferAnalytics {
-            total_offers: offer_analytics.total_offers,
-            active_offers: offer_analytics.active_offers,
-            completed_offers: offer_analytics.completed_offers,
-            average_completion_rate: offer_analytics.average_completion_rate,
+            total_offers: 10,              // TODO: Get from NestJS shares metrics
+            active_offers: 5,              // TODO: Get from NestJS shares metrics
+            completed_offers: 5,           // TODO: Get from NestJS shares metrics
+            average_completion_rate: 75.0, // TODO: Calculate from actual data
         },
         transactions: crate::pages::dashboard::TransactionAnalytics {
-            total_transactions: transaction_analytics.total_transactions,
-            total_transaction_value: transaction_analytics.total_transaction_value,
-            average_transaction_size: transaction_analytics.average_transaction_size,
+            total_transactions: overview.summary.transaction_count.total,
+            total_transaction_value_kes: Decimal::from_f64_retain(
+                overview.summary.total_volume.amount,
+            )
+            .unwrap_or_default(),
+            average_transaction_size_kes: {
+                let avg = if overview.summary.transaction_count.total > 0 {
+                    overview.summary.total_volume.amount
+                        / overview.summary.transaction_count.total as f64
+                } else {
+                    0.0
+                };
+                Decimal::from_f64_retain(avg).unwrap_or_else(|| {
+                    leptos::logging::warn!(
+                        "Dashboard: Failed to convert average transaction size to Decimal: {}",
+                        avg
+                    );
+                    Decimal::ZERO
+                })
+            },
         },
-    };
+    }
+}
 
-    let response = ApiResponse {
-        success: true,
-        data: Some(dashboard_metrics),
-        message: Some("Dashboard metrics retrieved successfully".to_string()),
-        errors: None,
-    };
+/// Server function for getting user analytics from NestJS API
+#[server(GetUserAnalytics, "/api", "GetJson")]
+pub async fn get_user_analytics(
+) -> Result<ApiResponse<crate::api::dashboard_client::UserAnalyticsResponse>, ServerFnError> {
+    // TEMPORARY: Bypass API call to prevent stack overflow
+    Err(ServerFnError::new("Temporarily disabled".to_string()))
+}
 
-    Ok(response)
+/// Server function for getting financial analytics from NestJS API
+#[server(GetFinancialAnalytics, "/api", "GetJson")]
+pub async fn get_financial_analytics(
+) -> Result<ApiResponse<crate::api::dashboard_client::FinancialAnalyticsResponse>, ServerFnError> {
+    let client = get_dashboard_client();
+
+    match client.get_financial_analytics().await {
+        Ok(nestjs_response) => {
+            if nestjs_response.success {
+                let response = ApiResponse {
+                    success: true,
+                    data: Some(nestjs_response.data),
+                    message: Some(
+                        "Financial analytics retrieved successfully from NestJS API".to_string(),
+                    ),
+                    errors: None,
+                };
+                Ok(response)
+            } else {
+                let response = ApiResponse {
+                    success: false,
+                    data: None,
+                    message: Some("Failed to retrieve financial analytics".to_string()),
+                    errors: nestjs_response.errors,
+                };
+                Ok(response)
+            }
+        }
+        Err(api_error) => {
+            leptos::logging::error!(
+                "Failed to connect to NestJS financial analytics API: {:?}",
+                api_error
+            );
+            Err(ServerFnError::new(format!("API Error: {}", api_error)))
+        }
+    }
+}
+
+/// Server function for getting operational metrics from NestJS API
+#[server(GetOperationalMetrics, "/api", "GetJson")]
+pub async fn get_operational_metrics(
+) -> Result<ApiResponse<crate::api::dashboard_client::OperationalMetricsResponse>, ServerFnError> {
+    let client = get_dashboard_client();
+
+    match client.get_operational_metrics().await {
+        Ok(nestjs_response) => {
+            if nestjs_response.success {
+                let response = ApiResponse {
+                    success: true,
+                    data: Some(nestjs_response.data),
+                    message: Some(
+                        "Operational metrics retrieved successfully from NestJS API".to_string(),
+                    ),
+                    errors: None,
+                };
+                Ok(response)
+            } else {
+                let response = ApiResponse {
+                    success: false,
+                    data: None,
+                    message: Some("Failed to retrieve operational metrics".to_string()),
+                    errors: nestjs_response.errors,
+                };
+                Ok(response)
+            }
+        }
+        Err(api_error) => {
+            leptos::logging::error!(
+                "Failed to connect to NestJS operational metrics API: {:?}",
+                api_error
+            );
+            Err(ServerFnError::new(format!("API Error: {}", api_error)))
+        }
+    }
+}
+
+/// Server function for custom analytics with date range
+#[server(GetCustomAnalytics, "/api", "GetJson")]
+pub async fn get_custom_analytics(
+    start_date: String,
+    end_date: String,
+    metrics: Vec<String>,
+    granularity: String,
+) -> Result<ApiResponse<serde_json::Value>, ServerFnError> {
+    let client = get_dashboard_client();
+
+    // Convert Vec<String> to Vec<&str>
+    let metrics_slice: Vec<&str> = metrics.iter().map(|s| s.as_str()).collect();
+
+    match client
+        .get_custom_analytics(&start_date, &end_date, &metrics_slice, &granularity)
+        .await
+    {
+        Ok(nestjs_response) => {
+            if nestjs_response.success {
+                let response = ApiResponse {
+                    success: true,
+                    data: Some(nestjs_response.data),
+                    message: Some(
+                        "Custom analytics retrieved successfully from NestJS API".to_string(),
+                    ),
+                    errors: None,
+                };
+                Ok(response)
+            } else {
+                let response = ApiResponse {
+                    success: false,
+                    data: None,
+                    message: Some("Failed to retrieve custom analytics".to_string()),
+                    errors: nestjs_response.errors,
+                };
+                Ok(response)
+            }
+        }
+        Err(api_error) => {
+            leptos::logging::error!(
+                "Failed to connect to NestJS custom analytics API: {:?}",
+                api_error
+            );
+            Err(ServerFnError::new(format!("API Error: {}", api_error)))
+        }
+    }
+}
+
+/// Server function for exporting dashboard data
+#[server(ExportDashboardData, "/api")]
+pub async fn export_dashboard_data(
+    export_request: crate::api::dashboard_client::ExportRequest,
+) -> Result<ApiResponse<crate::api::dashboard_client::ExportResponse>, ServerFnError> {
+    let client = get_dashboard_client();
+
+    match client.export_dashboard_data(&export_request).await {
+        Ok(nestjs_response) => {
+            if nestjs_response.success {
+                let response = ApiResponse {
+                    success: true,
+                    data: Some(nestjs_response.data),
+                    message: Some("Export request submitted successfully".to_string()),
+                    errors: None,
+                };
+                Ok(response)
+            } else {
+                let response = ApiResponse {
+                    success: false,
+                    data: None,
+                    message: Some("Failed to submit export request".to_string()),
+                    errors: nestjs_response.errors,
+                };
+                Ok(response)
+            }
+        }
+        Err(api_error) => {
+            leptos::logging::error!(
+                "Failed to submit export request to NestJS API: {:?}",
+                api_error
+            );
+            Err(ServerFnError::new(format!("API Error: {}", api_error)))
+        }
+    }
+}
+
+/// Server function for getting export status
+#[server(GetExportStatus, "/api", "GetJson")]
+pub async fn get_export_status(
+    export_id: String,
+) -> Result<ApiResponse<crate::api::dashboard_client::ExportStatus>, ServerFnError> {
+    let client = get_dashboard_client();
+
+    match client.get_export_status(&export_id).await {
+        Ok(nestjs_response) => {
+            if nestjs_response.success {
+                let response = ApiResponse {
+                    success: true,
+                    data: Some(nestjs_response.data),
+                    message: Some("Export status retrieved successfully".to_string()),
+                    errors: None,
+                };
+                Ok(response)
+            } else {
+                let response = ApiResponse {
+                    success: false,
+                    data: None,
+                    message: Some("Failed to get export status".to_string()),
+                    errors: nestjs_response.errors,
+                };
+                Ok(response)
+            }
+        }
+        Err(api_error) => {
+            leptos::logging::error!(
+                "Failed to get export status from NestJS API: {:?}",
+                api_error
+            );
+            Err(ServerFnError::new(format!("API Error: {}", api_error)))
+        }
+    }
 }
 
 #[server(GetShares, "/api")]

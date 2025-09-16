@@ -29,3 +29,9 @@ yarn.lock
 dist/
 build/
 target/
+
+# Test results
+test-results/
+playwright-report/
+e2e/test-results/
+e2e/playwright-report/

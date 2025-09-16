@@ -298,7 +298,9 @@ pub async fn get_wallet_addresses(
 
 #[derive(Clone)]
 pub struct AppState {
+    #[allow(dead_code)]
     repositories: Repositories,
+    #[allow(dead_code)]
     services: Services,
 }
 

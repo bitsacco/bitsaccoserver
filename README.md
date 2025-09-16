@@ -7,9 +7,9 @@
 - **Backend**: Axum web framework
 - **Frontend**: Leptos (SSR + Hydration)
 - **Database**: PostgreSQL with advanced caching (no Redis dependency)
-- **Authentication**: Keycloak
+- **Authentication**: JWT-based with NestJS integration
 - **Styling**: TailwindCSS
-- **Build Tool**: cargo-leptos
+- **Build Tool**: Just command runner + Cargo
 
 ## Documentation
 
@@ -21,73 +21,89 @@
 ### Prerequisites
 
 - Rust 1.82+
+- [Just](https://crates.io/crates/just) command runner: `cargo install just`
 - Docker and Docker Compose
 - Node.js (for TailwindCSS)
 
-### One-Command Installation
+### Setup
 
 ```bash
-# Install all dependencies and tools
-chmod +x install.sh && ./install.sh
+# Install dependencies and setup environment
+just setup
+
+# Check system dependencies
+just check-deps
 ```
 
 ### Development
 
-#### Local Development (without Docker)
+#### Admin Dashboard (Recommended)
 ```bash
-# Start database and auth services
-npm run services
+# Start admin dashboard with NestJS backend
+just admin
 
-# Run development server with hot reload
-npm run cargo:dev
+# Start with file watching for development
+just admin-dev
+
+# Start with debug logging
+just admin-debug
 ```
 
-#### Docker Development (with hot reload)
+#### Docker Development
 ```bash
 # Build and run everything in development mode
-npm run dev
+just docker-dev
 
 # View logs
-npm run logs
+just logs
 ```
 
-Open http://localhost:3000
+Open http://localhost:3030 for admin dashboard
 
 ### Production
 
 ```bash
 # Build and run in production mode
-npm run prod
+just prod
 
 # Build production binary locally
-npm run cargo:build
+just build
 ```
 
-### Available Scripts
+### Available Commands
 
-#### Local Cargo Commands
-- `npm run cargo:dev` - Run development server locally with cargo-leptos watch
-- `npm run cargo:build` - Build production binary locally
-- `npm run cargo:fmt` - Format all Rust code
-- `npm run cargo:fmt:check` - Check if Rust code is formatted (CI friendly)
+View all available commands:
+```bash
+just --list
+```
 
-#### Docker Development Commands
-- `npm run dev` - Start all services in development mode with hot reload
-- `npm run dev:build` - Build development Docker image
-- `npm run dev:rebuild` - Rebuild development image without cache
-- `npm run logs` - View app container logs
+#### Main Commands
+- `just admin` - Start admin dashboard
+- `just admin-dev` - Start with file watching
+- `just admin-debug` - Start with debug logging
+- `just build` - Build production binary
+- `just test` - Run all tests
+- `just test-e2e` - Run end-to-end authentication tests
 
-#### Docker Production Commands
-- `npm run prod` - Start all services in production mode
-- `npm run prod:build` - Build production Docker image
+#### Development Commands
+- `just cargo-dev` - Development server with hot reload
+- `just cargo-fmt` - Format all Rust code
+- `just cargo-lint` - Run clippy lints
+- `just cargo-test` - Run unit tests
+- `just build-css` - Build Tailwind CSS
+- `just build-css-watch` - Watch and rebuild CSS
 
-#### Service Management
-- `npm run services` - Start PostgreSQL and Keycloak only
-- `npm run services:stop` - Stop all services
-- `npm run stop` - Stop all Docker containers
+#### Docker Commands
+- `just docker-dev` - Start Docker development environment
+- `just prod` - Start production environment
+- `just stop` - Stop all containers
+- `just logs` - View container logs
 
-#### Other Commands
-- `npm run build-css` - Watch and rebuild TailwindCSS styles
+#### Maintenance Commands
+- `just setup` - Install dependencies and setup
+- `just status` - Show project status
+- `just fmt` - Format code (Rust + CSS)
+- `just clean-rebuild` - Clean and rebuild everything
 
 ## Project Structure
 
@@ -135,34 +151,40 @@ This is Phase 1 of the migration plan. Currently implemented:
 ### Formatting
 ```bash
 # Format all Rust code
-npm run cargo:fmt
+just cargo-fmt
 
 # Format everything (Rust + CSS)
-npm run fmt
+just fmt
 
 # Check formatting without changes
-npm run cargo:fmt:check
+just cargo-fmt-check
 ```
 
 ### Linting and Testing
 ```bash
 # Run Clippy linter
-npm run cargo:lint
+just cargo-lint
 
 # Run all tests
-npm run cargo:test
+just test
+
+# Run unit tests only
+just cargo-test
+
+# Run e2e tests
+just test-e2e
 
 # Quick compilation check
-npm run cargo:check
+just cargo-check
 ```
 
 ### Git Hooks
 ```bash
 # Set up pre-commit hooks
-npm run setup:hooks
+just setup-hooks
 
 # Run pre-commit checks manually
-npm run precommit
+just precommit
 ```
 
 ## Contributing

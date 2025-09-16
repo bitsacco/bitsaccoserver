@@ -3,6 +3,7 @@ pub mod analytics;
 pub mod auth;
 // pub mod auth_compat; // TODO: Re-enable when dependencies are fixed
 pub mod client;
+pub mod dashboard_client;
 pub mod groups;
 pub mod lnurl;
 pub mod members;
@@ -21,8 +22,10 @@ pub mod types;
 
 // Re-export commonly used items for SSR mode
 pub use client::{
-    api, get_dashboard_metrics, get_groups, get_members, get_shares, ApiClient, ApiError,
-    ApiResponse, PaginatedResponse, PaginationQuery, SearchQuery,
+    api, export_dashboard_data, get_custom_analytics, get_dashboard_metrics, get_export_status,
+    get_financial_analytics, get_groups, get_members, get_operational_metrics, get_shares,
+    get_user_analytics, ApiClient, ApiError, ApiResponse, PaginatedResponse, PaginationQuery,
+    SearchQuery,
 };
 
 // Re-export abstraction layer items

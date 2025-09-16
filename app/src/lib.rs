@@ -243,65 +243,6 @@ fn LayoutedSignup() -> impl IntoView {
 }
 
 #[component]
-fn DashboardPage() -> impl IntoView {
-    view! {
-        <div class="min-h-screen bg-gray-50">
-            <div class="bg-white shadow">
-                <div class="px-4 sm:px-6 lg:max-w-6xl lg:mx-auto lg:px-8">
-                    <div class="py-6 md:flex md:items-center md:justify-between">
-                        <div class="flex-1 min-w-0">
-                            <h1 class="text-2xl font-bold leading-7 text-gray-900 sm:text-3xl sm:truncate">
-                                "Dashboard"
-                            </h1>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                <div class="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="text-sm font-medium text-gray-500">"Total Members"</div>
-                                </div>
-                            </div>
-                            <div class="mt-1 flex items-baseline">
-                                <div class="text-2xl font-semibold text-gray-900">"1,247"</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="text-sm font-medium text-gray-500">"Total Value"</div>
-                                </div>
-                            </div>
-                            <div class="mt-1 flex items-baseline">
-                                <div class="text-2xl font-semibold text-gray-900">"$2.3M"</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="bg-white overflow-hidden shadow rounded-lg">
-                        <div class="p-5">
-                            <div class="flex items-center">
-                                <div class="flex-shrink-0">
-                                    <div class="text-sm font-medium text-gray-500">"Active Offers"</div>
-                                </div>
-                            </div>
-                            <div class="mt-1 flex items-baseline">
-                                <div class="text-2xl font-semibold text-gray-900">"23"</div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    }
-}
-
-#[component]
 fn NotFoundPage() -> impl IntoView {
     view! {
         <div class="min-h-screen bg-gray-50 flex items-center justify-center">
