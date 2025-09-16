@@ -126,7 +126,9 @@ pub fn secure_compat_router(
 /// Legacy app state for backward compatibility
 #[derive(Clone)]
 pub struct AppState {
+    #[allow(dead_code)]
     repositories: Repositories,
+    #[allow(dead_code)]
     services: Services,
 }
 

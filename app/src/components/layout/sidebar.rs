@@ -216,38 +216,89 @@ fn NavItem(
 fn UserProfile(auth: crate::contexts::auth::AuthContext) -> impl IntoView {
     let (menu_open, set_menu_open) = signal(false);
 
-    // Get user info or fallback to defaults
+    // Get user info - no hardcoded fallbacks
     let user_name = move || {
         auth.user
             .get()
             .as_ref()
-            .map(|u| u.display_name())
-            .unwrap_or_else(|| "Guest User".to_string())
+            .map(|u| {
+                // If phone is available, format it nicely, otherwise use ID
+                if let Some(phone) = &u.phone {
+                    // Format phone number for display (e.g., +254700123456 -> +254 700 123456)
+                    if phone.len() > 6 {
+                        format!("{} {} {}",
+                            &phone[..4],  // Country code
+                            &phone[4..7], // First 3 digits
+                            &phone[7..]   // Remaining digits
+                        )
+                    } else {
+                        phone.clone()
+                    }
+                } else if let Some(nostr) = &u.nostr {
+                    // Show truncated nostr address
+                    if nostr.len() > 16 {
+                        format!("{}...{}", &nostr[..8], &nostr[nostr.len()-8..])
+                    } else {
+                        nostr.clone()
+                    }
+                } else {
+                    format!("User {}", &u.id[..8.min(u.id.len())])
+                }
+            })
+            .unwrap_or_else(|| "Not logged in".to_string())
     };
 
-    let user_email = move || {
+    let user_contact = move || {
         auth.user
             .get()
             .as_ref()
             .map(|u| {
-                u.phone
-                    .clone()
-                    .unwrap_or_else(|| "No contact info".to_string())
+                if let Some(phone) = &u.phone {
+                    phone.clone()
+                } else if let Some(nostr) = &u.nostr {
+                    format!("nostr: {}", if nostr.len() > 20 {
+                        format!("{}...", &nostr[..20])
+                    } else {
+                        nostr.clone()
+                    })
+                } else {
+                    format!("ID: {}", &u.id[..12.min(u.id.len())])
+                }
             })
-            .unwrap_or_else(|| "guest@example.com".to_string())
+            .unwrap_or_else(|| "Please log in".to_string())
     };
 
     let user_initials = move || {
-        let name = user_name();
-        if name.is_empty() {
-            "U".to_string()
-        } else {
-            name.split_whitespace()
-                .map(|word| word.chars().next().unwrap_or('U'))
-                .take(2)
-                .collect::<String>()
-                .to_uppercase()
-        }
+        auth.user
+            .get()
+            .as_ref()
+            .map(|u| {
+                if let Some(phone) = &u.phone {
+                    // For phone numbers, use last 2 digits
+                    if phone.len() >= 2 {
+                        phone[phone.len()-2..].to_string()
+                    } else {
+                        "U".to_string()
+                    }
+                } else if let Some(nostr) = &u.nostr {
+                    // For nostr addresses, use first 2 characters after 'npub' if present
+                    if nostr.starts_with("npub") && nostr.len() > 5 {
+                        nostr[4..6].to_uppercase()
+                    } else if nostr.len() >= 2 {
+                        nostr[..2].to_uppercase()
+                    } else {
+                        "N".to_string()
+                    }
+                } else {
+                    // For IDs, use first 2 characters
+                    if u.id.len() >= 2 {
+                        u.id[..2].to_uppercase()
+                    } else {
+                        "U".to_string()
+                    }
+                }
+            })
+            .unwrap_or_else(|| "?".to_string())
     };
 
     let handle_logout = move |_| {
@@ -267,7 +318,7 @@ fn UserProfile(auth: crate::contexts::auth::AuthContext) -> impl IntoView {
                 </div>
                 <div class="ml-3 flex-1 min-w-0">
                     <p class="text-sm font-semibold text-gray-900 truncate">{user_name}</p>
-                    <p class="text-xs text-gray-500 truncate">{user_email}</p>
+                    <p class="text-xs text-gray-500 truncate">{user_contact}</p>
                 </div>
                 <div class="ml-2">
                     <button

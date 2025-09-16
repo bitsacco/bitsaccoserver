@@ -1,7 +1,44 @@
-use crate::contexts::auth::{use_auth, AuthMethod, LoginCredentials};
+use crate::contexts::auth::{use_auth, LoginCredentials};
 use leptos::prelude::*;
 use leptos::server_fn::ServerFnError;
 use web_sys::window;
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub enum AuthMethod {
+    Email,
+    Phone,
+    Pin,
+    Nostr,
+}
+
+impl AuthMethod {
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            AuthMethod::Email => "Email",
+            AuthMethod::Phone => "Phone",
+            AuthMethod::Pin => "PIN",
+            AuthMethod::Nostr => "Nostr",
+        }
+    }
+
+    pub fn input_type(&self) -> &'static str {
+        match self {
+            AuthMethod::Email => "email",
+            AuthMethod::Phone => "tel",
+            AuthMethod::Pin => "password",
+            AuthMethod::Nostr => "text",
+        }
+    }
+
+    pub fn placeholder(&self) -> &'static str {
+        match self {
+            AuthMethod::Email => "Enter your email",
+            AuthMethod::Phone => "Enter your phone number",
+            AuthMethod::Pin => "Enter your PIN",
+            AuthMethod::Nostr => "Enter your Nostr public key",
+        }
+    }
+}
 
 #[server(GetBackendConfig, "/api")]
 pub async fn get_backend_config() -> Result<String, ServerFnError> {
@@ -12,6 +49,11 @@ pub async fn get_backend_config() -> Result<String, ServerFnError> {
 
 #[server(NestJsLoginAction, "/api")]
 pub async fn nestjs_login_action(phone: String, pin: String) -> Result<String, ServerFnError> {
+    tracing::info!(
+        "🔥 NestJS login action called with phone: {}, pin: {}",
+        phone,
+        pin
+    );
     use crate::api::abstraction::AbstractedApiClient;
     use crate::api::config::{ApiConfig, Backend};
     use crate::api::types::LoginRequest as ApiLoginRequest;
@@ -28,7 +70,7 @@ pub async fn nestjs_login_action(phone: String, pin: String) -> Result<String, S
 
     let login_request = ApiLoginRequest {
         pin,
-        phone: Some(phone),
+        phone: Some(phone.clone()),
         npub: None,
     };
 
@@ -75,7 +117,7 @@ pub async fn nestjs_login_action(phone: String, pin: String) -> Result<String, S
                 tracing::info!("🔥 Stored refresh_token cookie");
             }
 
-            // Redirect to dashboard
+            // Redirect to dashboard after successful login
             redirect("/dashboard");
             Ok("Login successful".to_string())
         }
@@ -194,7 +236,7 @@ pub fn EnhancedLoginForm() -> impl IntoView {
         }
     };
 
-    // If already authenticated, redirect to dashboard
+    // If already authenticated, redirect to groups
     Effect::new(move |_| {
         if auth.is_authenticated.get() {
             if let Some(window) = window() {
@@ -355,7 +397,6 @@ pub fn EnhancedLoginForm() -> impl IntoView {
             >
                 // NestJS ActionForm
                 <ActionForm action=nestjs_action attr:class="space-y-4">
-
                     // Phone number field for NestJS
                     <div>
                         <label
@@ -421,53 +462,6 @@ pub fn EnhancedLoginForm() -> impl IntoView {
                     </div>
                 </ActionForm>
             </Show>
-
-            // Remember me and forgot password (outside forms)
-            <div class="flex items-center justify-end mt-4">
-                <div class="text-sm">
-                    <a href="/forgot-password" class="text-blue-600 hover:text-blue-500 transition-colors">
-                        "Forgot password?"
-                    </a>
-                </div>
-            </div>
-
-            // Enhanced Error Message
-            <Show when=move || nestjs_action.value().get().as_ref().is_some_and(|r| r.is_err()) || regular_action.value().get().as_ref().is_some_and(|r| r.is_err())>
-                <div class="rounded-md bg-red-50 p-4 animate-fade-in mt-4">
-                    <div class="flex">
-                        <div class="flex-shrink-0">
-                            <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                            </svg>
-                        </div>
-                        <div class="ml-3">
-                            <p class="text-sm font-medium text-red-800">
-                                {move || {
-                                    // Show error from server actions
-                                    if let Some(Err(err)) = nestjs_action.value().get().as_ref() {
-                                        err.to_string()
-                                    } else if let Some(Err(err)) = regular_action.value().get().as_ref() {
-                                        err.to_string()
-                                    } else {
-                                        "Login failed".to_string()
-                                    }
-                                }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </Show>
-
-
-            // Sign up link
-            <div class="text-center mt-4">
-                <p class="text-sm text-gray-600">
-                    "Don't have an account? "
-                    <a href="/signup" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">
-                        "Sign up"
-                    </a>
-                </p>
-            </div>
         </div>
     }
 }

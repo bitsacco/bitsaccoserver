@@ -59,6 +59,15 @@ echo "📦 Adding WASM target..."
 rustup target add wasm32-unknown-unknown
 print_status "WASM target added"
 
+# Install just command runner
+if ! command -v just &> /dev/null; then
+    echo "📦 Installing just command runner..."
+    cargo install just
+    print_status "just command runner installed"
+else
+    print_status "just command runner already installed"
+fi
+
 # Install cargo-leptos
 if ! command -v cargo-leptos &> /dev/null; then
     echo "📦 Installing cargo-leptos..."
@@ -91,10 +100,10 @@ else
     print_status "Node.js already installed"
 fi
 
-# Install TailwindCSS and dependencies
+# Install TailwindCSS and dependencies locally (not globally)
 echo "📦 Installing TailwindCSS..."
-npm install -g tailwindcss @tailwindcss/forms @tailwindcss/typography
-print_status "TailwindCSS installed"
+npm install
+print_status "TailwindCSS and dependencies installed"
 
 # Install Docker if not present
 if ! command -v docker &> /dev/null; then
@@ -129,22 +138,32 @@ else
     print_status "Docker Compose already installed"
 fi
 
-# Install project dependencies
-echo "📦 Installing project dependencies..."
-npm install
-
 # Set up environment file
 if [ ! -f .env ]; then
-    cp .env.example .env
-    print_status "Environment file created"
+    cp .env.example .env 2>/dev/null || echo "No .env.example found, skipping"
+    print_status "Environment setup completed"
+fi
+
+# Set up git hooks
+echo "📦 Setting up git hooks..."
+if [ -f scripts/pre-commit.sh ]; then
+    cp scripts/pre-commit.sh .git/hooks/pre-commit 2>/dev/null || true
+    chmod +x .git/hooks/pre-commit 2>/dev/null || true
+    print_status "Git hooks installed"
 fi
 
 echo ""
 echo "🎉 Installation complete!"
 echo ""
 echo "Next steps:"
-echo "1. Start services: docker-compose up -d postgres keycloak"
-echo "2. Run development server: npm run dev"
-echo "3. Open http://localhost:3000"
+echo "1. Check dependencies: just check-deps"
+echo "2. Run admin dashboard: just admin"
+echo "3. Open http://localhost:3030"
+echo ""
+echo "Available commands:"
+echo "- just admin       # Start admin dashboard"
+echo "- just admin-dev   # Start with file watching"
+echo "- just test-e2e    # Run authentication tests"
+echo "- just --list      # Show all commands"
 echo ""
 echo "Note: If Docker was just installed, you may need to log out and back in."

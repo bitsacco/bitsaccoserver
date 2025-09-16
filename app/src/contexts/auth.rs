@@ -930,16 +930,16 @@ pub fn SSRAuthProvider(children: Children) -> impl IntoView {
         spawn_local(async move {
             match login_user(creds).await {
                 Ok(auth_response) => {
-                    let user_info = UserInfo {
-                        id: auth_response.user.id,
-                        phone: auth_response.user.phone,
-                        nostr: auth_response.user.nostr,
-                        roles: auth_response.user.roles,
-                        verified: auth_response.user.verified,
-                    };
-                    user.set(Some(user_info));
-                    token.set(Some(auth_response.access_token));
-                    refresh_token.set(Some(auth_response.refresh_token));
+                    // The login_user function already returns UserInfo in the user field
+                    user.set(Some(auth_response.user));
+
+                    // Store tokens if available
+                    if let Some(access_token) = auth_response.access_token {
+                        token.set(Some(access_token));
+                    }
+                    if let Some(refresh_token_val) = auth_response.refresh_token {
+                        refresh_token.set(Some(refresh_token_val));
+                    }
 
                     // Redirect to dashboard
                     #[cfg(target_arch = "wasm32")]
