@@ -135,7 +135,7 @@ where
     let total_pages = Signal::derive(move || {
         let data_len = data.get().len() as u32;
         let page_size = table_state.get().page_size;
-        (data_len + page_size - 1) / page_size
+        data_len.div_ceil(page_size)
     });
 
     view! {

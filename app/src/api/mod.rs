@@ -1,3 +1,4 @@
+// Existing SSR API modules
 pub mod analytics;
 pub mod auth;
 // pub mod auth_compat; // TODO: Re-enable when dependencies are fixed
@@ -10,11 +11,26 @@ pub mod shares;
 pub mod shares_compat;
 pub mod validation;
 
+// New API abstraction layer
+pub mod abstraction;
+pub mod backends;
+pub mod config;
+pub mod errors;
+pub mod traits;
+pub mod types;
+
 // Re-export commonly used items for SSR mode
 pub use client::{
-    api, get_dashboard_metrics, get_groups, get_members, get_shares, ApiClient, ApiError, ApiResponse, 
-    PaginatedResponse, PaginationQuery, SearchQuery,
+    api, get_dashboard_metrics, get_groups, get_members, get_shares, ApiClient, ApiError,
+    ApiResponse, PaginatedResponse, PaginationQuery, SearchQuery,
 };
+
+// Re-export abstraction layer items
+pub use abstraction::AbstractedApiClient;
+pub use config::{ApiConfig, Backend};
+pub use errors::{ApiError as AbstractedApiError, ApiResult};
+pub use traits::*;
+pub use types::*;
 
 use axum::{
     response::{IntoResponse, Json},

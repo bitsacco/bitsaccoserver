@@ -1,7 +1,7 @@
+use crate::api::client::*;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use serde::{Deserialize, Serialize};
-use crate::api::{client::*, *};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GroupResponse {
@@ -17,10 +17,7 @@ pub struct GroupResponse {
 #[component]
 pub fn GroupsPage() -> impl IntoView {
     // Create SSR-compatible resource for groups data
-    let groups_resource = Resource::new(
-        || (),
-        |_| crate::api::get_groups(None, None, None),
-    );
+    let groups_resource = Resource::new(|| (), |_| crate::api::get_groups(None, None, None));
 
     let show_create_form = RwSignal::new(false);
     let selected_group = RwSignal::new(None::<GroupResponse>);
@@ -122,7 +119,7 @@ pub fn GroupsPage() -> impl IntoView {
                                                                                         .unwrap_or(false)
                                                                                     {
                                                                                         spawn_local(async move {
-                                                                                            if let Ok(_) = delete_group(group_id).await {
+                                                                                            if (delete_group(group_id).await).is_ok() {
                                                                                                 groups_resource.refetch();
                                                                                             }
                                                                                         });
@@ -256,7 +253,11 @@ fn GroupFormModal(
 
         let current_group = group.get();
         let name_val = name.get();
-        let description_val = if description.get().is_empty() { None } else { Some(description.get()) };
+        let description_val = if description.get().is_empty() {
+            None
+        } else {
+            Some(description.get())
+        };
         let group_type_val = group_type.get();
 
         spawn_local(async move {
@@ -268,7 +269,8 @@ fn GroupFormModal(
                     description: description_val,
                     group_type: Some(group_type_val),
                     parent_group_id: None, // TODO: Add parent group selection
-                }).await
+                })
+                .await
             } else {
                 // Create new group
                 create_group(CreateGroupRequest {
@@ -276,7 +278,8 @@ fn GroupFormModal(
                     description: description_val,
                     group_type: group_type_val,
                     parent_group_id: None, // TODO: Add parent group selection
-                }).await
+                })
+                .await
             };
 
             set_is_loading.set(false);

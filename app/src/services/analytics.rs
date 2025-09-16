@@ -212,15 +212,13 @@ impl AnalyticsService {
             .shares
             .count_by_owner_type(shares::OwnerType::Member)
             .await
-            .map_err(|e| AnalyticsError::Repository(e))?
-            .max(0);
+            .map_err(AnalyticsError::Repository)?;
         let group_count = self
             .repositories
             .shares
             .count_by_owner_type(shares::OwnerType::Group)
             .await
-            .map_err(|e| AnalyticsError::Repository(e))?
-            .max(0);
+            .map_err(AnalyticsError::Repository)?;
         let total_shareholders = member_count + group_count;
 
         // Get top shareholders by value - use safe fallback for empty database
@@ -241,30 +239,37 @@ impl AnalyticsService {
     /// Get share offer analytics
     pub async fn get_offer_analytics(&self) -> AnalyticsServiceResult<ShareOfferAnalytics> {
         // Use safe fallbacks for potentially failing queries
-        let total_offers = self.repositories.share_offers.count().await.map_err(|e| AnalyticsError::Repository(e))?.max(0);
+        let total_offers = self
+            .repositories
+            .share_offers
+            .count()
+            .await
+            .map_err(AnalyticsError::Repository)?;
         let active_offers = self
             .repositories
             .share_offers
             .count_by_status(share_offers::ShareOfferStatus::Active)
             .await
-            .map_err(|e| AnalyticsError::Repository(e))?
-            .max(0);
+            .map_err(AnalyticsError::Repository)?;
         let completed_offers = self
             .repositories
             .share_offers
             .count_by_status(share_offers::ShareOfferStatus::Completed)
             .await
-            .map_err(|e| AnalyticsError::Repository(e))?
-            .max(0);
+            .map_err(AnalyticsError::Repository)?;
 
         let total_shares_offered = self
             .repositories
             .share_offers
             .total_shares_offered()
             .await
-            .map_err(|e| AnalyticsError::Repository(e))?;
-        let total_shares_sold = self.repositories.share_offers.total_shares_sold().await
-            .map_err(|e| AnalyticsError::Repository(e))?;
+            .map_err(AnalyticsError::Repository)?;
+        let total_shares_sold = self
+            .repositories
+            .share_offers
+            .total_shares_sold()
+            .await
+            .map_err(AnalyticsError::Repository)?;
 
         let average_completion_rate = if total_shares_offered > Decimal::ZERO {
             (total_shares_sold / total_shares_offered)
@@ -291,7 +296,12 @@ impl AnalyticsService {
     /// Get market analytics
     pub async fn get_market_analytics(&self) -> AnalyticsServiceResult<MarketAnalytics> {
         // Use safe fallback for potentially failing queries
-        let all_shares = self.repositories.shares.find_all().await.map_err(|e| AnalyticsError::Repository(e))?;
+        let all_shares = self
+            .repositories
+            .shares
+            .find_all()
+            .await
+            .map_err(AnalyticsError::Repository)?;
 
         let total_market_value: Decimal = all_shares.iter().map(|s| s.total_value).sum();
         let total_shares_in_circulation: Decimal =
@@ -303,8 +313,14 @@ impl AnalyticsService {
             Decimal::ZERO
         };
 
-        let price_distribution = self.calculate_price_distribution(&all_shares).await.unwrap_or_default();
-        let ownership_distribution = self.calculate_ownership_distribution(&all_shares).await.unwrap_or_default();
+        let price_distribution = self
+            .calculate_price_distribution(&all_shares)
+            .await
+            .unwrap_or_default();
+        let ownership_distribution = self
+            .calculate_ownership_distribution(&all_shares)
+            .await
+            .unwrap_or_default();
 
         Ok(MarketAnalytics {
             total_market_value,
@@ -319,7 +335,12 @@ impl AnalyticsService {
     pub async fn get_transaction_analytics(&self) -> AnalyticsServiceResult<TransactionAnalytics> {
         // For now, we'll use shares as a proxy for transactions
         // In a real implementation, we'd have a separate transactions table
-        let all_shares = self.repositories.shares.find_all().await.map_err(|e| AnalyticsError::Repository(e))?;
+        let all_shares = self
+            .repositories
+            .shares
+            .find_all()
+            .await
+            .map_err(AnalyticsError::Repository)?;
 
         let total_transactions = all_shares.len() as u64;
         let purchase_transactions = total_transactions; // All shares represent purchases for now
@@ -333,7 +354,10 @@ impl AnalyticsService {
         };
 
         // Generate monthly trends (simplified)
-        let transaction_trends = self.calculate_transaction_trends(&all_shares).await.unwrap_or_default();
+        let transaction_trends = self
+            .calculate_transaction_trends(&all_shares)
+            .await
+            .unwrap_or_default();
 
         Ok(TransactionAnalytics {
             total_transactions,

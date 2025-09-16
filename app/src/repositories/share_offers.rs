@@ -328,7 +328,7 @@ impl ShareOfferRepository {
             .one(&*self.db)
             .await?;
 
-        Ok(result.unwrap_or_else(|| rust_decimal::Decimal::ZERO))
+        Ok(result.unwrap_or(rust_decimal::Decimal::ZERO))
     }
 
     pub async fn total_shares_sold(&self) -> RepositoryResult<rust_decimal::Decimal> {
@@ -339,7 +339,7 @@ impl ShareOfferRepository {
             .one(&*self.db)
             .await?;
 
-        Ok(result.unwrap_or_else(|| rust_decimal::Decimal::ZERO))
+        Ok(result.unwrap_or(rust_decimal::Decimal::ZERO))
     }
 
     pub async fn with_shares(

@@ -1,7 +1,7 @@
+use crate::api::client::*;
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use serde::{Deserialize, Serialize};
-use crate::api::{client::*, *};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MemberResponse {
@@ -25,10 +25,7 @@ pub struct GroupInfo {
 #[component]
 pub fn MembersPage() -> impl IntoView {
     // Create SSR-compatible resource for members data
-    let members_resource = Resource::new(
-        || (),
-        |_| crate::api::get_members(None, None, None),
-    );
+    let members_resource = Resource::new(|| (), |_| crate::api::get_members(None, None, None));
 
     let show_create_form = RwSignal::new(false);
     let selected_member = RwSignal::new(None::<MemberResponse>);
@@ -160,7 +157,7 @@ pub fn MembersPage() -> impl IntoView {
                                                                                         .unwrap_or(false)
                                                                                     {
                                                                                         spawn_local(async move {
-                                                                                            if let Ok(_) = delete_member(member_id).await {
+                                                                                            if (delete_member(member_id).await).is_ok() {
                                                                                                 members_resource.refetch();
                                                                                             }
                                                                                         });
@@ -275,12 +272,12 @@ fn MemberFormModal(
     let (is_loading, set_is_loading) = signal(false);
     let (error_message, set_error_message) = signal(None::<String>);
     let (success_message, set_success_message) = signal(None::<String>);
-    
+
     // Validation states
     let (name_error, set_name_error) = signal(None::<String>);
     let (email_error, set_email_error) = signal(None::<String>);
     let (phone_error, set_phone_error) = signal(None::<String>);
-    
+
     // Validation functions
     let validate_name = move |value: &str| -> Option<String> {
         if value.trim().is_empty() {
@@ -291,7 +288,7 @@ fn MemberFormModal(
             None
         }
     };
-    
+
     let validate_email = move |value: &str| -> Option<String> {
         if !value.is_empty() && !value.contains('@') {
             Some("Please enter a valid email address".to_string())
@@ -299,7 +296,7 @@ fn MemberFormModal(
             None
         }
     };
-    
+
     let validate_phone = move |value: &str| -> Option<String> {
         if !value.is_empty() && value.len() < 10 {
             Some("Phone number must be at least 10 digits".to_string())
@@ -325,27 +322,29 @@ fn MemberFormModal(
 
     let handle_submit = move |ev: leptos::ev::SubmitEvent| {
         ev.prevent_default();
-        
+
         // Clear previous messages
         set_error_message.set(None);
         set_success_message.set(None);
-        
+
         // Validate all fields
         let name_val = name.get();
         let email_val = email.get();
         let phone_val = phone.get();
-        
+
         let name_validation = validate_name(&name_val);
         let email_validation = validate_email(&email_val);
         let phone_validation = validate_phone(&phone_val);
-        
+
         set_name_error.set(name_validation.clone());
         set_email_error.set(email_validation.clone());
         set_phone_error.set(phone_validation.clone());
-        
+
         // Check if there are any validation errors
         if name_validation.is_some() || email_validation.is_some() || phone_validation.is_some() {
-            set_error_message.set(Some("Please fix the validation errors before submitting".to_string()));
+            set_error_message.set(Some(
+                "Please fix the validation errors before submitting".to_string(),
+            ));
             return;
         }
 
@@ -353,9 +352,21 @@ fn MemberFormModal(
 
         let current_member = member.get();
         let is_updating = current_member.is_some();
-        let email_val = if email_val.is_empty() { None } else { Some(email_val) };
-        let phone_val = if phone_val.is_empty() { None } else { Some(phone_val) };
-        let member_number_val = if member_number.get().is_empty() { None } else { Some(member_number.get()) };
+        let email_val = if email_val.is_empty() {
+            None
+        } else {
+            Some(email_val)
+        };
+        let phone_val = if phone_val.is_empty() {
+            None
+        } else {
+            Some(phone_val)
+        };
+        let member_number_val = if member_number.get().is_empty() {
+            None
+        } else {
+            Some(member_number.get())
+        };
 
         spawn_local(async move {
             let result = if let Some(existing_member) = current_member {
@@ -366,7 +377,8 @@ fn MemberFormModal(
                     email: email_val,
                     phone: phone_val,
                     member_number: member_number_val,
-                }).await
+                })
+                .await
             } else {
                 // Create new member
                 create_member(CreateMemberRequest {
@@ -374,7 +386,8 @@ fn MemberFormModal(
                     email: email_val,
                     phone: phone_val,
                     member_number: member_number_val,
-                }).await
+                })
+                .await
             };
 
             set_is_loading.set(false);
@@ -382,11 +395,14 @@ fn MemberFormModal(
             match result {
                 Ok(response) => {
                     if let Some(member_data) = response.data {
-                        set_success_message.set(Some(response.message.unwrap_or_else(|| 
-                            if is_updating { "Member updated successfully".to_string() } 
-                            else { "Member created successfully".to_string() }
-                        )));
-                        
+                        set_success_message.set(Some(response.message.unwrap_or_else(|| {
+                            if is_updating {
+                                "Member updated successfully".to_string()
+                            } else {
+                                "Member created successfully".to_string()
+                            }
+                        })));
+
                         on_save(member_data);
                     }
                 }

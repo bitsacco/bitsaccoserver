@@ -1,6 +1,6 @@
 use leptos::prelude::*;
-use serde::{Deserialize, Serialize};
 use rust_decimal::prelude::ToPrimitive;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub enum ApiError {
@@ -85,21 +85,24 @@ pub async fn get_groups(
     use std::sync::Arc;
 
     // Use direct database connection approach since context injection is complex
-    let config = AppConfig::from_env()
-        .map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
-    
+    let config =
+        AppConfig::from_env().map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
+
     let database = {
         let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
         opt.max_connections(config.database.max_connections)
             .min_connections(config.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(config.database.acquire_timeout))
+            .acquire_timeout(std::time::Duration::from_secs(
+                config.database.acquire_timeout,
+            ))
             .idle_timeout(std::time::Duration::from_secs(config.database.idle_timeout))
             .max_lifetime(std::time::Duration::from_secs(config.database.max_lifetime));
-        
-        sea_orm::Database::connect(opt).await
+
+        sea_orm::Database::connect(opt)
+            .await
             .map_err(|e| ServerFnError::new(format!("Database connection error: {}", e)))?
     };
-    
+
     let repositories = Repositories::new(Arc::new(database));
 
     // Handle pagination parameters
@@ -110,21 +113,27 @@ pub async fn get_groups(
     let offset = (page - 1) as u64;
 
     // Call real repository with pagination
-    let all_groups = repositories.groups.find_all().await
+    let all_groups = repositories
+        .groups
+        .find_all()
+        .await
         .map_err(|e| ServerFnError::new(format!("Database error: {}", e)))?;
-    
+
     // Apply pagination and search filtering manually for now
     let mut filtered_groups = all_groups;
-    
+
     // Apply search filter if provided
     if let Some(search_term) = &search {
         let search_lower = search_term.to_lowercase();
         filtered_groups.retain(|group| {
             group.name.to_lowercase().contains(&search_lower)
-                || group.description.as_ref().map_or(false, |desc| desc.to_lowercase().contains(&search_lower))
+                || group
+                    .description
+                    .as_ref()
+                    .is_some_and(|desc| desc.to_lowercase().contains(&search_lower))
         });
     }
-    
+
     let total = filtered_groups.len() as u64;
     let start = offset as usize;
     let end = std::cmp::min(start + limit as usize, filtered_groups.len());
@@ -135,17 +144,20 @@ pub async fn get_groups(
     };
 
     // Convert repository entities to frontend response format
-    let group_responses: Vec<GroupResponse> = paginated_items.into_iter().map(|group| {
-        GroupResponse {
-            id: group.id,
-            name: group.name,
-            description: group.description,
-            group_type: format!("{:?}", group.group_type),
-            status: format!("{:?}", group.status),
-            member_count: None, // TODO: Calculate from member relationships
-            children_count: None, // TODO: Calculate from child group relationships
-        }
-    }).collect();
+    let group_responses: Vec<GroupResponse> = paginated_items
+        .into_iter()
+        .map(|group| {
+            GroupResponse {
+                id: group.id,
+                name: group.name,
+                description: group.description,
+                group_type: format!("{:?}", group.group_type),
+                status: format!("{:?}", group.status),
+                member_count: None,   // TODO: Calculate from member relationships
+                children_count: None, // TODO: Calculate from child group relationships
+            }
+        })
+        .collect();
 
     let total_pages = ((total as f64) / (limit as f64)).ceil() as u32;
 
@@ -176,21 +188,24 @@ pub async fn get_members(
     use std::sync::Arc;
 
     // Use direct database connection approach since context injection is complex
-    let config = AppConfig::from_env()
-        .map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
-    
+    let config =
+        AppConfig::from_env().map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
+
     let database = {
         let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
         opt.max_connections(config.database.max_connections)
             .min_connections(config.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(config.database.acquire_timeout))
+            .acquire_timeout(std::time::Duration::from_secs(
+                config.database.acquire_timeout,
+            ))
             .idle_timeout(std::time::Duration::from_secs(config.database.idle_timeout))
             .max_lifetime(std::time::Duration::from_secs(config.database.max_lifetime));
-        
-        sea_orm::Database::connect(opt).await
+
+        sea_orm::Database::connect(opt)
+            .await
             .map_err(|e| ServerFnError::new(format!("Database connection error: {}", e)))?
     };
-    
+
     let repositories = Repositories::new(Arc::new(database));
 
     let page = page.unwrap_or(1);
@@ -200,22 +215,28 @@ pub async fn get_members(
     let offset = (page - 1) as u64;
 
     // Call real repository
-    let all_members = repositories.members.find_all().await
+    let all_members = repositories
+        .members
+        .find_all()
+        .await
         .map_err(|e| ServerFnError::new(format!("Database error: {}", e)))?;
-    
+
     // Apply search filtering manually for now
     let mut filtered_members = all_members;
-    
+
     // Apply search filter if provided
     if let Some(search_term) = &search {
         let search_lower = search_term.to_lowercase();
         filtered_members.retain(|member| {
             member.name.to_lowercase().contains(&search_lower)
-                || member.email.as_ref().map_or(false, |email| email.to_lowercase().contains(&search_lower))
+                || member
+                    .email
+                    .as_ref()
+                    .is_some_and(|email| email.to_lowercase().contains(&search_lower))
                 || member.member_number.to_lowercase().contains(&search_lower)
         });
     }
-    
+
     let total = filtered_members.len() as u64;
     let start = offset as usize;
     let end = std::cmp::min(start + limit as usize, filtered_members.len());
@@ -226,23 +247,26 @@ pub async fn get_members(
     };
 
     // Convert repository entities to frontend response format
-    let member_responses: Vec<MemberResponse> = paginated_items.into_iter().map(|member| {
-        // For now, groups field will be None as we need to implement relationship loading
-        // TODO: Implement loading member groups via repository relationships
-        let groups = None;
+    let member_responses: Vec<MemberResponse> = paginated_items
+        .into_iter()
+        .map(|member| {
+            // For now, groups field will be None as we need to implement relationship loading
+            // TODO: Implement loading member groups via repository relationships
+            let groups = None;
 
-        MemberResponse {
-            id: member.id,
-            member_number: member.member_number,
-            name: member.name,
-            email: member.email,
-            phone: member.phone,
-            status: format!("{:?}", member.status),
-            shares_count: None, // TODO: Calculate from shares relationship
-            total_shares_value: None, // TODO: Calculate from shares relationship
-            groups,
-        }
-    }).collect();
+            MemberResponse {
+                id: member.id,
+                member_number: member.member_number,
+                name: member.name,
+                email: member.email,
+                phone: member.phone,
+                status: format!("{:?}", member.status),
+                shares_count: None, // TODO: Calculate from shares relationship
+                total_shares_value: None, // TODO: Calculate from shares relationship
+                groups,
+            }
+        })
+        .collect();
 
     let total_pages = ((total as f64) / (limit as f64)).ceil() as u32;
 
@@ -264,51 +288,71 @@ pub async fn get_members(
 #[server(GetDashboardMetrics, "/api", "GetJson")]
 pub async fn get_dashboard_metrics(
 ) -> Result<ApiResponse<crate::pages::dashboard::DashboardMetrics>, ServerFnError> {
-    use crate::services::Services;
-    use crate::server::AppConfig;
     use crate::repositories::Repositories;
+    use crate::server::AppConfig;
     use crate::services::auth::KeycloakConfig;
+    use crate::services::Services;
     use std::sync::Arc;
 
     // Use direct service initialization approach since context injection is complex
-    let config = AppConfig::from_env()
-        .map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
-    
+    let config =
+        AppConfig::from_env().map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
+
     let database = {
         let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
         opt.max_connections(config.database.max_connections)
             .min_connections(config.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(config.database.acquire_timeout))
+            .acquire_timeout(std::time::Duration::from_secs(
+                config.database.acquire_timeout,
+            ))
             .idle_timeout(std::time::Duration::from_secs(config.database.idle_timeout))
             .max_lifetime(std::time::Duration::from_secs(config.database.max_lifetime));
-        
-        sea_orm::Database::connect(opt).await
+
+        sea_orm::Database::connect(opt)
+            .await
             .map_err(|e| ServerFnError::new(format!("Database connection error: {}", e)))?
     };
-    
+
     let repositories = Repositories::new(Arc::new(database.clone()));
-    
+
     let keycloak_config = KeycloakConfig {
         realm: config.keycloak.realm.clone(),
         client_id: config.keycloak.client_id.clone(),
         client_secret: config.keycloak.client_secret.clone(),
         server_url: config.keycloak.auth_server_url.clone(),
     };
-    
+
     let fedimint_config = crate::services::fedimint::FedimintConfig::default();
-    let services = Services::new(Arc::new(database), repositories, keycloak_config, fedimint_config);
+    let services = Services::new(
+        Arc::new(database),
+        repositories,
+        keycloak_config,
+        fedimint_config,
+    );
 
     // Call real analytics service methods
-    let shareholder_summary = services.analytics.get_shareholder_summary().await
+    let shareholder_summary = services
+        .analytics
+        .get_shareholder_summary()
+        .await
         .map_err(|e| ServerFnError::new(format!("Analytics error: {}", e)))?;
-    
-    let market_analytics = services.analytics.get_market_analytics().await
+
+    let market_analytics = services
+        .analytics
+        .get_market_analytics()
+        .await
         .map_err(|e| ServerFnError::new(format!("Analytics error: {}", e)))?;
-    
-    let offer_analytics = services.analytics.get_offer_analytics().await
+
+    let offer_analytics = services
+        .analytics
+        .get_offer_analytics()
+        .await
         .map_err(|e| ServerFnError::new(format!("Analytics error: {}", e)))?;
-    
-    let transaction_analytics = services.analytics.get_transaction_analytics().await
+
+    let transaction_analytics = services
+        .analytics
+        .get_transaction_analytics()
+        .await
         .map_err(|e| ServerFnError::new(format!("Analytics error: {}", e)))?;
 
     // Convert analytics service response to dashboard metrics format
@@ -352,28 +396,32 @@ pub async fn get_shares(
     page: Option<u32>,
     limit: Option<u32>,
     search: Option<String>,
-) -> Result<ApiResponse<PaginatedResponse<crate::pages::shares::ShareOfferResponse>>, ServerFnError> {
+) -> Result<ApiResponse<PaginatedResponse<crate::pages::shares::ShareOfferResponse>>, ServerFnError>
+{
     use crate::pages::shares::ShareOfferResponse;
     use crate::repositories::Repositories;
     use crate::server::AppConfig;
     use std::sync::Arc;
 
     // Use direct database connection approach since context injection is complex
-    let config = AppConfig::from_env()
-        .map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
-    
+    let config =
+        AppConfig::from_env().map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
+
     let database = {
         let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
         opt.max_connections(config.database.max_connections)
             .min_connections(config.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(config.database.acquire_timeout))
+            .acquire_timeout(std::time::Duration::from_secs(
+                config.database.acquire_timeout,
+            ))
             .idle_timeout(std::time::Duration::from_secs(config.database.idle_timeout))
             .max_lifetime(std::time::Duration::from_secs(config.database.max_lifetime));
-        
-        sea_orm::Database::connect(opt).await
+
+        sea_orm::Database::connect(opt)
+            .await
             .map_err(|e| ServerFnError::new(format!("Database connection error: {}", e)))?
     };
-    
+
     let repositories = Repositories::new(Arc::new(database));
 
     let page = page.unwrap_or(1);
@@ -383,21 +431,27 @@ pub async fn get_shares(
     let offset = (page - 1) as u64;
 
     // Call real repository
-    let all_offers = repositories.share_offers.find_all().await
+    let all_offers = repositories
+        .share_offers
+        .find_all()
+        .await
         .map_err(|e| ServerFnError::new(format!("Database error: {}", e)))?;
-    
+
     // Apply search filtering manually for now
     let mut filtered_offers = all_offers;
-    
+
     // Apply search filter if provided
     if let Some(search_term) = &search {
         let search_lower = search_term.to_lowercase();
         filtered_offers.retain(|offer| {
             offer.name.to_lowercase().contains(&search_lower)
-                || offer.description.as_ref().map_or(false, |desc| desc.to_lowercase().contains(&search_lower))
+                || offer
+                    .description
+                    .as_ref()
+                    .is_some_and(|desc| desc.to_lowercase().contains(&search_lower))
         });
     }
-    
+
     let total = filtered_offers.len() as u64;
     let start = offset as usize;
     let end = std::cmp::min(start + limit as usize, filtered_offers.len());
@@ -408,28 +462,36 @@ pub async fn get_shares(
     };
 
     // Convert repository entities to frontend response format
-    let share_responses: Vec<ShareOfferResponse> = paginated_items.into_iter().map(|offer| {
-        // Calculate progress percentage
-        let sold_quantity = offer.shares_sold;
-        let progress = if offer.total_shares_available > rust_decimal::Decimal::ZERO {
-            (sold_quantity / offer.total_shares_available * rust_decimal::Decimal::from(100)).to_f64().unwrap_or(0.0)
-        } else {
-            0.0
-        };
+    let share_responses: Vec<ShareOfferResponse> = paginated_items
+        .into_iter()
+        .map(|offer| {
+            // Calculate progress percentage
+            let sold_quantity = offer.shares_sold;
+            let progress = if offer.total_shares_available > rust_decimal::Decimal::ZERO {
+                (sold_quantity / offer.total_shares_available * rust_decimal::Decimal::from(100))
+                    .to_f64()
+                    .unwrap_or(0.0)
+            } else {
+                0.0
+            };
 
-        ShareOfferResponse {
-            id: offer.id,
-            title: offer.name,
-            description: offer.description,
-            total_quantity: offer.total_shares_available,
-            available_quantity: offer.shares_remaining,
-            price_per_share: offer.price_per_share,
-            total_value: offer.total_shares_available * offer.price_per_share,
-            status: format!("{:?}", offer.status),
-            expires_at: offer.valid_until.map(|dt| dt.format("%Y-%m-%d").to_string()).unwrap_or_default(),
-            progress,
-        }
-    }).collect();
+            ShareOfferResponse {
+                id: offer.id,
+                title: offer.name,
+                description: offer.description,
+                total_quantity: offer.total_shares_available,
+                available_quantity: offer.shares_remaining,
+                price_per_share: offer.price_per_share,
+                total_value: offer.total_shares_available * offer.price_per_share,
+                status: format!("{:?}", offer.status),
+                expires_at: offer
+                    .valid_until
+                    .map(|dt| dt.format("%Y-%m-%d").to_string())
+                    .unwrap_or_default(),
+                progress,
+            }
+        })
+        .collect();
 
     let total_pages = ((total as f64) / (limit as f64)).ceil() as u32;
 
@@ -453,6 +515,12 @@ pub async fn get_shares(
 pub struct ApiClient {
     #[allow(dead_code)]
     base_url: String,
+}
+
+impl Default for ApiClient {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl ApiClient {
@@ -500,7 +568,7 @@ impl ApiClient {
 static API_CLIENT: std::sync::OnceLock<ApiClient> = std::sync::OnceLock::new();
 
 pub fn api() -> &'static ApiClient {
-    API_CLIENT.get_or_init(|| ApiClient::new())
+    API_CLIENT.get_or_init(ApiClient::new)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -527,27 +595,30 @@ pub async fn create_member(
     use crate::pages::members::MemberResponse;
     use crate::repositories::Repositories;
     use crate::server::AppConfig;
-    use std::sync::Arc;
     use entity::members::{self, ActiveModel};
-    use sea_orm::{Set};
+    use sea_orm::Set;
+    use std::sync::Arc;
     use uuid::Uuid;
 
     // Use direct database connection approach since context injection is complex
-    let config = AppConfig::from_env()
-        .map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
-    
+    let config =
+        AppConfig::from_env().map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
+
     let database = {
         let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
         opt.max_connections(config.database.max_connections)
             .min_connections(config.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(config.database.acquire_timeout))
+            .acquire_timeout(std::time::Duration::from_secs(
+                config.database.acquire_timeout,
+            ))
             .idle_timeout(std::time::Duration::from_secs(config.database.idle_timeout))
             .max_lifetime(std::time::Duration::from_secs(config.database.max_lifetime));
-        
-        sea_orm::Database::connect(opt).await
+
+        sea_orm::Database::connect(opt)
+            .await
             .map_err(|e| ServerFnError::new(format!("Database connection error: {}", e)))?
     };
-    
+
     let repositories = Repositories::new(Arc::new(database));
 
     // Generate member number if not provided
@@ -555,7 +626,10 @@ pub async fn create_member(
         number
     } else {
         // Generate a unique member number
-        let count = repositories.members.count().await
+        let count = repositories
+            .members
+            .count()
+            .await
             .map_err(|e| ServerFnError::new(format!("Database error: {}", e)))?;
         format!("M{:06}", count + 1)
     };
@@ -573,7 +647,10 @@ pub async fn create_member(
         ..Default::default()
     };
 
-    let saved_member = repositories.members.create(new_member).await
+    let saved_member = repositories
+        .members
+        .create(new_member)
+        .await
         .map_err(|e| ServerFnError::new(format!("Database error: {}", e)))?;
 
     // Convert to response format
@@ -606,26 +683,29 @@ pub async fn update_member(
     use crate::pages::members::MemberResponse;
     use crate::repositories::Repositories;
     use crate::server::AppConfig;
+    use entity::members::ActiveModel;
+    use sea_orm::Set;
     use std::sync::Arc;
-    use entity::members::{ActiveModel};
-    use sea_orm::{Set};
 
     // Use direct database connection approach since context injection is complex
-    let config = AppConfig::from_env()
-        .map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
-    
+    let config =
+        AppConfig::from_env().map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
+
     let database = {
         let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
         opt.max_connections(config.database.max_connections)
             .min_connections(config.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(config.database.acquire_timeout))
+            .acquire_timeout(std::time::Duration::from_secs(
+                config.database.acquire_timeout,
+            ))
             .idle_timeout(std::time::Duration::from_secs(config.database.idle_timeout))
             .max_lifetime(std::time::Duration::from_secs(config.database.max_lifetime));
-        
-        sea_orm::Database::connect(opt).await
+
+        sea_orm::Database::connect(opt)
+            .await
             .map_err(|e| ServerFnError::new(format!("Database connection error: {}", e)))?
     };
-    
+
     let repositories = Repositories::new(Arc::new(database));
 
     // Build ActiveModel for partial update
@@ -648,7 +728,10 @@ pub async fn update_member(
         update_model.member_number = Set(member_number);
     }
 
-    let updated_member = repositories.members.update(request.id, update_model).await
+    let updated_member = repositories
+        .members
+        .update(request.id, update_model)
+        .await
         .map_err(|e| ServerFnError::new(format!("Database error: {}", e)))?;
 
     // Convert to response format
@@ -675,32 +758,36 @@ pub async fn update_member(
 }
 
 #[server(DeleteMember, "/api")]
-pub async fn delete_member(
-    member_id: uuid::Uuid,
-) -> Result<ApiResponse<()>, ServerFnError> {
+pub async fn delete_member(member_id: uuid::Uuid) -> Result<ApiResponse<()>, ServerFnError> {
     use crate::repositories::Repositories;
     use crate::server::AppConfig;
     use std::sync::Arc;
 
     // Use direct database connection approach since context injection is complex
-    let config = AppConfig::from_env()
-        .map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
-    
+    let config =
+        AppConfig::from_env().map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
+
     let database = {
         let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
         opt.max_connections(config.database.max_connections)
             .min_connections(config.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(config.database.acquire_timeout))
+            .acquire_timeout(std::time::Duration::from_secs(
+                config.database.acquire_timeout,
+            ))
             .idle_timeout(std::time::Duration::from_secs(config.database.idle_timeout))
             .max_lifetime(std::time::Duration::from_secs(config.database.max_lifetime));
-        
-        sea_orm::Database::connect(opt).await
+
+        sea_orm::Database::connect(opt)
+            .await
             .map_err(|e| ServerFnError::new(format!("Database connection error: {}", e)))?
     };
-    
+
     let repositories = Repositories::new(Arc::new(database));
 
-    repositories.members.delete(member_id).await
+    repositories
+        .members
+        .delete(member_id)
+        .await
         .map_err(|e| ServerFnError::new(format!("Database error: {}", e)))?;
 
     let response = ApiResponse {
@@ -737,27 +824,30 @@ pub async fn create_group(
     use crate::pages::groups::GroupResponse;
     use crate::repositories::Repositories;
     use crate::server::AppConfig;
-    use std::sync::Arc;
     use entity::groups::{self, ActiveModel};
-    use sea_orm::{Set};
+    use sea_orm::Set;
+    use std::sync::Arc;
     use uuid::Uuid;
 
     // Use direct database connection approach since context injection is complex
-    let config = AppConfig::from_env()
-        .map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
-    
+    let config =
+        AppConfig::from_env().map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
+
     let database = {
         let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
         opt.max_connections(config.database.max_connections)
             .min_connections(config.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(config.database.acquire_timeout))
+            .acquire_timeout(std::time::Duration::from_secs(
+                config.database.acquire_timeout,
+            ))
             .idle_timeout(std::time::Duration::from_secs(config.database.idle_timeout))
             .max_lifetime(std::time::Duration::from_secs(config.database.max_lifetime));
-        
-        sea_orm::Database::connect(opt).await
+
+        sea_orm::Database::connect(opt)
+            .await
             .map_err(|e| ServerFnError::new(format!("Database connection error: {}", e)))?
     };
-    
+
     let repositories = Repositories::new(Arc::new(database));
 
     // Parse group type
@@ -780,7 +870,10 @@ pub async fn create_group(
         ..Default::default()
     };
 
-    let saved_group = repositories.groups.create(new_group).await
+    let saved_group = repositories
+        .groups
+        .create(new_group)
+        .await
         .map_err(|e| ServerFnError::new(format!("Database error: {}", e)))?;
 
     // Convert to response format
@@ -811,26 +904,29 @@ pub async fn update_group(
     use crate::pages::groups::GroupResponse;
     use crate::repositories::Repositories;
     use crate::server::AppConfig;
-    use std::sync::Arc;
     use entity::groups::{self, ActiveModel};
-    use sea_orm::{Set};
+    use sea_orm::Set;
+    use std::sync::Arc;
 
     // Use direct database connection approach since context injection is complex
-    let config = AppConfig::from_env()
-        .map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
-    
+    let config =
+        AppConfig::from_env().map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
+
     let database = {
         let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
         opt.max_connections(config.database.max_connections)
             .min_connections(config.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(config.database.acquire_timeout))
+            .acquire_timeout(std::time::Duration::from_secs(
+                config.database.acquire_timeout,
+            ))
             .idle_timeout(std::time::Duration::from_secs(config.database.idle_timeout))
             .max_lifetime(std::time::Duration::from_secs(config.database.max_lifetime));
-        
-        sea_orm::Database::connect(opt).await
+
+        sea_orm::Database::connect(opt)
+            .await
             .map_err(|e| ServerFnError::new(format!("Database connection error: {}", e)))?
     };
-    
+
     let repositories = Repositories::new(Arc::new(database));
 
     // Build ActiveModel for partial update
@@ -858,7 +954,10 @@ pub async fn update_group(
         update_model.parent_id = Set(Some(parent_id));
     }
 
-    let updated_group = repositories.groups.update(request.id, update_model).await
+    let updated_group = repositories
+        .groups
+        .update(request.id, update_model)
+        .await
         .map_err(|e| ServerFnError::new(format!("Database error: {}", e)))?;
 
     // Convert to response format
@@ -883,32 +982,36 @@ pub async fn update_group(
 }
 
 #[server(DeleteGroup, "/api")]
-pub async fn delete_group(
-    group_id: uuid::Uuid,
-) -> Result<ApiResponse<()>, ServerFnError> {
+pub async fn delete_group(group_id: uuid::Uuid) -> Result<ApiResponse<()>, ServerFnError> {
     use crate::repositories::Repositories;
     use crate::server::AppConfig;
     use std::sync::Arc;
 
     // Use direct database connection approach since context injection is complex
-    let config = AppConfig::from_env()
-        .map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
-    
+    let config =
+        AppConfig::from_env().map_err(|e| ServerFnError::new(format!("Config error: {}", e)))?;
+
     let database = {
         let mut opt = sea_orm::ConnectOptions::new(&config.database_url);
         opt.max_connections(config.database.max_connections)
             .min_connections(config.database.min_connections)
-            .acquire_timeout(std::time::Duration::from_secs(config.database.acquire_timeout))
+            .acquire_timeout(std::time::Duration::from_secs(
+                config.database.acquire_timeout,
+            ))
             .idle_timeout(std::time::Duration::from_secs(config.database.idle_timeout))
             .max_lifetime(std::time::Duration::from_secs(config.database.max_lifetime));
-        
-        sea_orm::Database::connect(opt).await
+
+        sea_orm::Database::connect(opt)
+            .await
             .map_err(|e| ServerFnError::new(format!("Database connection error: {}", e)))?
     };
-    
+
     let repositories = Repositories::new(Arc::new(database));
 
-    repositories.groups.delete(group_id).await
+    repositories
+        .groups
+        .delete(group_id)
+        .await
         .map_err(|e| ServerFnError::new(format!("Database error: {}", e)))?;
 
     let response = ApiResponse {

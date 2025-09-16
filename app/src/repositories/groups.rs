@@ -168,13 +168,23 @@ impl GroupRepository {
         &self,
         id: Uuid,
     ) -> RepositoryResult<Option<(groups::Model, Vec<::entity::members::Model>)>> {
-        let group = Groups::find_by_id(id)
-            .find_with_related(Members)
-            .all(&*self.db)
-            .await?;
+        // First get the group
+        let group = Groups::find_by_id(id).one(&*self.db).await?;
 
-        match group.into_iter().next() {
-            Some((group, members)) => Ok(Some((group, members))),
+        match group {
+            Some(group) => {
+                // Get members through group_memberships
+                let members = group
+                    .find_related(GroupMemberships)
+                    .find_with_related(Members)
+                    .all(&*self.db)
+                    .await?
+                    .into_iter()
+                    .flat_map(|(_, members)| members)
+                    .collect::<Vec<_>>();
+
+                Ok(Some((group, members)))
+            }
             None => Ok(None),
         }
     }

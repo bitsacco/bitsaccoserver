@@ -239,11 +239,11 @@ impl ValidationService {
         let (exists, is_active) = match owner_type {
             shares::OwnerType::Member => {
                 let member = self.repositories.members.find_by_id(owner_id).await?;
-                (member.is_some(), member.map_or(false, |m| m.is_active()))
+                (member.is_some(), member.is_some_and(|m| m.is_active()))
             }
             shares::OwnerType::Group => {
                 let group = self.repositories.groups.find_by_id(owner_id).await?;
-                (group.is_some(), group.map_or(false, |g| g.is_active()))
+                (group.is_some(), group.is_some_and(|g| g.is_active()))
             }
         };
 
@@ -273,18 +273,18 @@ impl ValidationService {
 
                 let now = chrono::Utc::now();
                 let within_validity_period = {
-                    let after_start = offer.valid_from.map_or(true, |start| now >= start);
-                    let before_end = offer.valid_until.map_or(true, |end| now <= end);
+                    let after_start = offer.valid_from.is_none_or(|start| now >= start);
+                    let before_end = offer.valid_until.is_none_or(|end| now <= end);
                     after_start && before_end
                 };
 
                 let within_purchase_limits = {
                     let above_min = offer
                         .min_purchase_quantity
-                        .map_or(true, |min| quantity >= min);
+                        .is_none_or(|min| quantity >= min);
                     let below_max = offer
                         .max_purchase_quantity
-                        .map_or(true, |max| quantity <= max);
+                        .is_none_or(|max| quantity <= max);
                     above_min && below_max
                 };
 
@@ -426,7 +426,7 @@ impl ValidationService {
         &self,
         request: &SharePurchaseValidationRequest,
         violations: &mut Vec<ValidationViolation>,
-        _warnings: &mut Vec<ValidationWarning>,
+        _warnings: &mut [ValidationWarning],
     ) -> ValidationServiceResult<OwnerValidationInfo> {
         let owner_info = self
             .get_owner_validation_info(request.owner_id, request.owner_type)
@@ -576,7 +576,7 @@ impl ValidationService {
         &self,
         request: &ShareTransferValidationRequest,
         violations: &mut Vec<ValidationViolation>,
-        _warnings: &mut Vec<ValidationWarning>,
+        _warnings: &mut [ValidationWarning],
     ) -> ValidationServiceResult<()> {
         let holdings = self
             .repositories
@@ -610,7 +610,7 @@ impl ValidationService {
         &self,
         request: &ShareTransferValidationRequest,
         violations: &mut Vec<ValidationViolation>,
-        _warnings: &mut Vec<ValidationWarning>,
+        _warnings: &mut [ValidationWarning],
     ) -> ValidationServiceResult<()> {
         let owner_info = self
             .get_owner_validation_info(request.to_owner_id, request.to_owner_type)
@@ -640,8 +640,8 @@ impl ValidationService {
     async fn validate_transfer_business_rules(
         &self,
         _request: &ShareTransferValidationRequest,
-        _violations: &mut Vec<ValidationViolation>,
-        _warnings: &mut Vec<ValidationWarning>,
+        _violations: &mut [ValidationViolation],
+        _warnings: &mut [ValidationWarning],
     ) -> ValidationServiceResult<()> {
         // Additional business rules for transfers can be added here
         Ok(())
@@ -650,7 +650,7 @@ impl ValidationService {
     async fn generate_transfer_recommendations(
         &self,
         _request: &ShareTransferValidationRequest,
-        _recommendations: &mut Vec<ValidationRecommendation>,
+        _recommendations: &mut [ValidationRecommendation],
     ) -> ValidationServiceResult<()> {
         // Transfer-specific recommendations can be added here
         Ok(())

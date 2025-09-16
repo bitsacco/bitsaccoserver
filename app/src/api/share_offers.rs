@@ -97,8 +97,8 @@ pub async fn create_offer(
         valid_until: Set(request.valid_until.map(|dt| dt.into())),
         min_purchase_quantity: Set(request.min_purchase_quantity),
         max_purchase_quantity: Set(request.max_purchase_quantity),
-        settings: Set(request.settings.map(|v| v.into())),
-        metadata: Set(request.metadata.map(|v| v.into())),
+        settings: Set(request.settings),
+        metadata: Set(request.metadata),
         created_at: Set(chrono::Utc::now().into()),
         updated_at: Set(chrono::Utc::now().into()),
         created_by: Set(request.created_by),
@@ -301,10 +301,10 @@ pub async fn update_offer(
         update_model.max_purchase_quantity = Set(Some(max_qty));
     }
     if let Some(settings) = request.settings {
-        update_model.settings = Set(Some(settings.into()));
+        update_model.settings = Set(Some(settings));
     }
     if let Some(metadata) = request.metadata {
-        update_model.metadata = Set(Some(metadata.into()));
+        update_model.metadata = Set(Some(metadata));
     }
     if let Some(updated_by) = request.updated_by {
         update_model.updated_by = Set(Some(updated_by));

@@ -2,8 +2,11 @@ use sea_orm::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use ::entity::{wallet_transactions, sea_orm_active_enums::{TransactionType, TransactionStatus}};
 use super::{RepositoryError, RepositoryResult};
+use ::entity::{
+    sea_orm_active_enums::{TransactionStatus, TransactionType},
+    wallet_transactions,
+};
 
 #[derive(Clone)]
 pub struct WalletTransactionRepository {
@@ -16,13 +19,19 @@ impl WalletTransactionRepository {
     }
 
     /// Create a new wallet transaction
-    pub async fn create(&self, transaction: wallet_transactions::ActiveModel) -> RepositoryResult<wallet_transactions::Model> {
+    pub async fn create(
+        &self,
+        transaction: wallet_transactions::ActiveModel,
+    ) -> RepositoryResult<wallet_transactions::Model> {
         let result = transaction.insert(self.db.as_ref()).await?;
         Ok(result)
     }
 
     /// Find transaction by ID
-    pub async fn find_by_id(&self, id: Uuid) -> RepositoryResult<Option<wallet_transactions::Model>> {
+    pub async fn find_by_id(
+        &self,
+        id: Uuid,
+    ) -> RepositoryResult<Option<wallet_transactions::Model>> {
         let transaction = wallet_transactions::Entity::find_by_id(id)
             .one(self.db.as_ref())
             .await?;
@@ -53,7 +62,10 @@ impl WalletTransactionRepository {
     }
 
     /// Find transactions by external ID (e.g., Lightning invoice payment hash)
-    pub async fn find_by_external_id(&self, external_id: String) -> RepositoryResult<Vec<wallet_transactions::Model>> {
+    pub async fn find_by_external_id(
+        &self,
+        external_id: String,
+    ) -> RepositoryResult<Vec<wallet_transactions::Model>> {
         let transactions = wallet_transactions::Entity::find()
             .filter(wallet_transactions::Column::ExternalId.eq(external_id))
             .all(self.db.as_ref())
@@ -62,7 +74,10 @@ impl WalletTransactionRepository {
     }
 
     /// Find transactions by status
-    pub async fn find_by_status(&self, status: TransactionStatus) -> RepositoryResult<Vec<wallet_transactions::Model>> {
+    pub async fn find_by_status(
+        &self,
+        status: TransactionStatus,
+    ) -> RepositoryResult<Vec<wallet_transactions::Model>> {
         let transactions = wallet_transactions::Entity::find()
             .filter(wallet_transactions::Column::Status.eq(status))
             .order_by_desc(wallet_transactions::Column::CreatedAt)
@@ -72,9 +87,12 @@ impl WalletTransactionRepository {
     }
 
     /// Find pending transactions older than specified duration
-    pub async fn find_expired_pending(&self, hours_old: i64) -> RepositoryResult<Vec<wallet_transactions::Model>> {
+    pub async fn find_expired_pending(
+        &self,
+        hours_old: i64,
+    ) -> RepositoryResult<Vec<wallet_transactions::Model>> {
         let cutoff = chrono::Utc::now() - chrono::Duration::hours(hours_old);
-        
+
         let transactions = wallet_transactions::Entity::find()
             .filter(wallet_transactions::Column::Status.eq(TransactionStatus::Pending))
             .filter(wallet_transactions::Column::CreatedAt.lt(cutoff))
@@ -84,7 +102,10 @@ impl WalletTransactionRepository {
     }
 
     /// Find transactions by counterparty
-    pub async fn find_by_counterparty(&self, counterparty_id: Uuid) -> RepositoryResult<Vec<wallet_transactions::Model>> {
+    pub async fn find_by_counterparty(
+        &self,
+        counterparty_id: Uuid,
+    ) -> RepositoryResult<Vec<wallet_transactions::Model>> {
         let transactions = wallet_transactions::Entity::find()
             .filter(wallet_transactions::Column::CounterpartyId.eq(counterparty_id))
             .order_by_desc(wallet_transactions::Column::CreatedAt)
@@ -94,7 +115,10 @@ impl WalletTransactionRepository {
     }
 
     /// Find transactions by Fedimint operation ID
-    pub async fn find_by_fedimint_operation(&self, operation_id: Uuid) -> RepositoryResult<Option<wallet_transactions::Model>> {
+    pub async fn find_by_fedimint_operation(
+        &self,
+        operation_id: Uuid,
+    ) -> RepositoryResult<Option<wallet_transactions::Model>> {
         let transaction = wallet_transactions::Entity::find()
             .filter(wallet_transactions::Column::FedimintOperationId.eq(operation_id))
             .one(self.db.as_ref())
@@ -123,7 +147,10 @@ impl WalletTransactionRepository {
     }
 
     /// Update transaction
-    pub async fn update(&self, transaction: wallet_transactions::ActiveModel) -> RepositoryResult<wallet_transactions::Model> {
+    pub async fn update(
+        &self,
+        transaction: wallet_transactions::ActiveModel,
+    ) -> RepositoryResult<wallet_transactions::Model> {
         let result = transaction.update(self.db.as_ref()).await?;
         Ok(result)
     }
@@ -140,7 +167,7 @@ impl WalletTransactionRepository {
             .ok_or(RepositoryError::NotFound)?;
 
         let mut transaction: wallet_transactions::ActiveModel = transaction.into();
-        transaction.status = Set(status.clone());
+        transaction.status = Set(status);
         transaction.updated_at = Set(chrono::Utc::now().into());
 
         if status == TransactionStatus::Completed || status == TransactionStatus::Failed {
@@ -196,7 +223,7 @@ impl WalletTransactionRepository {
 
         for tx in &transactions {
             total_fees += tx.fee_msat;
-            
+
             match tx.transaction_type {
                 TransactionType::Deposit => {
                     total_in += tx.amount_msat;
@@ -262,7 +289,10 @@ impl WalletTransactionRepository {
     }
 
     /// Get latest transaction for wallet
-    pub async fn get_latest_for_wallet(&self, wallet_id: Uuid) -> RepositoryResult<Option<wallet_transactions::Model>> {
+    pub async fn get_latest_for_wallet(
+        &self,
+        wallet_id: Uuid,
+    ) -> RepositoryResult<Option<wallet_transactions::Model>> {
         let transaction = wallet_transactions::Entity::find()
             .filter(wallet_transactions::Column::WalletId.eq(wallet_id))
             .order_by_desc(wallet_transactions::Column::CreatedAt)

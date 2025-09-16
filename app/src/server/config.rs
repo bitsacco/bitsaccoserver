@@ -39,7 +39,7 @@ pub struct JwtConfig {
 impl AppConfig {
     pub fn from_env() -> Result<Self, Box<dyn std::error::Error>> {
         Ok(Self {
-            server_addr: env::var("SERVER_ADDR").unwrap_or_else(|_| "0.0.0.0:3000".to_string()),
+            server_addr: env::var("SERVER_ADDR").unwrap_or_else(|_| "0.0.0.0:3030".to_string()),
             database_url: env::var("DATABASE_URL").unwrap_or_else(|_| {
                 "postgres://bitsaccoserver:password@localhost:5432/bitsaccoserver".to_string()
             }),

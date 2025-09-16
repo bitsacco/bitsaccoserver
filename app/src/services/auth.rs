@@ -1,13 +1,13 @@
-use crate::middleware::auth::{UserContext, Claims};
+use crate::middleware::auth::{Claims, UserContext};
 #[cfg(test)]
 use crate::middleware::auth::{RealmAccess, ResourceAccess};
 use crate::repositories::Repositories;
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use thiserror::Error;
 use uuid::Uuid;
-use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 
 #[derive(Debug, Error)]
 pub enum AuthServiceError {
@@ -123,13 +123,9 @@ impl KeycloakConfig {
     }
 
     pub fn users_endpoint(&self) -> String {
-        format!(
-            "{}/admin/realms/{}/users",
-            self.server_url, self.realm
-        )
+        format!("{}/admin/realms/{}/users", self.server_url, self.realm)
     }
 }
-
 
 #[derive(Clone)]
 pub struct AuthService {
@@ -163,7 +159,7 @@ impl AuthService {
 
         let response = self
             .http_client
-            .post(&self.keycloak_config.token_endpoint())
+            .post(self.keycloak_config.token_endpoint())
             .form(&params)
             .send()
             .await?;
@@ -176,10 +172,10 @@ impl AuthService {
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            
+
             // Log the actual error for debugging but don't expose it
             tracing::debug!("Authentication failed: {}", error_text);
-            
+
             // Return a generic error message
             Err(AuthServiceError::InvalidCredentials)
         }
@@ -197,7 +193,7 @@ impl AuthService {
 
         let response = self
             .http_client
-            .post(&self.keycloak_config.token_endpoint())
+            .post(self.keycloak_config.token_endpoint())
             .form(&params)
             .send()
             .await?;
@@ -222,7 +218,7 @@ impl AuthService {
 
         let response = self
             .http_client
-            .post(&self.keycloak_config.logout_endpoint())
+            .post(self.keycloak_config.logout_endpoint())
             .form(&params)
             .send()
             .await?;
@@ -246,25 +242,26 @@ impl AuthService {
         validation.validate_exp = false;
         validation.validate_nbf = false;
         validation.validate_aud = false;
-        
+
         let token_data = decode::<Claims>(
             access_token,
             &DecodingKey::from_secret(&[]), // Dummy key since signature validation is disabled
             &validation,
-        ).map_err(|e| AuthServiceError::AuthenticationFailed(
-            format!("Failed to decode JWT: {}", e)
-        ))?;
+        )
+        .map_err(|e| {
+            AuthServiceError::AuthenticationFailed(format!("Failed to decode JWT: {}", e))
+        })?;
 
         let claims = token_data.claims;
 
         // Extract user ID from subject claim
-        let user_id = Uuid::parse_str(&claims.sub)
-            .map_err(|_| AuthServiceError::AuthenticationFailed(
-                "Invalid user ID in JWT".to_string()
-            ))?;
+        let user_id = Uuid::parse_str(&claims.sub).map_err(|_| {
+            AuthServiceError::AuthenticationFailed("Invalid user ID in JWT".to_string())
+        })?;
 
         // Extract roles from realm access
-        let roles = claims.realm_access
+        let roles = claims
+            .realm_access
             .as_ref()
             .map(|ra| ra.roles.clone())
             .unwrap_or_default();
@@ -311,7 +308,7 @@ impl AuthService {
     pub async fn get_jwks(&self) -> Result<serde_json::Value, AuthServiceError> {
         let response = self
             .http_client
-            .get(&self.keycloak_config.jwks_endpoint())
+            .get(self.keycloak_config.jwks_endpoint())
             .send()
             .await?;
 
@@ -327,7 +324,10 @@ impl AuthService {
         }
     }
 
-    pub async fn register(&self, register_request: RegisterRequest) -> Result<RegisterResponse, AuthServiceError> {
+    pub async fn register(
+        &self,
+        register_request: RegisterRequest,
+    ) -> Result<RegisterResponse, AuthServiceError> {
         // Build the user representation for Keycloak
         let mut user_data = serde_json::json!({
             "username": register_request.username,
@@ -361,7 +361,7 @@ impl AuthService {
 
         let response = self
             .http_client
-            .post(&self.keycloak_config.users_endpoint())
+            .post(self.keycloak_config.users_endpoint())
             .bearer_auth(admin_token)
             .json(&user_data)
             .send()
@@ -373,7 +373,7 @@ impl AuthService {
                 .headers()
                 .get("location")
                 .and_then(|loc| loc.to_str().ok())
-                .and_then(|loc| loc.split('/').last())
+                .and_then(|loc| loc.split('/').next_back())
                 .unwrap_or("unknown")
                 .to_string();
 
@@ -387,17 +387,23 @@ impl AuthService {
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            Err(AuthServiceError::AuthenticationFailed(format!("Registration failed: {}", error_text)))
+            Err(AuthServiceError::AuthenticationFailed(format!(
+                "Registration failed: {}",
+                error_text
+            )))
         }
     }
 
-    pub async fn verify(&self, verify_request: VerifyRequest) -> Result<VerifyResponse, AuthServiceError> {
+    pub async fn verify(
+        &self,
+        verify_request: VerifyRequest,
+    ) -> Result<VerifyResponse, AuthServiceError> {
         // For now, implement a simple OTP verification
         // In a production system, you would:
         // 1. Validate the OTP against stored values (database/cache)
         // 2. Update user's email verification status in Keycloak
         // 3. Possibly activate the user account
-        
+
         // Simple validation - in real implementation, check against stored OTP
         if verify_request.otp.len() >= 4 && verify_request.otp.chars().all(|c| c.is_numeric()) {
             // Get admin token to update user
@@ -411,7 +417,11 @@ impl AuthService {
 
             let response = self
                 .http_client
-                .put(&format!("{}/{}", self.keycloak_config.users_endpoint(), verify_request.user_id))
+                .put(format!(
+                    "{}/{}",
+                    self.keycloak_config.users_endpoint(),
+                    verify_request.user_id
+                ))
                 .bearer_auth(admin_token)
                 .json(&update_data)
                 .send()
@@ -427,7 +437,10 @@ impl AuthService {
                     .text()
                     .await
                     .unwrap_or_else(|_| "Unknown error".to_string());
-                Err(AuthServiceError::AuthenticationFailed(format!("Verification failed: {}", error_text)))
+                Err(AuthServiceError::AuthenticationFailed(format!(
+                    "Verification failed: {}",
+                    error_text
+                )))
             }
         } else {
             Ok(VerifyResponse {
@@ -437,18 +450,24 @@ impl AuthService {
         }
     }
 
-    pub async fn recover(&self, recover_request: RecoverRequest) -> Result<RecoverResponse, AuthServiceError> {
+    pub async fn recover(
+        &self,
+        recover_request: RecoverRequest,
+    ) -> Result<RecoverResponse, AuthServiceError> {
         // For account recovery, we would typically:
         // 1. Find user by email
         // 2. Generate a password reset token
         // 3. Send email with reset link
         // 4. Store the token for later verification
-        
+
         // For now, return a success response indicating the process has started
         // In a real implementation, integrate with email service
-        
-        tracing::info!("Password recovery requested for email: {}", recover_request.email);
-        
+
+        tracing::info!(
+            "Password recovery requested for email: {}",
+            recover_request.email
+        );
+
         Ok(RecoverResponse {
             message: "If an account with this email exists, you will receive a password reset link shortly.".to_string(),
             reset_token_sent: true,
@@ -464,7 +483,7 @@ impl AuthService {
 
         let response = self
             .http_client
-            .post(&self.keycloak_config.token_endpoint())
+            .post(self.keycloak_config.token_endpoint())
             .form(&params)
             .send()
             .await?;
@@ -475,13 +494,20 @@ impl AuthService {
                 .get("access_token")
                 .and_then(|t| t.as_str())
                 .map(|t| t.to_string())
-                .ok_or_else(|| AuthServiceError::AuthenticationFailed("No access token in response".to_string()))
+                .ok_or_else(|| {
+                    AuthServiceError::AuthenticationFailed(
+                        "No access token in response".to_string(),
+                    )
+                })
         } else {
             let error_text = response
                 .text()
                 .await
                 .unwrap_or_else(|_| "Unknown error".to_string());
-            Err(AuthServiceError::AuthenticationFailed(format!("Admin token failed: {}", error_text)))
+            Err(AuthServiceError::AuthenticationFailed(format!(
+                "Admin token failed: {}",
+                error_text
+            )))
         }
     }
 }
@@ -492,13 +518,13 @@ pub type AuthServiceResult<T> = Result<T, AuthServiceError>;
 mod tests {
     use super::*;
     use crate::repositories::Repositories;
+    use jsonwebtoken::{encode, Algorithm, EncodingKey, Header};
     use std::collections::HashMap;
     use uuid::Uuid;
-    use jsonwebtoken::{encode, EncodingKey, Header, Algorithm};
 
     fn create_test_auth_service() -> AuthService {
         let repositories = Repositories::new(std::sync::Arc::new(
-            sea_orm::DatabaseConnection::Disconnected
+            sea_orm::DatabaseConnection::Disconnected,
         ));
         let keycloak_config = KeycloakConfig {
             realm: "test".to_string(),
@@ -518,7 +544,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_user_info_success() {
         let auth_service = create_test_auth_service();
-        
+
         let user_id = Uuid::new_v4();
         let claims = Claims {
             sub: user_id.to_string(),
@@ -535,9 +561,12 @@ mod tests {
             }),
             resource_access: Some({
                 let mut map = HashMap::new();
-                map.insert("test-client".to_string(), ResourceAccess {
-                    roles: vec!["client-role".to_string()],
-                });
+                map.insert(
+                    "test-client".to_string(),
+                    ResourceAccess {
+                        roles: vec!["client-role".to_string()],
+                    },
+                );
                 map
             }),
             groups: Some(vec!["group1".to_string(), "group2".to_string()]),
@@ -545,10 +574,10 @@ mod tests {
 
         let jwt = create_test_jwt(claims);
         let result = auth_service.get_user_info(&jwt).await;
-        
+
         assert!(result.is_ok());
         let user_context = result.unwrap();
-        
+
         assert_eq!(user_context.user_id, user_id);
         assert_eq!(user_context.email, "test@example.com");
         assert_eq!(user_context.username, "testuser");
@@ -562,7 +591,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_user_info_invalid_user_id() {
         let auth_service = create_test_auth_service();
-        
+
         let claims = Claims {
             sub: "invalid-uuid".to_string(),
             exp: 9999999999,
@@ -580,7 +609,7 @@ mod tests {
 
         let jwt = create_test_jwt(claims);
         let result = auth_service.get_user_info(&jwt).await;
-        
+
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Invalid user ID"));
     }
@@ -588,7 +617,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_user_info_minimal_claims() {
         let auth_service = create_test_auth_service();
-        
+
         let user_id = Uuid::new_v4();
         let claims = Claims {
             sub: user_id.to_string(),
@@ -607,10 +636,10 @@ mod tests {
 
         let jwt = create_test_jwt(claims);
         let result = auth_service.get_user_info(&jwt).await;
-        
+
         assert!(result.is_ok());
         let user_context = result.unwrap();
-        
+
         assert_eq!(user_context.user_id, user_id);
         assert_eq!(user_context.email, "test@example.com");
         assert_eq!(user_context.username, "testuser");
@@ -624,10 +653,13 @@ mod tests {
     #[tokio::test]
     async fn test_get_user_info_invalid_jwt() {
         let auth_service = create_test_auth_service();
-        
+
         let result = auth_service.get_user_info("invalid.jwt.token").await;
-        
+
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Failed to decode JWT"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Failed to decode JWT"));
     }
 }

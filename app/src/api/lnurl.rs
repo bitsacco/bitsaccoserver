@@ -1,21 +1,17 @@
 use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
-    Json,
     response::{IntoResponse, Response},
     routing::{get, post},
-    Router,
+    Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::{repositories::Repositories, services::Services};
 use crate::services::lnurl::lightning_address::{
-    LightningAddressError, 
-    LnurlPayResponse, 
-    LnurlPayCallbackRequest,
-    LnurlPayCallbackResponse
+    LightningAddressError, LnurlPayCallbackRequest, LnurlPayCallbackResponse,
 };
+use crate::{repositories::Repositories, services::Services};
 
 /// LNURL error response format
 #[derive(Debug, Serialize)]
@@ -37,36 +33,42 @@ impl LnurlErrorResponse {
 impl IntoResponse for LightningAddressError {
     fn into_response(self) -> Response {
         let (status, reason) = match self {
-            LightningAddressError::AddressNotFound { .. } => {
-                (StatusCode::NOT_FOUND, "Lightning address not found".to_string())
-            }
-            LightningAddressError::AddressInactive => {
-                (StatusCode::NOT_FOUND, "Lightning address is inactive".to_string())
-            }
-            LightningAddressError::InvalidUsername(reason) => {
-                (StatusCode::BAD_REQUEST, format!("Invalid username: {}", reason))
-            }
-            LightningAddressError::InvalidAmount { reason } => {
-                (StatusCode::BAD_REQUEST, format!("Invalid amount: {}", reason))
-            }
-            LightningAddressError::AmountOutOfRange { amount, min, max } => {
-                (StatusCode::BAD_REQUEST, format!("Amount {} msat out of range [{}, {}]", amount, min, max))
-            }
+            LightningAddressError::AddressNotFound { .. } => (
+                StatusCode::NOT_FOUND,
+                "Lightning address not found".to_string(),
+            ),
+            LightningAddressError::AddressInactive => (
+                StatusCode::NOT_FOUND,
+                "Lightning address is inactive".to_string(),
+            ),
+            LightningAddressError::InvalidUsername(reason) => (
+                StatusCode::BAD_REQUEST,
+                format!("Invalid username: {}", reason),
+            ),
+            LightningAddressError::InvalidAmount { reason } => (
+                StatusCode::BAD_REQUEST,
+                format!("Invalid amount: {}", reason),
+            ),
+            LightningAddressError::AmountOutOfRange { amount, min, max } => (
+                StatusCode::BAD_REQUEST,
+                format!("Amount {} msat out of range [{}, {}]", amount, min, max),
+            ),
             LightningAddressError::UsernameUnavailable { .. } => {
                 (StatusCode::CONFLICT, "Username not available".to_string())
             }
-            LightningAddressError::Validation(reason) => {
-                (StatusCode::BAD_REQUEST, reason)
-            }
-            LightningAddressError::Configuration(reason) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, format!("Configuration error: {}", reason))
-            }
-            LightningAddressError::Repository(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
-            }
-            _ => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".to_string())
-            }
+            LightningAddressError::Validation(reason) => (StatusCode::BAD_REQUEST, reason),
+            LightningAddressError::Configuration(reason) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("Configuration error: {}", reason),
+            ),
+            LightningAddressError::Repository(_) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal server error".to_string(),
+            ),
+            _ => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Internal server error".to_string(),
+            ),
         };
 
         let error_response = LnurlErrorResponse::new(reason);
@@ -75,7 +77,7 @@ impl IntoResponse for LightningAddressError {
 }
 
 /// GET /.well-known/lnurlp/{username}
-/// 
+///
 /// This endpoint implements the LNURL-pay discovery mechanism.
 /// When someone wants to pay to alice@domain.com, their wallet:
 /// 1. Makes a GET request to https://domain.com/.well-known/lnurlp/alice
@@ -89,11 +91,16 @@ pub async fn well_known_lnurlp(
     let mut headers = HeaderMap::new();
     headers.insert("Access-Control-Allow-Origin", "*".parse().unwrap());
     headers.insert("Access-Control-Allow-Methods", "GET".parse().unwrap());
-    headers.insert("Access-Control-Allow-Headers", "Content-Type".parse().unwrap());
+    headers.insert(
+        "Access-Control-Allow-Headers",
+        "Content-Type".parse().unwrap(),
+    );
     headers.insert("Content-Type", "application/json".parse().unwrap());
 
     // Resolve the lightning address to LNURL-pay response
-    let lnurl_response = state.services.lightning_address
+    let lnurl_response = state
+        .services
+        .lightning_address
         .resolve_address(&username, None)
         .await?;
 
@@ -110,7 +117,9 @@ pub async fn lnurl_pay_callback(
     Query(params): Query<LnurlPayCallbackRequest>,
 ) -> Result<Json<LnurlPayCallbackResponse>, LightningAddressError> {
     // Get the lightning address
-    let address = state.services.lightning_address
+    let address = state
+        .services
+        .lightning_address
         .get_address_by_username(&username, None)
         .await?;
 
@@ -129,9 +138,10 @@ pub async fn lnurl_pay_callback(
 
     // TODO: Validate comment length if provided
     if let Some(ref comment) = params.comment {
-        if comment.len() > 280 { // TODO: Use config value
+        if comment.len() > 280 {
+            // TODO: Use config value
             return Err(LightningAddressError::Validation(
-                "Comment too long".to_string()
+                "Comment too long".to_string(),
             ));
         }
     }
@@ -139,9 +149,11 @@ pub async fn lnurl_pay_callback(
     // TODO: Generate Lightning invoice using wallet service
     // For now, return a placeholder response
     let mock_invoice = "lnbc1500n1pn9n8jkpp5..."; // This would be a real invoice
-    
+
     // Mark address as used
-    state.services.lightning_address
+    state
+        .services
+        .lightning_address
         .mark_address_used(address.id)
         .await?;
 
@@ -161,13 +173,15 @@ pub async fn lnurl_pay_callback(
 }
 
 /// GET /api/lnurl/addresses/{username}/availability
-/// 
+///
 /// Check if a username is available for registration
 pub async fn check_username_availability(
     State(state): State<AppState>,
     Path(username): Path<String>,
 ) -> Result<Json<serde_json::Value>, LightningAddressError> {
-    let available = state.services.lightning_address
+    let available = state
+        .services
+        .lightning_address
         .check_availability(&username, None)
         .await?;
 
@@ -226,14 +240,14 @@ impl From<::entity::lightning_addresses::Model> for AddressResponse {
 }
 
 /// POST /api/lnurl/addresses
-/// 
+///
 /// Create a new lightning address (authenticated endpoint)
 pub async fn create_lightning_address(
     State(state): State<AppState>,
     Json(request): Json<CreateAddressApiRequest>,
 ) -> Result<Json<AddressResponse>, LightningAddressError> {
-    use uuid::Uuid;
     use crate::services::lnurl::lightning_address::CreateAddressRequest;
+    use uuid::Uuid;
 
     let wallet_id = Uuid::parse_str(&request.wallet_id)
         .map_err(|_| LightningAddressError::Validation("Invalid wallet ID".to_string()))?;
@@ -250,7 +264,9 @@ pub async fn create_lightning_address(
         metadata: None,
     };
 
-    let address = state.services.lightning_address
+    let address = state
+        .services
+        .lightning_address
         .create_address(create_request)
         .await?;
 
@@ -258,7 +274,7 @@ pub async fn create_lightning_address(
 }
 
 /// GET /api/lnurl/addresses/wallet/{wallet_id}
-/// 
+///
 /// Get all lightning addresses for a wallet (authenticated endpoint)
 pub async fn get_wallet_addresses(
     State(state): State<AppState>,
@@ -269,13 +285,13 @@ pub async fn get_wallet_addresses(
     let wallet_id = Uuid::parse_str(&wallet_id)
         .map_err(|_| LightningAddressError::Validation("Invalid wallet ID".to_string()))?;
 
-    let addresses = state.services.lightning_address
+    let addresses = state
+        .services
+        .lightning_address
         .get_wallet_addresses(wallet_id)
         .await?;
 
-    let response: Vec<AddressResponse> = addresses.into_iter()
-        .map(AddressResponse::from)
-        .collect();
+    let response: Vec<AddressResponse> = addresses.into_iter().map(AddressResponse::from).collect();
 
     Ok(Json(response))
 }
@@ -291,13 +307,13 @@ pub fn router(repositories: Repositories, services: Services) -> Router {
     Router::new()
         // .well-known endpoints (public, no auth required)
         .route("/.well-known/lnurlp/:username", get(well_known_lnurlp))
-        
         // LNURL-pay callback (public, no auth required)
         .route("/pay/callback/:username", get(lnurl_pay_callback))
-        
         // Username availability check (public)
-        .route("/addresses/:username/availability", get(check_username_availability))
-        
+        .route(
+            "/addresses/:username/availability",
+            get(check_username_availability),
+        )
         // Lightning address management (authenticated endpoints - TODO: add auth middleware)
         .route("/addresses", post(create_lightning_address))
         .route("/addresses/wallet/:wallet_id", get(get_wallet_addresses))

@@ -2,8 +2,8 @@ use sea_orm::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use ::entity::{wallets, sea_orm_active_enums::WalletStatus};
 use super::{RepositoryError, RepositoryResult};
+use ::entity::{sea_orm_active_enums::WalletStatus, wallets};
 
 #[derive(Clone)]
 pub struct WalletRepository {
@@ -23,7 +23,9 @@ impl WalletRepository {
 
     /// Find wallet by ID
     pub async fn find_by_id(&self, id: Uuid) -> RepositoryResult<Option<wallets::Model>> {
-        let wallet = wallets::Entity::find_by_id(id).one(self.db.as_ref()).await?;
+        let wallet = wallets::Entity::find_by_id(id)
+            .one(self.db.as_ref())
+            .await?;
         Ok(wallet)
     }
 
@@ -84,7 +86,10 @@ impl WalletRepository {
     }
 
     /// Find wallets by status
-    pub async fn find_by_status(&self, status: WalletStatus) -> RepositoryResult<Vec<wallets::Model>> {
+    pub async fn find_by_status(
+        &self,
+        status: WalletStatus,
+    ) -> RepositoryResult<Vec<wallets::Model>> {
         let wallets = wallets::Entity::find()
             .filter(wallets::Column::Status.eq(status))
             .all(self.db.as_ref())
@@ -167,15 +172,18 @@ impl WalletRepository {
     }
 
     /// Get wallets needing sync (last_sync_at is old or null)
-    pub async fn find_stale_wallets(&self, max_age_hours: i64) -> RepositoryResult<Vec<wallets::Model>> {
+    pub async fn find_stale_wallets(
+        &self,
+        max_age_hours: i64,
+    ) -> RepositoryResult<Vec<wallets::Model>> {
         let cutoff = chrono::Utc::now() - chrono::Duration::hours(max_age_hours);
-        
+
         let wallets = wallets::Entity::find()
             .filter(wallets::Column::Status.eq(WalletStatus::Active))
             .filter(
                 Condition::any()
                     .add(wallets::Column::LastSyncAt.is_null())
-                    .add(wallets::Column::LastSyncAt.lt(cutoff))
+                    .add(wallets::Column::LastSyncAt.lt(cutoff)),
             )
             .all(self.db.as_ref())
             .await?;
@@ -202,7 +210,11 @@ impl WalletRepository {
     }
 
     /// Count wallets by owner
-    pub async fn count_by_owner(&self, owner_id: Uuid, owner_type: String) -> RepositoryResult<u64> {
+    pub async fn count_by_owner(
+        &self,
+        owner_id: Uuid,
+        owner_type: String,
+    ) -> RepositoryResult<u64> {
         let count = wallets::Entity::find()
             .filter(wallets::Column::OwnerId.eq(owner_id))
             .filter(wallets::Column::OwnerType.eq(owner_type))

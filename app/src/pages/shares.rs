@@ -1,6 +1,6 @@
 use leptos::prelude::*;
-use serde::{Deserialize, Serialize};
 use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ShareOfferResponse {
@@ -19,10 +19,7 @@ pub struct ShareOfferResponse {
 #[component]
 pub fn SharesPage() -> impl IntoView {
     // Create SSR-compatible resource for shares data
-    let shares_resource = Resource::new(
-        || (),
-        |_| crate::api::get_shares(None, None, None),
-    );
+    let shares_resource = Resource::new(|| (), |_| crate::api::get_shares(None, None, None));
     view! {
         <div class="space-y-6">
             <div class="sm:flex sm:items-center">
@@ -123,7 +120,12 @@ pub fn SharesPage() -> impl IntoView {
 
 #[component]
 fn ShareOffersTable(
-    shares_resource: Resource<Result<crate::api::ApiResponse<crate::api::PaginatedResponse<ShareOfferResponse>>, ServerFnError>>
+    shares_resource: Resource<
+        Result<
+            crate::api::ApiResponse<crate::api::PaginatedResponse<ShareOfferResponse>>,
+            ServerFnError,
+        >,
+    >,
 ) -> impl IntoView {
     view! {
         <div class="space-y-4">

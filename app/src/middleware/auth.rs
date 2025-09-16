@@ -77,7 +77,9 @@ impl JwtConfig {
         if public_key.is_empty() {
             if environment != "development" {
                 return Err(jsonwebtoken::errors::Error::from(
-                    jsonwebtoken::errors::ErrorKind::InvalidRsaKey("JWT public key required in non-development environments".to_string())
+                    jsonwebtoken::errors::ErrorKind::InvalidRsaKey(
+                        "JWT public key required in non-development environments".to_string(),
+                    ),
                 ));
             }
             // Add warning log for development mode
@@ -205,6 +207,8 @@ pub enum AuthError {
     MissingClaim,
     #[error("Insufficient permissions")]
     InsufficientPermissions,
+    #[error("No credentials found")]
+    NoCredentials,
 }
 
 // Extension trait for extracting user context from request
@@ -248,7 +252,7 @@ pub fn has_resource_role(user: &UserContext, resource: &str, role: &str) -> bool
 #[macro_export]
 macro_rules! require_role {
     ($user:expr, $role:expr) => {
-        if !crate::middleware::auth::has_role($user, $role) {
+        if !$crate::middleware::auth::has_role($user, $role) {
             return Err(StatusCode::FORBIDDEN);
         }
     };
@@ -257,7 +261,7 @@ macro_rules! require_role {
 #[macro_export]
 macro_rules! require_any_role {
     ($user:expr, $($role:expr),+) => {
-        if !crate::middleware::auth::has_any_role($user, &[$($role),+]) {
+        if !$crate::middleware::auth::has_any_role($user, &[$($role),+]) {
             return Err(StatusCode::FORBIDDEN);
         }
     };
@@ -327,7 +331,7 @@ mod tests {
     fn test_jwt_config_with_valid_key_works_in_any_environment() {
         // With any key (even invalid format), should not fail due to environment validation
         let test_key = "some-key";
-        
+
         for env in &["development", "staging", "production"] {
             let result = JwtConfig::new(
                 test_key,
@@ -340,7 +344,8 @@ mod tests {
             if let Err(e) = &result {
                 assert!(
                     !e.to_string().contains("non-development environments"),
-                    "Environment validation should not fail for non-empty key in {}", env
+                    "Environment validation should not fail for non-empty key in {}",
+                    env
                 );
             }
         }
