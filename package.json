@@ -7,6 +7,9 @@
     "build-css:watch": "tailwindcss -i ./style/tailwind.css -o ./public/styles.css --watch",
     "cargo:dev": "npm run build-css && cargo watch -x 'run --bin app --features ssr' -w app/src -w entity/src -w migration/src",
     "cargo:build": "npm run build-css && cargo build --release --bin app --features ssr",
+    "admin": "NESTJS_API_URL=http://localhost:4000/v1 API_BACKEND=nestjs cargo run --bin app",
+    "admin:dev": "npm run build-css && NESTJS_API_URL=http://localhost:4000/v1 API_BACKEND=nestjs cargo watch -x 'run --bin app --features ssr' -w app/src -w entity/src -w migration/src",
+    "admin:info": "echo 'Admin dashboard will run on http://localhost:3030'",
     "cargo:fmt": "cargo fmt --all",
     "cargo:fmt:check": "cargo fmt --all -- --check",
     "cargo:lint": "cargo clippy --all-targets --all-features -- -D warnings",
@@ -25,8 +28,12 @@
     "precommit": "./scripts/pre-commit.sh"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@tailwindcss/forms": "^0.5.7",
     "@tailwindcss/typography": "^0.5.10",
     "tailwindcss": "^3.4.0"
+  },
+  "dependencies": {
+    "@playwright/mcp": "^0.0.37"
   }
 }

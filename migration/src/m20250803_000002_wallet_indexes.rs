@@ -353,6 +353,7 @@ enum Wallets {
     #[iden = "last_sync_at"]
     LastSyncAt,
     #[iden = "created_at"]
+    #[allow(dead_code)]
     CreatedAt,
 }
 

@@ -32,7 +32,7 @@ pub fn ToastItem(notification: Notification) -> impl IntoView {
 
     // Auto-dismiss after 5 seconds
     let app_state_clone = app_state.clone();
-    let set_visible_clone = set_visible.clone();
+    let set_visible_clone = set_visible;
     let timeout = Timeout::new(5_000, move || {
         set_visible_clone.set(false);
         // Remove from notifications after animation

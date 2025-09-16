@@ -66,9 +66,22 @@ impl MigrationTrait for Migration {
                             .default(Expr::cust("uuid_generate_v4()"))
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(LightningAddresses::Username).string().not_null().unique_key())
-                    .col(ColumnDef::new(LightningAddresses::WalletId).uuid().not_null())
-                    .col(ColumnDef::new(LightningAddresses::Domain).string().not_null())
+                    .col(
+                        ColumnDef::new(LightningAddresses::Username)
+                            .string()
+                            .not_null()
+                            .unique_key(),
+                    )
+                    .col(
+                        ColumnDef::new(LightningAddresses::WalletId)
+                            .uuid()
+                            .not_null(),
+                    )
+                    .col(
+                        ColumnDef::new(LightningAddresses::Domain)
+                            .string()
+                            .not_null(),
+                    )
                     .col(ColumnDef::new(LightningAddresses::DisplayName).string())
                     .col(ColumnDef::new(LightningAddresses::Avatar).string()) // URL to avatar image
                     .col(ColumnDef::new(LightningAddresses::Description).text())
@@ -137,7 +150,11 @@ impl MigrationTrait for Migration {
                             )
                             .not_null(),
                     )
-                    .col(ColumnDef::new(ExternalTargets::Identifier).string().not_null()) // username@domain, lnurl, invoice, etc.
+                    .col(
+                        ColumnDef::new(ExternalTargets::Identifier)
+                            .string()
+                            .not_null(),
+                    ) // username@domain, lnurl, invoice, etc.
                     .col(ColumnDef::new(ExternalTargets::DisplayName).string())
                     .col(ColumnDef::new(ExternalTargets::Description).text())
                     .col(ColumnDef::new(ExternalTargets::LnurlEndpoint).string()) // Resolved LNURL endpoint

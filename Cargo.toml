@@ -48,6 +48,7 @@ config = "0.14"
 
 # HTTP Client
 reqwest = { version = "0.11", features = ["json", "rustls-tls"], default-features = false }
+async-trait = "0.1"
 
 # Fedimint
 fedimint-core = "0.8.0"
@@ -79,10 +80,10 @@ style-file = "style/main.scss"
 assets-dir = "public"
 
 # The IP and port where the server serves the content
-site-addr = "127.0.0.1:3000"
+site-addr = "127.0.0.1:3030"
 
 # The port to use for automatic reload monitoring
-reload-port = 3001
+reload-port = 3031
 
 # The browserlist query used for optimizing the CSS
 browserquery = "defaults"

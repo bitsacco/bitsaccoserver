@@ -31,16 +31,20 @@ impl Services {
         keycloak_config: auth::KeycloakConfig,
         fedimint_config: fedimint::FedimintConfig,
     ) -> Self {
-        let fedimint_service = fedimint::FedimintClientService::new(fedimint_config, repositories.clone());
-        
+        let fedimint_service =
+            fedimint::FedimintClientService::new(fedimint_config, repositories.clone());
+
         // TODO: Make lightning address config configurable via environment
         let lightning_address_config = lnurl::lightning_address::LightningAddressConfig::default();
-        
+
         Self {
             analytics: analytics::AnalyticsService::new(repositories.clone()),
             auth: auth::AuthService::new(repositories.clone(), keycloak_config),
             fedimint: fedimint_service.clone(),
-            lightning_address: lnurl::LightningAddressService::new(repositories.clone(), lightning_address_config),
+            lightning_address: lnurl::LightningAddressService::new(
+                repositories.clone(),
+                lightning_address_config,
+            ),
             share_purchase: share_purchase::SharePurchaseService::new(repositories.clone()),
             transaction: transaction::TransactionService::new(repositories.clone()),
             validation: validation::ValidationService::new(repositories.clone()),

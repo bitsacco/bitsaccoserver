@@ -56,4 +56,8 @@ impl Model {
     pub fn can_have_children(&self) -> bool {
         matches!(self.group_type, GroupType::Organization)
     }
+
+    pub fn is_active(&self) -> bool {
+        self.status == GroupStatus::Active
+    }
 }

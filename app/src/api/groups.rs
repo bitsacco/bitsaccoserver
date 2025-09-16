@@ -31,6 +31,12 @@ pub struct RequireAuth {
     pub user_id: Uuid,
 }
 
+impl Default for RequireAuth {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RequireAuth {
     pub fn new() -> Self {
         Self {
@@ -133,11 +139,11 @@ pub async fn list_groups(
 
     // Apply filters
     if let Some(ref group_type) = filters.group_type {
-        query = query.filter(groups::Column::GroupType.eq(group_type.clone()));
+        query = query.filter(groups::Column::GroupType.eq(*group_type));
     }
 
     if let Some(ref status) = filters.status {
-        query = query.filter(groups::Column::Status.eq(status.clone()));
+        query = query.filter(groups::Column::Status.eq(*status));
     }
 
     if let Some(parent_id) = filters.parent_id {
@@ -164,15 +170,15 @@ pub async fn list_groups(
     let groups = query
         .all(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
 
     // Get total count for pagination
     let mut count_query = Groups::find();
     if let Some(ref group_type) = filters.group_type {
-        count_query = count_query.filter(groups::Column::GroupType.eq(group_type.clone()));
+        count_query = count_query.filter(groups::Column::GroupType.eq(*group_type));
     }
     if let Some(ref status) = filters.status {
-        count_query = count_query.filter(groups::Column::Status.eq(status.clone()));
+        count_query = count_query.filter(groups::Column::Status.eq(*status));
     }
     if let Some(parent_id) = filters.parent_id {
         count_query = count_query.filter(groups::Column::ParentId.eq(parent_id));
@@ -189,7 +195,7 @@ pub async fn list_groups(
     let total = count_query
         .count(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
     let total_pages = ((total as f64) / (limit as f64)).ceil() as u32;
 
     // Convert to response format with additional metadata
@@ -421,7 +427,7 @@ pub async fn update_group(
     let updated_group = active_model
         .update(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
 
     let response = GroupResponse {
         group: updated_group,
@@ -448,7 +454,7 @@ pub async fn delete_group(
         .filter(groups::Column::ParentId.eq(id))
         .count(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
 
     if children > 0 {
         return Err(ApiError::BadRequest(
@@ -556,14 +562,14 @@ pub async fn get_group_shares(
         .limit(limit as u64)
         .all(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
 
     let total = Shares::find()
         .filter(::entity::shares::Column::OwnerId.eq(id))
         .filter(::entity::shares::Column::OwnerType.eq(::entity::shares::OwnerType::Group))
         .count(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
 
     let total_pages = ((total as f64) / (limit as f64)).ceil() as u32;
 

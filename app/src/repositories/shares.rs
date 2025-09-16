@@ -242,7 +242,7 @@ impl ShareRepository {
             .one(&*self.db)
             .await?;
 
-        Ok(result.unwrap_or_else(|| rust_decimal::Decimal::ZERO))
+        Ok(result.unwrap_or(rust_decimal::Decimal::ZERO))
     }
 
     pub async fn total_value_by_group(
@@ -269,7 +269,7 @@ impl ShareRepository {
             .one(&*self.db)
             .await?;
 
-        Ok(result.unwrap_or_else(|| rust_decimal::Decimal::ZERO))
+        Ok(result.unwrap_or(rust_decimal::Decimal::ZERO))
     }
 
     pub async fn total_shares_by_owner_type(
@@ -284,7 +284,7 @@ impl ShareRepository {
             .one(&*self.db)
             .await?;
 
-        Ok(result.unwrap_or_else(|| rust_decimal::Decimal::ZERO))
+        Ok(result.unwrap_or(rust_decimal::Decimal::ZERO))
     }
 
     pub async fn average_share_value(&self) -> RepositoryResult<rust_decimal::Decimal> {

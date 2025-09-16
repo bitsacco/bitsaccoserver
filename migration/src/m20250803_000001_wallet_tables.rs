@@ -169,7 +169,11 @@ impl MigrationTrait for Migration {
                             .default(Expr::cust("uuid_generate_v4()"))
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(WalletTransactions::WalletId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(WalletTransactions::WalletId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(WalletTransactions::TransactionType)
                             .enumeration(
@@ -317,7 +321,11 @@ impl MigrationTrait for Migration {
                             .default(Expr::cust("uuid_generate_v4()"))
                             .primary_key(),
                     )
-                    .col(ColumnDef::new(FedimintOperations::WalletId).uuid().not_null())
+                    .col(
+                        ColumnDef::new(FedimintOperations::WalletId)
+                            .uuid()
+                            .not_null(),
+                    )
                     .col(
                         ColumnDef::new(FedimintOperations::OperationType)
                             .enumeration(
@@ -352,11 +360,20 @@ impl MigrationTrait for Migration {
                     )
                     .col(ColumnDef::new(FedimintOperations::FedimintOperationId).string()) // Fedimint operation ID
                     .col(ColumnDef::new(FedimintOperations::AmountMsat).big_integer())
-                    .col(ColumnDef::new(FedimintOperations::FeeMsat).big_integer().default(0))
+                    .col(
+                        ColumnDef::new(FedimintOperations::FeeMsat)
+                            .big_integer()
+                            .default(0),
+                    )
                     .col(ColumnDef::new(FedimintOperations::Request).json_binary()) // Original request data
                     .col(ColumnDef::new(FedimintOperations::Response).json_binary()) // Response data from Fedimint
                     .col(ColumnDef::new(FedimintOperations::ErrorDetails).text()) // Error information if failed
-                    .col(ColumnDef::new(FedimintOperations::RetryCount).integer().not_null().default(0))
+                    .col(
+                        ColumnDef::new(FedimintOperations::RetryCount)
+                            .integer()
+                            .not_null()
+                            .default(0),
+                    )
                     .col(ColumnDef::new(FedimintOperations::LastRetryAt).timestamp_with_time_zone())
                     .col(ColumnDef::new(FedimintOperations::ProcessedAt).timestamp_with_time_zone())
                     .col(ColumnDef::new(FedimintOperations::ExpiresAt).timestamp_with_time_zone())

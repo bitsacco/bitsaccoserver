@@ -39,9 +39,9 @@ impl Default for FedimintConfig {
 /// Circuit breaker states
 #[derive(Debug, Clone, PartialEq)]
 pub enum CircuitState {
-    Closed,    // Normal operation
-    Open,      // Circuit is open, failing fast
-    HalfOpen,  // Testing if service is back
+    Closed,   // Normal operation
+    Open,     // Circuit is open, failing fast
+    HalfOpen, // Testing if service is back
 }
 
 /// Circuit breaker for Fedimint operations
@@ -191,7 +191,7 @@ pub type FedimintResult<T> = Result<T, FedimintError>;
 /// Fedimint client wrapper (stub implementation)
 #[derive(Clone)]
 pub struct FedimintClient {
-    config: FedimintConfig,
+    _config: FedimintConfig,
     // Note: Actual Fedimint client will be added once API stabilizes
 }
 
@@ -200,7 +200,7 @@ impl FedimintClient {
     pub async fn new(config: FedimintConfig) -> FedimintResult<Self> {
         // For now, this is a stub implementation
         // TODO: Implement actual Fedimint client initialization once API is stable
-        Ok(Self { config })
+        Ok(Self { _config: config })
     }
 
     /// Get the current balance
@@ -216,7 +216,7 @@ impl FedimintClient {
     pub async fn generate_invoice(
         &self,
         amount_msats: u64,
-        description: String,
+        _description: String,
         _expiry_secs: Option<u64>,
     ) -> FedimintResult<FedimintOperationResult> {
         // Stub implementation
@@ -264,7 +264,10 @@ impl FedimintClient {
     }
 
     /// Check operation status
-    pub async fn check_operation_status(&self, operation_id: &str) -> FedimintResult<serde_json::Value> {
+    pub async fn check_operation_status(
+        &self,
+        operation_id: &str,
+    ) -> FedimintResult<serde_json::Value> {
         // Stub implementation
         Ok(serde_json::json!({
             "operation_id": operation_id,
@@ -288,7 +291,7 @@ pub struct FedimintClientService {
     clients: Arc<RwLock<HashMap<String, FedimintClient>>>,
     circuit_breaker: Arc<Mutex<CircuitBreaker>>,
     config: FedimintConfig,
-    repositories: Repositories,
+    _repositories: Repositories,
 }
 
 impl FedimintClientService {
@@ -302,7 +305,7 @@ impl FedimintClientService {
             clients: Arc::new(RwLock::new(HashMap::new())),
             circuit_breaker: Arc::new(Mutex::new(circuit_breaker)),
             config,
-            repositories,
+            _repositories: repositories,
         }
     }
 
@@ -371,12 +374,14 @@ impl FedimintClientService {
                     invoice,
                     max_amount_msats,
                 } => client.pay_invoice(invoice, *max_amount_msats).await,
-                FedimintOperation::Deposit { amount_sats: _, address: _ } => {
-                    client.get_deposit_address().await
-                }
-                FedimintOperation::Withdraw { amount_sats, address } => {
-                    client.withdraw_bitcoin(*amount_sats, address).await
-                }
+                FedimintOperation::Deposit {
+                    amount_sats: _,
+                    address: _,
+                } => client.get_deposit_address().await,
+                FedimintOperation::Withdraw {
+                    amount_sats,
+                    address,
+                } => client.withdraw_bitcoin(*amount_sats, address).await,
                 FedimintOperation::CheckBalance => client.get_balance().await,
                 FedimintOperation::SyncWallet => client.sync().await,
             };
@@ -417,7 +422,10 @@ impl FedimintClientService {
 
     /// Health check for the service
     pub async fn health_check(&self, federation_id: &str) -> FedimintResult<bool> {
-        match self.execute_operation(federation_id, FedimintOperation::CheckBalance).await {
+        match self
+            .execute_operation(federation_id, FedimintOperation::CheckBalance)
+            .await
+        {
             Ok(_) => Ok(true),
             Err(_) => Ok(false),
         }
@@ -480,7 +488,9 @@ mod tests {
         assert!(balance.is_ok());
 
         // Test invoice generation
-        let invoice = client.generate_invoice(1000, "test".to_string(), None).await;
+        let invoice = client
+            .generate_invoice(1000, "test".to_string(), None)
+            .await;
         assert!(invoice.is_ok());
 
         // Test deposit address

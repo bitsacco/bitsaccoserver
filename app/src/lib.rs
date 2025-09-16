@@ -1,3 +1,5 @@
+#![recursion_limit = "512"]
+
 pub mod api;
 pub mod components;
 pub mod contexts;
@@ -9,20 +11,24 @@ pub mod server;
 pub mod services;
 pub mod utils;
 
+#[cfg(test)]
+pub mod tests;
+
+use components::auth::AuthGuard;
 use components::layout::{AppLayout, ThemeProvider};
 use components::ui::*;
 use contexts::app_state::provide_app_state;
-use contexts::auth::AuthProvider;
+use contexts::auth::SSRAuthProvider;
 use leptos::prelude::*;
 use leptos_router::{components::*, path};
-use pages::{DashboardContent, GroupsPage, MembersPage, Settings, LoginPage, SignupPage};
+use pages::{DashboardContent, GroupsPage, LoginPage, MembersPage, Settings, SignupPage};
 
 #[component]
 pub fn App() -> impl IntoView {
     provide_app_state();
 
     view! {
-        <AuthProvider>
+        <SSRAuthProvider>
             <Router>
                 <Routes fallback=|| view! { <NotFoundPage/> }.into_any()>
                     <Route path=path!("/") view=LayoutedLogin/>
@@ -37,7 +43,7 @@ pub fn App() -> impl IntoView {
                 </Routes>
             </Router>
             <ToastContainer/>
-        </AuthProvider>
+        </SSRAuthProvider>
     }
 }
 
@@ -59,9 +65,11 @@ fn LayoutedDashboard() -> impl IntoView {
             </head>
             <body>
                 <ThemeProvider>
-                    <AppLayout>
-                        <DashboardContent/>
-                    </AppLayout>
+                    <AuthGuard>
+                        <AppLayout>
+                            <DashboardContent/>
+                        </AppLayout>
+                    </AuthGuard>
                 </ThemeProvider>
             </body>
         </html>
@@ -86,9 +94,11 @@ fn LayoutedSettings() -> impl IntoView {
             </head>
             <body>
                 <ThemeProvider>
-                    <AppLayout>
-                        <Settings/>
-                    </AppLayout>
+                    <AuthGuard>
+                        <AppLayout>
+                            <Settings/>
+                        </AppLayout>
+                    </AuthGuard>
                 </ThemeProvider>
             </body>
         </html>
@@ -113,9 +123,11 @@ fn LayoutedMembers() -> impl IntoView {
             </head>
             <body>
                 <ThemeProvider>
-                    <AppLayout>
-                        <MembersPage/>
-                    </AppLayout>
+                    <AuthGuard>
+                        <AppLayout>
+                            <MembersPage/>
+                        </AppLayout>
+                    </AuthGuard>
                 </ThemeProvider>
             </body>
         </html>
@@ -140,9 +152,11 @@ fn LayoutedGroups() -> impl IntoView {
             </head>
             <body>
                 <ThemeProvider>
-                    <AppLayout>
-                        <GroupsPage/>
-                    </AppLayout>
+                    <AuthGuard>
+                        <AppLayout>
+                            <GroupsPage/>
+                        </AppLayout>
+                    </AuthGuard>
                 </ThemeProvider>
             </body>
         </html>
@@ -167,9 +181,11 @@ fn LayoutedShares() -> impl IntoView {
             </head>
             <body>
                 <ThemeProvider>
-                    <AppLayout>
-                        <pages::shares::SharesPage/>
-                    </AppLayout>
+                    <AuthGuard>
+                        <AppLayout>
+                            <pages::shares::SharesPage/>
+                        </AppLayout>
+                    </AuthGuard>
                 </ThemeProvider>
             </body>
         </html>

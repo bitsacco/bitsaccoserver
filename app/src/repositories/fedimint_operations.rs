@@ -2,8 +2,11 @@ use sea_orm::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use ::entity::{fedimint_operations, sea_orm_active_enums::{FedimintOperationType, TransactionStatus}};
 use super::{RepositoryError, RepositoryResult};
+use ::entity::{
+    fedimint_operations,
+    sea_orm_active_enums::{FedimintOperationType, TransactionStatus},
+};
 
 #[derive(Clone)]
 pub struct FedimintOperationRepository {
@@ -16,13 +19,19 @@ impl FedimintOperationRepository {
     }
 
     /// Create a new Fedimint operation
-    pub async fn create(&self, operation: fedimint_operations::ActiveModel) -> RepositoryResult<fedimint_operations::Model> {
+    pub async fn create(
+        &self,
+        operation: fedimint_operations::ActiveModel,
+    ) -> RepositoryResult<fedimint_operations::Model> {
         let result = operation.insert(self.db.as_ref()).await?;
         Ok(result)
     }
 
     /// Find operation by ID
-    pub async fn find_by_id(&self, id: Uuid) -> RepositoryResult<Option<fedimint_operations::Model>> {
+    pub async fn find_by_id(
+        &self,
+        id: Uuid,
+    ) -> RepositoryResult<Option<fedimint_operations::Model>> {
         let operation = fedimint_operations::Entity::find_by_id(id)
             .one(self.db.as_ref())
             .await?;
@@ -30,7 +39,10 @@ impl FedimintOperationRepository {
     }
 
     /// Find operation by Fedimint operation ID
-    pub async fn find_by_fedimint_id(&self, fedimint_id: String) -> RepositoryResult<Option<fedimint_operations::Model>> {
+    pub async fn find_by_fedimint_id(
+        &self,
+        fedimint_id: String,
+    ) -> RepositoryResult<Option<fedimint_operations::Model>> {
         let operation = fedimint_operations::Entity::find()
             .filter(fedimint_operations::Column::FedimintOperationId.eq(fedimint_id))
             .one(self.db.as_ref())
@@ -62,7 +74,10 @@ impl FedimintOperationRepository {
     }
 
     /// Find operations by status
-    pub async fn find_by_status(&self, status: TransactionStatus) -> RepositoryResult<Vec<fedimint_operations::Model>> {
+    pub async fn find_by_status(
+        &self,
+        status: TransactionStatus,
+    ) -> RepositoryResult<Vec<fedimint_operations::Model>> {
         let operations = fedimint_operations::Entity::find()
             .filter(fedimint_operations::Column::Status.eq(status))
             .order_by_desc(fedimint_operations::Column::CreatedAt)
@@ -92,7 +107,10 @@ impl FedimintOperationRepository {
     }
 
     /// Find pending operations that need retry
-    pub async fn find_pending_retries(&self, max_retries: i32) -> RepositoryResult<Vec<fedimint_operations::Model>> {
+    pub async fn find_pending_retries(
+        &self,
+        max_retries: i32,
+    ) -> RepositoryResult<Vec<fedimint_operations::Model>> {
         let operations = fedimint_operations::Entity::find()
             .filter(fedimint_operations::Column::Status.eq(TransactionStatus::Pending))
             .filter(fedimint_operations::Column::RetryCount.lt(max_retries))
@@ -105,12 +123,12 @@ impl FedimintOperationRepository {
     /// Find expired operations
     pub async fn find_expired(&self) -> RepositoryResult<Vec<fedimint_operations::Model>> {
         let now = chrono::Utc::now();
-        
+
         let operations = fedimint_operations::Entity::find()
             .filter(
                 Condition::any()
                     .add(fedimint_operations::Column::Status.eq(TransactionStatus::Pending))
-                    .add(fedimint_operations::Column::Status.eq(TransactionStatus::Processing))
+                    .add(fedimint_operations::Column::Status.eq(TransactionStatus::Processing)),
             )
             .filter(fedimint_operations::Column::ExpiresAt.is_not_null())
             .filter(fedimint_operations::Column::ExpiresAt.lt(now))
@@ -120,7 +138,10 @@ impl FedimintOperationRepository {
     }
 
     /// Update operation
-    pub async fn update(&self, operation: fedimint_operations::ActiveModel) -> RepositoryResult<fedimint_operations::Model> {
+    pub async fn update(
+        &self,
+        operation: fedimint_operations::ActiveModel,
+    ) -> RepositoryResult<fedimint_operations::Model> {
         let result = operation.update(self.db.as_ref()).await?;
         Ok(result)
     }
@@ -138,7 +159,7 @@ impl FedimintOperationRepository {
             .ok_or(RepositoryError::NotFound)?;
 
         let mut operation: fedimint_operations::ActiveModel = operation.into();
-        operation.status = Set(status.clone());
+        operation.status = Set(status);
         operation.updated_at = Set(chrono::Utc::now().into());
 
         if let Some(error) = error_details {
@@ -165,7 +186,7 @@ impl FedimintOperationRepository {
             .ok_or(RepositoryError::NotFound)?;
 
         let mut operation: fedimint_operations::ActiveModel = operation.into();
-        operation.response = Set(Some(response_data.into()));
+        operation.response = Set(Some(response_data));
         operation.updated_at = Set(chrono::Utc::now().into());
 
         let result = operation.update(self.db.as_ref()).await?;
@@ -173,7 +194,10 @@ impl FedimintOperationRepository {
     }
 
     /// Increment retry count and update last retry timestamp
-    pub async fn increment_retry_count(&self, operation_id: Uuid) -> RepositoryResult<fedimint_operations::Model> {
+    pub async fn increment_retry_count(
+        &self,
+        operation_id: Uuid,
+    ) -> RepositoryResult<fedimint_operations::Model> {
         let operation = self
             .find_by_id(operation_id)
             .await?
@@ -223,9 +247,13 @@ impl FedimintOperationRepository {
 
         for op in &operations {
             match op.status {
-                TransactionStatus::Pending | TransactionStatus::Processing => stats.pending_count += 1,
+                TransactionStatus::Pending | TransactionStatus::Processing => {
+                    stats.pending_count += 1
+                }
                 TransactionStatus::Completed => stats.completed_count += 1,
-                TransactionStatus::Failed | TransactionStatus::Cancelled | TransactionStatus::Expired => stats.failed_count += 1,
+                TransactionStatus::Failed
+                | TransactionStatus::Cancelled
+                | TransactionStatus::Expired => stats.failed_count += 1,
             }
 
             match op.operation_type {
@@ -277,7 +305,10 @@ impl FedimintOperationRepository {
     }
 
     /// Get latest operation for wallet
-    pub async fn get_latest_for_wallet(&self, wallet_id: Uuid) -> RepositoryResult<Option<fedimint_operations::Model>> {
+    pub async fn get_latest_for_wallet(
+        &self,
+        wallet_id: Uuid,
+    ) -> RepositoryResult<Option<fedimint_operations::Model>> {
         let operation = fedimint_operations::Entity::find()
             .filter(fedimint_operations::Column::WalletId.eq(wallet_id))
             .order_by_desc(fedimint_operations::Column::CreatedAt)
@@ -297,7 +328,7 @@ impl FedimintOperationRepository {
             op.error_details = Set(Some("Operation expired".to_string()));
             op.processed_at = Set(Some(chrono::Utc::now().into()));
             op.updated_at = Set(chrono::Utc::now().into());
-            
+
             op.update(self.db.as_ref()).await?;
             count += 1;
         }

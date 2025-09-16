@@ -127,16 +127,9 @@ impl TransactionService {
             record_id: Set(purchase.id),
             operation: Set("purchase".to_string()),
             old_values: Set(None),
-            new_values: Set(Some(
-                serde_json::to_value(purchase)
-                    .map_err(|e| {
-                        TransactionError::Integrity(format!(
-                            "Failed to serialize purchase data: {}",
-                            e
-                        ))
-                    })?
-                    .into(),
-            )),
+            new_values: Set(Some(serde_json::to_value(purchase).map_err(|e| {
+                TransactionError::Integrity(format!("Failed to serialize purchase data: {}", e))
+            })?)),
             changed_by: Set(created_by),
             changed_at: Set(chrono::Utc::now().into()),
             ip_address: Set(None),
@@ -178,21 +171,12 @@ impl TransactionService {
             table_name: Set("shares".to_string()),
             record_id: Set(to_share.id),
             operation: Set("transfer".to_string()),
-            old_values: Set(from_share.map(|s| {
-                serde_json::to_value(s)
-                    .unwrap_or(serde_json::Value::Null)
-                    .into()
-            })),
-            new_values: Set(Some(
-                serde_json::to_value(to_share)
-                    .map_err(|e| {
-                        TransactionError::Integrity(format!(
-                            "Failed to serialize transfer data: {}",
-                            e
-                        ))
-                    })?
-                    .into(),
-            )),
+            old_values: Set(
+                from_share.map(|s| serde_json::to_value(s).unwrap_or(serde_json::Value::Null))
+            ),
+            new_values: Set(Some(serde_json::to_value(to_share).map_err(|e| {
+                TransactionError::Integrity(format!("Failed to serialize transfer data: {}", e))
+            })?)),
             changed_by: Set(created_by),
             changed_at: Set(chrono::Utc::now().into()),
             ip_address: Set(None),
@@ -262,8 +246,8 @@ impl TransactionService {
                 entity_type: log.table_name,
                 entity_id: log.record_id,
                 action: log.operation,
-                old_value: log.old_values.map(|v| v.into()),
-                new_value: log.new_values.map(|v| v.into()),
+                old_value: log.old_values,
+                new_value: log.new_values,
                 metadata: None, // No metadata field in current audit_logs structure
                 created_at: log.changed_at.naive_utc().and_utc(),
                 created_by: log.changed_by,

@@ -2,8 +2,8 @@ use sea_orm::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use ::entity::{wallet_reserves, sea_orm_active_enums::ReserveType};
 use super::{RepositoryError, RepositoryResult};
+use ::entity::{sea_orm_active_enums::ReserveType, wallet_reserves};
 
 #[derive(Clone)]
 pub struct WalletReserveRepository {
@@ -16,7 +16,10 @@ impl WalletReserveRepository {
     }
 
     /// Create a new wallet reserve
-    pub async fn create(&self, reserve: wallet_reserves::ActiveModel) -> RepositoryResult<wallet_reserves::Model> {
+    pub async fn create(
+        &self,
+        reserve: wallet_reserves::ActiveModel,
+    ) -> RepositoryResult<wallet_reserves::Model> {
         let result = reserve.insert(self.db.as_ref()).await?;
         Ok(result)
     }
@@ -30,7 +33,10 @@ impl WalletReserveRepository {
     }
 
     /// Find reserves by wallet ID
-    pub async fn find_by_wallet(&self, wallet_id: Uuid) -> RepositoryResult<Vec<wallet_reserves::Model>> {
+    pub async fn find_by_wallet(
+        &self,
+        wallet_id: Uuid,
+    ) -> RepositoryResult<Vec<wallet_reserves::Model>> {
         let reserves = wallet_reserves::Entity::find()
             .filter(wallet_reserves::Column::WalletId.eq(wallet_id))
             .order_by_desc(wallet_reserves::Column::CreatedAt)
@@ -55,7 +61,10 @@ impl WalletReserveRepository {
     }
 
     /// Find reserve by reference (transaction ID, operation ID, etc.)
-    pub async fn find_by_reference(&self, reference: String) -> RepositoryResult<Option<wallet_reserves::Model>> {
+    pub async fn find_by_reference(
+        &self,
+        reference: String,
+    ) -> RepositoryResult<Option<wallet_reserves::Model>> {
         let reserve = wallet_reserves::Entity::find()
             .filter(wallet_reserves::Column::Reference.eq(reference))
             .one(self.db.as_ref())
@@ -66,7 +75,7 @@ impl WalletReserveRepository {
     /// Find expired reserves
     pub async fn find_expired(&self) -> RepositoryResult<Vec<wallet_reserves::Model>> {
         let now = chrono::Utc::now();
-        
+
         let reserves = wallet_reserves::Entity::find()
             .filter(wallet_reserves::Column::ExpiresAt.is_not_null())
             .filter(wallet_reserves::Column::ExpiresAt.lt(now))
@@ -76,7 +85,10 @@ impl WalletReserveRepository {
     }
 
     /// Update reserve
-    pub async fn update(&self, reserve: wallet_reserves::ActiveModel) -> RepositoryResult<wallet_reserves::Model> {
+    pub async fn update(
+        &self,
+        reserve: wallet_reserves::ActiveModel,
+    ) -> RepositoryResult<wallet_reserves::Model> {
         let result = reserve.update(self.db.as_ref()).await?;
         Ok(result)
     }
@@ -119,7 +131,10 @@ impl WalletReserveRepository {
     }
 
     /// Get reserve summary for a wallet
-    pub async fn get_wallet_summary(&self, wallet_id: Uuid) -> RepositoryResult<WalletReserveSummary> {
+    pub async fn get_wallet_summary(
+        &self,
+        wallet_id: Uuid,
+    ) -> RepositoryResult<WalletReserveSummary> {
         let available = self
             .get_total_by_wallet_and_type(wallet_id, ReserveType::Available)
             .await?;
@@ -198,7 +213,7 @@ impl WalletReserveRepository {
 
         // Check if sufficient funds in source reserve type
         let available_amount = self
-            .get_total_by_wallet_and_type(wallet_id, from_type.clone())
+            .get_total_by_wallet_and_type(wallet_id, from_type)
             .await?;
 
         if available_amount < amount_msat {
@@ -301,7 +316,7 @@ pub struct WalletReserveSummary {
 fn reserve_type_to_string(reserve_type: ReserveType) -> &'static str {
     match reserve_type {
         ReserveType::Available => "available",
-        ReserveType::Pending => "pending", 
+        ReserveType::Pending => "pending",
         ReserveType::Locked => "locked",
         ReserveType::Emergency => "emergency",
     }

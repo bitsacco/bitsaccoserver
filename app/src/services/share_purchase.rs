@@ -332,7 +332,7 @@ impl SharePurchaseService {
         let share = shares::ActiveModel {
             id: Set(Uuid::new_v4()),
             owner_id: Set(request.owner_id),
-            owner_type: Set(request.owner_type.clone()),
+            owner_type: Set(request.owner_type),
             share_offer_id: Set(request.share_offer_id),
             share_quantity: Set(request.quantity),
             share_value: Set(offer.price_per_share),
@@ -360,7 +360,7 @@ impl SharePurchaseService {
         let share = shares::ActiveModel {
             id: Set(Uuid::new_v4()),
             owner_id: Set(request.new_owner_id),
-            owner_type: Set(request.new_owner_type.clone()),
+            owner_type: Set(request.new_owner_type),
             share_offer_id: Set(original.share_offer_id),
             share_quantity: Set(quantity),
             share_value: Set(original.share_value),

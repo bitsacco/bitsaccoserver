@@ -3,7 +3,9 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",
@@ -21,7 +23,9 @@ pub enum ExternalTargetType {
     #[sea_orm(string_value = "node_id")]
     NodeId,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",
@@ -43,7 +47,9 @@ pub enum FedimintOperationType {
     #[sea_orm(string_value = "recovery")]
     Recovery,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "group_status")]
 pub enum GroupStatus {
     #[sea_orm(string_value = "active")]
@@ -57,7 +63,9 @@ pub enum GroupStatus {
     #[sea_orm(string_value = "archived")]
     Archived,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "group_type")]
 pub enum GroupType {
     #[sea_orm(string_value = "organization")]
@@ -65,7 +73,9 @@ pub enum GroupType {
     #[sea_orm(string_value = "chama")]
     Chama,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",
@@ -85,7 +95,9 @@ pub enum LnurlTransactionStatus {
     #[sea_orm(string_value = "cancelled")]
     Cancelled,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(
     rs_type = "String",
     db_type = "Enum",
@@ -101,7 +113,9 @@ pub enum LnurlTransactionType {
     #[sea_orm(string_value = "auth")]
     Auth,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "member_status")]
 pub enum MemberStatus {
     #[sea_orm(string_value = "active")]
@@ -115,7 +129,9 @@ pub enum MemberStatus {
     #[sea_orm(string_value = "archived")]
     Archived,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "membership_role")]
 pub enum MembershipRole {
     #[sea_orm(string_value = "member")]
@@ -123,7 +139,9 @@ pub enum MembershipRole {
     #[sea_orm(string_value = "admin")]
     Admin,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "owner_type")]
 pub enum OwnerType {
     #[sea_orm(string_value = "member")]
@@ -131,7 +149,9 @@ pub enum OwnerType {
     #[sea_orm(string_value = "group")]
     Group,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "reserve_type")]
 pub enum ReserveType {
     #[sea_orm(string_value = "available")]
@@ -143,7 +163,9 @@ pub enum ReserveType {
     #[sea_orm(string_value = "emergency")]
     Emergency,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "share_offer_status")]
 pub enum ShareOfferStatus {
     #[sea_orm(string_value = "draft")]
@@ -159,7 +181,9 @@ pub enum ShareOfferStatus {
     #[sea_orm(string_value = "cancelled")]
     Cancelled,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "transaction_status")]
 pub enum TransactionStatus {
     #[sea_orm(string_value = "pending")]
@@ -175,7 +199,9 @@ pub enum TransactionStatus {
     #[sea_orm(string_value = "expired")]
     Expired,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "transaction_type")]
 pub enum TransactionType {
     #[sea_orm(string_value = "deposit")]
@@ -191,7 +217,9 @@ pub enum TransactionType {
     #[sea_orm(string_value = "fee")]
     Fee,
 }
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Hash, EnumIter, DeriveActiveEnum, Serialize, Deserialize,
+)]
 #[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "wallet_status")]
 pub enum WalletStatus {
     #[sea_orm(string_value = "active")]

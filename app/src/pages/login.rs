@@ -1,17 +1,15 @@
+use crate::components::auth::EnhancedLoginForm;
+use crate::contexts::auth::{login_user, use_auth, LoginCredentials};
 use leptos::prelude::*;
-use leptos::form::ActionForm;
-use crate::contexts::auth::{use_auth, LoginCredentials, login_user};
+use leptos::server_fn::ServerFnError;
 
 #[server(LoginAction, "/api")]
-pub async fn login_action(
-    email: String,
-    password: String,
-) -> Result<String, ServerFnError> {
+pub async fn login_action(email: String, password: String) -> Result<String, ServerFnError> {
     use leptos_axum::redirect;
-    
+
     // Call the real authentication
     let _auth_response = login_user(LoginCredentials { email, password }).await?;
-    
+
     // For now, redirect to dashboard on success
     // TODO: Implement proper cookie-based session management
     redirect("/dashboard");
@@ -21,8 +19,6 @@ pub async fn login_action(
 #[component]
 pub fn LoginPage() -> impl IntoView {
     let auth = use_auth();
-    let login_action = ServerAction::<LoginAction>::new();
-    let (error, set_error) = signal(Option::<String>::None);
 
     // If already authenticated, redirect to dashboard
     Effect::new(move |_| {
@@ -31,126 +27,93 @@ pub fn LoginPage() -> impl IntoView {
         }
     });
 
-    // Watch for login action results
-    Effect::new(move |_| {
-        match login_action.value().get() {
-            Some(Ok(_)) => {
-                // Success - redirect will be handled by server action
-                set_error.set(None);
-            }
-            Some(Err(e)) => {
-                set_error.set(Some(e.to_string()));
-            }
-            None => {}
-        }
-    });
-
     view! {
-        <div class="min-h-screen flex">
+        <div class="min-h-screen flex bg-gray-50">
             // Left side - Form
             <div class="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24 bg-white">
                 <div class="mx-auto w-full max-w-sm lg:w-96">
                     // Logo
                     <div class="mb-8">
-                        <div class="w-10 h-10 rounded-lg bg-gray-900 flex items-center justify-center">
-                            <span class="text-white font-bold text-xl">"$"</span>
+                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg">
+                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                            </svg>
                         </div>
                     </div>
 
                     // Header
                     <div class="mb-8">
-                        <h2 class="text-2xl font-bold text-gray-900">"Sign in"</h2>
-                        <p class="mt-2 text-sm text-gray-600">
-                            "Don't have an account? "
-                            <a href="/signup" class="text-blue-600 hover:text-blue-500">"Sign up"</a>
+                        <h2 class="text-3xl font-bold text-gray-900 mb-2">"Welcome back"</h2>
+                        <p class="text-base text-gray-600">
+                            "Sign in to access your admin dashboard"
                         </p>
                     </div>
 
-                    // Form using ActionForm for SSR
-                    <ActionForm action=login_action attr:class="space-y-4">
-                        // Email
-                        <div>
-                            <input
-                                id="email"
-                                name="email"
-                                type="email"
-                                required=true
-                                class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="Email address"
-                            />
-                        </div>
+                    // Enhanced Login Form
+                    <EnhancedLoginForm/>
 
-                        // Password
-                        <div class="relative">
-                            <input
-                                id="password"
-                                name="password"
-                                type="password"
-                                required=true
-                                class="block w-full px-3 py-3 pr-10 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="Password"
-                            />
-                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
-                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    // Sign up link
+                    <div class="mt-8 text-center">
+                        <p class="text-sm text-gray-600">
+                            "Don't have an account? "
+                            <a href="/signup" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">
+                                "Create one here"
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            // Right side - Branding section with modern design
+            <div class="hidden lg:block relative w-0 flex-1 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
+                <div class="absolute inset-0 flex flex-col items-center justify-center p-12">
+                    <div class="text-center">
+                        // Modern logo design
+                        <div class="mb-8">
+                            <div class="w-32 h-32 mx-auto rounded-3xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-2xl">
+                                <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
                                 </svg>
                             </div>
                         </div>
 
-                        // Forgot password link
-                        <div class="text-left">
-                            <a href="#" class="text-sm text-blue-600 hover:text-blue-500">
-                                "Forgot password?"
-                            </a>
-                        </div>
+                        <h1 class="text-5xl font-bold text-white mb-4 tracking-tight">
+                            "Bitsacco"
+                        </h1>
+                        <p class="text-xl text-blue-100 mb-8 font-medium">
+                            "Community Financial Management"
+                        </p>
 
-                        // Error Message
-                        <Show when=move || error.get().is_some()>
-                            <div class="rounded-md bg-red-50 p-4">
-                                <div class="flex">
-                                    <div class="flex-shrink-0">
-                                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div class="ml-3">
-                                        <p class="text-sm text-red-700">
-                                            {move || error.get().unwrap_or_default()}
-                                        </p>
-                                    </div>
-                                </div>
+                        <div class="space-y-4 text-blue-100/80">
+                            <div class="flex items-center justify-center space-x-3">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                                <span>"Secure member management"</span>
                             </div>
-                        </Show>
-
-                        // Submit Button
-                        <div>
-                            <button
-                                type="submit"
-                                disabled=move || login_action.pending().get()
-                                class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                {move || if login_action.pending().get() { "Signing in..." } else { "Sign in" }}
-                            </button>
-                        </div>
-                    </ActionForm>
-                </div>
-            </div>
-
-            // Right side - Dark section with logo
-            <div class="hidden lg:block relative w-0 flex-1 bg-gradient-to-br from-gray-900 to-gray-800">
-                <div class="absolute inset-0 flex flex-col items-center justify-center p-12">
-                    <div class="text-center">
-                        <h1 class="text-4xl font-bold text-teal-400 mb-4">"Admin Dashboard"</h1>
-                        <p class="text-xl text-gray-300 mb-8">"Gateway to Community Service"</p>
-                        
-                        // Large circular logo
-                        <div class="w-64 h-64 mx-auto border-4 border-gray-600 rounded-full flex items-center justify-center">
-                            <div class="w-48 h-48 border-2 border-gray-500 rounded-full flex items-center justify-center">
-                                <span class="text-6xl font-bold text-gray-400">"$"</span>
+                            <div class="flex items-center justify-center space-x-3">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                                <span>"Advanced analytics dashboard"</span>
+                            </div>
+                            <div class="flex items-center justify-center space-x-3">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
+                                </svg>
+                                <span>"Real-time notifications"</span>
                             </div>
                         </div>
                     </div>
+                </div>
+
+                // Subtle geometric pattern overlay
+                <div class="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent"></div>
+                <div class="absolute top-0 left-0 w-full h-full">
+                    <div class="absolute top-10 left-10 w-20 h-20 border border-white/10 rounded-full"></div>
+                    <div class="absolute top-32 right-16 w-12 h-12 border border-white/10 rounded-lg rotate-45"></div>
+                    <div class="absolute bottom-20 left-20 w-16 h-16 border border-white/10 rounded-full"></div>
+                    <div class="absolute bottom-32 right-32 w-8 h-8 border border-white/10 rounded-full"></div>
                 </div>
             </div>
         </div>

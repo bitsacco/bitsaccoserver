@@ -1,12 +1,16 @@
-# Minimal Leptos configuration for SSR-only mode
-# Most of these settings are not used since we're using cargo-watch instead of cargo-leptos
+# Leptos SSR configuration for the admin dashboard
 
 [package]
 name = "bitsaccoserver"
 version = "0.1.0"
 
+# Required package configuration
+lib-package = "app"
+bin-package = "app"
+
 # Basic configuration
 site-addr = "0.0.0.0:3000"
+reload-port = 3001
 env = "DEV"
 
 # Output configuration
@@ -16,3 +20,9 @@ site-pkg-dir = "pkg"
 
 # Assets
 assets-dir = "public"
+
+# SSR Features - server-side rendering only
+bin-features = ["ssr"]
+
+# Watch configuration
+watch-additional-files = ["style", "public"]

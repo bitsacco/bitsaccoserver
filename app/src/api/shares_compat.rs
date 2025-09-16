@@ -2,11 +2,10 @@ use ::entity::shares::OwnerType;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
+    middleware,
     response::{IntoResponse, Json},
     routing::{get, post},
-    Router,
-    middleware,
-    Extension,
+    Extension, Router,
 };
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -47,7 +46,10 @@ impl SharesRouterBuilder {
             .route("/update", post(update_shares))
             .route("/transactions", get(get_all_transactions))
             .route("/transactions/:userId", get(get_user_transactions))
-            .route("/transactions/find/:sharesId", get(find_transaction_by_shares_id))
+            .route(
+                "/transactions/find/:sharesId",
+                get(find_transaction_by_shares_id),
+            )
     }
 
     /// Build a secure router with all routes using secure handlers
@@ -60,35 +62,39 @@ impl SharesRouterBuilder {
             .route("/update", post(secure_update_shares))
             .route("/transactions", get(secure_get_all_transactions))
             .route("/transactions/:userId", get(secure_get_user_transactions))
-            .route("/transactions/find/:sharesId", get(secure_find_transaction_by_shares_id))
+            .route(
+                "/transactions/find/:sharesId",
+                get(secure_find_transaction_by_shares_id),
+            )
     }
 
     /// Creates the shares compatibility router for NestJS API compatibility
     /// This router provides endpoints without the /api prefix for direct NestJS compatibility
     pub fn build<S>(self) -> Router<S> {
-        Self::build_base_router()
-            .with_state(UnifiedAppState {
-                main_state: None,
-                repositories: self.repositories,
-                services: self.services,
-            })
+        Self::build_base_router().with_state(UnifiedAppState {
+            main_state: None,
+            repositories: self.repositories,
+            services: self.services,
+        })
     }
 
     /// Creates the shares compatibility router (non-generic version)
     pub fn build_concrete(self) -> Router {
-        Self::build_base_router()
-            .with_state(UnifiedAppState {
-                main_state: None,
-                repositories: self.repositories,
-                services: self.services,
-            })
+        Self::build_base_router().with_state(UnifiedAppState {
+            main_state: None,
+            repositories: self.repositories,
+            services: self.services,
+        })
     }
 
     /// Creates a secure shares compatibility router with authentication middleware
     pub fn build_secure(self, main_state: MainAppState) -> Router {
         // Apply auth middleware first with the main state
         Self::build_secure_router()
-            .layer(middleware::from_fn_with_state(main_state.clone(), auth_middleware))
+            .layer(middleware::from_fn_with_state(
+                main_state.clone(),
+                auth_middleware,
+            ))
             .with_state(UnifiedAppState {
                 main_state: Some(main_state),
                 repositories: self.repositories,
@@ -109,7 +115,11 @@ pub fn router(repositories: Repositories, services: Services) -> Router {
 }
 
 /// Creates a secure shares compatibility router with authentication middleware
-pub fn secure_compat_router(main_state: MainAppState, repositories: Repositories, services: Services) -> Router {
+pub fn secure_compat_router(
+    main_state: MainAppState,
+    repositories: Repositories,
+    services: Services,
+) -> Router {
     SharesRouterBuilder::new(repositories, services).build_secure(main_state)
 }
 
@@ -147,7 +157,11 @@ impl UnifiedAppState {
     }
 
     /// Create a new unified state with authentication
-    pub fn with_auth(main_state: MainAppState, repositories: Repositories, services: Services) -> Self {
+    pub fn with_auth(
+        main_state: MainAppState,
+        repositories: Repositories,
+        services: Services,
+    ) -> Self {
         Self {
             main_state: Some(main_state),
             repositories,
@@ -231,8 +245,8 @@ pub struct ShareOfferCompat {
 pub struct SubscribeSharesDto {
     pub share_offer_id: String, // UUID as string
     pub owner_id: String,
-    pub owner_type: String, // "member" or "group"
-    pub quantity: String, // Decimal as string
+    pub owner_type: String,           // "member" or "group"
+    pub quantity: String,             // Decimal as string
     pub purchased_by: Option<String>, // UUID as string
 }
 
@@ -310,12 +324,12 @@ pub struct UpdateSharesDto {
 // Helper functions for type conversions
 
 fn parse_uuid(uuid_str: &str) -> Result<Uuid, String> {
-    Uuid::parse_str(uuid_str)
-        .map_err(|_| format!("Invalid UUID format: {}", uuid_str))
+    Uuid::parse_str(uuid_str).map_err(|_| format!("Invalid UUID format: {}", uuid_str))
 }
 
 fn parse_decimal(decimal_str: &str) -> Result<Decimal, String> {
-    decimal_str.parse::<Decimal>()
+    decimal_str
+        .parse::<Decimal>()
         .map_err(|_| format!("Invalid decimal format: {}", decimal_str))
 }
 
@@ -323,7 +337,10 @@ fn parse_owner_type(owner_type_str: &str) -> Result<OwnerType, String> {
     match owner_type_str.to_lowercase().as_str() {
         "member" => Ok(OwnerType::Member),
         "group" => Ok(OwnerType::Group),
-        _ => Err(format!("Invalid owner type: {}. Must be 'member' or 'group'", owner_type_str))
+        _ => Err(format!(
+            "Invalid owner type: {}. Must be 'member' or 'group'",
+            owner_type_str
+        )),
     }
 }
 
@@ -341,36 +358,45 @@ pub async fn create_share_offer(
     // Parse and validate input
     let price_per_share = match parse_decimal(&request.price_per_share) {
         Ok(price) => price,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_price",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_price",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     let total_shares = match parse_decimal(&request.total_shares_available) {
         Ok(total) => total,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_total_shares",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_total_shares",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     let created_by = if let Some(created_by_str) = &request.created_by {
         match parse_uuid(created_by_str) {
             Ok(uuid) => Some(uuid),
-            Err(msg) => return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "invalid_created_by",
-                    "message": msg
-                }))
-            ).into_response(),
+            Err(msg) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "invalid_created_by",
+                        "message": msg
+                    })),
+                )
+                    .into_response()
+            }
         }
     } else {
         None
@@ -380,13 +406,16 @@ pub async fn create_share_offer(
     let min_quantity = if let Some(min_str) = &request.min_purchase_quantity {
         match parse_decimal(min_str) {
             Ok(min) => Some(min),
-            Err(msg) => return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "invalid_min_quantity",
-                    "message": msg
-                }))
-            ).into_response(),
+            Err(msg) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "invalid_min_quantity",
+                        "message": msg
+                    })),
+                )
+                    .into_response()
+            }
         }
     } else {
         None
@@ -395,13 +424,16 @@ pub async fn create_share_offer(
     let max_quantity = if let Some(max_str) = &request.max_purchase_quantity {
         match parse_decimal(max_str) {
             Ok(max) => Some(max),
-            Err(msg) => return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "invalid_max_quantity",
-                    "message": msg
-                }))
-            ).into_response(),
+            Err(msg) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "invalid_max_quantity",
+                        "message": msg
+                    })),
+                )
+                    .into_response()
+            }
         }
     } else {
         None
@@ -411,13 +443,16 @@ pub async fn create_share_offer(
     let valid_from = if let Some(from_str) = &request.valid_from {
         match chrono::DateTime::parse_from_rfc3339(from_str) {
             Ok(dt) => Some(dt.with_timezone(&chrono::Utc)),
-            Err(_) => return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "invalid_valid_from",
-                    "message": "Date must be in ISO 8601 format"
-                }))
-            ).into_response(),
+            Err(_) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "invalid_valid_from",
+                        "message": "Date must be in ISO 8601 format"
+                    })),
+                )
+                    .into_response()
+            }
         }
     } else {
         None
@@ -426,13 +461,16 @@ pub async fn create_share_offer(
     let valid_until = if let Some(until_str) = &request.valid_until {
         match chrono::DateTime::parse_from_rfc3339(until_str) {
             Ok(dt) => Some(dt.with_timezone(&chrono::Utc)),
-            Err(_) => return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "invalid_valid_until",
-                    "message": "Date must be in ISO 8601 format"
-                }))
-            ).into_response(),
+            Err(_) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "invalid_valid_until",
+                        "message": "Date must be in ISO 8601 format"
+                    })),
+                )
+                    .into_response()
+            }
         }
     } else {
         None
@@ -455,8 +493,8 @@ pub async fn create_share_offer(
         valid_until: Set(valid_until.map(|dt| dt.into())),
         min_purchase_quantity: Set(min_quantity),
         max_purchase_quantity: Set(max_quantity),
-        settings: Set(request.settings.map(|v| v.into())),
-        metadata: Set(request.metadata.map(|v| v.into())),
+        settings: Set(request.settings),
+        metadata: Set(request.metadata),
         created_at: Set(chrono::Utc::now().into()),
         updated_at: Set(chrono::Utc::now().into()),
         created_by: Set(created_by),
@@ -475,12 +513,16 @@ pub async fn create_share_offer(
                 shares_sold: created_offer.shares_sold.to_string(),
                 shares_remaining: created_offer.shares_remaining.to_string(),
                 status: format!("{:?}", created_offer.status).to_lowercase(),
-                valid_from: created_offer.valid_from.map(|dt| format_datetime(dt.into())),
-                valid_until: created_offer.valid_until.map(|dt| format_datetime(dt.into())),
+                valid_from: created_offer
+                    .valid_from
+                    .map(|dt| format_datetime(dt.into())),
+                valid_until: created_offer
+                    .valid_until
+                    .map(|dt| format_datetime(dt.into())),
                 min_purchase_quantity: created_offer.min_purchase_quantity.map(|d| d.to_string()),
                 max_purchase_quantity: created_offer.max_purchase_quantity.map(|d| d.to_string()),
-                settings: created_offer.settings.map(|v| v.into()),
-                metadata: created_offer.metadata.map(|v| v.into()),
+                settings: created_offer.settings,
+                metadata: created_offer.metadata,
                 created_at: format_datetime(created_offer.created_at.into()),
                 updated_at: format_datetime(created_offer.updated_at.into()),
                 created_by: created_offer.created_by.map(|id| id.to_string()),
@@ -488,7 +530,7 @@ pub async fn create_share_offer(
             };
 
             (StatusCode::CREATED, Json(compat_offer)).into_response()
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to create share offer: {}", e);
             (
@@ -497,7 +539,8 @@ pub async fn create_share_offer(
                     "error": "creation_failed",
                     "message": "Failed to create share offer"
                 })),
-            ).into_response()
+            )
+                .into_response()
         }
     }
 }
@@ -507,8 +550,9 @@ pub async fn get_all_share_offers(State(state): State<UnifiedAppState>) -> impl 
     match state.repositories.share_offers.find_all().await {
         Ok(offers) => {
             // Convert all offers to compatible format
-            let compat_offers: Vec<ShareOfferCompat> = offers.into_iter().map(|offer| {
-                ShareOfferCompat {
+            let compat_offers: Vec<ShareOfferCompat> = offers
+                .into_iter()
+                .map(|offer| ShareOfferCompat {
                     id: offer.id.to_string(),
                     name: offer.name,
                     description: offer.description,
@@ -521,17 +565,18 @@ pub async fn get_all_share_offers(State(state): State<UnifiedAppState>) -> impl 
                     valid_until: offer.valid_until.map(|dt| format_datetime(dt.into())),
                     min_purchase_quantity: offer.min_purchase_quantity.map(|d| d.to_string()),
                     max_purchase_quantity: offer.max_purchase_quantity.map(|d| d.to_string()),
-                    settings: offer.settings.map(|v| v.into()),
-                    metadata: offer.metadata.map(|v| v.into()),
+                    settings: offer.settings,
+                    metadata: offer.metadata,
                     created_at: format_datetime(offer.created_at.into()),
                     updated_at: format_datetime(offer.updated_at.into()),
                     created_by: offer.created_by.map(|id| id.to_string()),
                     updated_by: offer.updated_by.map(|id| id.to_string()),
-                }
-            }).collect();
+                })
+                .collect();
 
             // Count active offers
-            let active_count = compat_offers.iter()
+            let active_count = compat_offers
+                .iter()
                 .filter(|offer| offer.status == "active")
                 .count() as u64;
 
@@ -542,7 +587,7 @@ pub async fn get_all_share_offers(State(state): State<UnifiedAppState>) -> impl 
             };
 
             Json(response).into_response()
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get share offers: {}", e);
             (
@@ -551,7 +596,8 @@ pub async fn get_all_share_offers(State(state): State<UnifiedAppState>) -> impl 
                     "error": "fetch_failed",
                     "message": "Failed to fetch share offers"
                 })),
-            ).into_response()
+            )
+                .into_response()
         }
     }
 }
@@ -564,58 +610,73 @@ pub async fn subscribe_to_shares(
     // Parse and validate input
     let share_offer_id = match parse_uuid(&request.share_offer_id) {
         Ok(id) => id,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_share_offer_id",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_share_offer_id",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     let owner_id = match parse_uuid(&request.owner_id) {
         Ok(id) => id,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_owner_id",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_owner_id",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     let owner_type = match parse_owner_type(&request.owner_type) {
         Ok(ot) => ot,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_owner_type",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_owner_type",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     let quantity = match parse_decimal(&request.quantity) {
         Ok(qty) => qty,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_quantity",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_quantity",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     let purchased_by = if let Some(purchased_by_str) = &request.purchased_by {
         match parse_uuid(purchased_by_str) {
             Ok(id) => Some(id),
-            Err(msg) => return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "invalid_purchased_by",
-                    "message": msg
-                }))
-            ).into_response(),
+            Err(msg) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "invalid_purchased_by",
+                        "message": msg
+                    })),
+                )
+                    .into_response()
+            }
         }
     } else {
         None
@@ -631,7 +692,12 @@ pub async fn subscribe_to_shares(
     };
 
     // Execute the purchase
-    match state.services.share_purchase.purchase_shares(purchase_request).await {
+    match state
+        .services
+        .share_purchase
+        .purchase_shares(purchase_request)
+        .await
+    {
         Ok(result) => {
             // Convert result to NestJS compatible format
             let transaction = ShareTransactionCompat {
@@ -661,7 +727,7 @@ pub async fn subscribe_to_shares(
             };
 
             Json(response).into_response()
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to subscribe to shares: {}", e);
             (
@@ -670,7 +736,8 @@ pub async fn subscribe_to_shares(
                     "error": "subscription_failed",
                     "message": format!("Failed to subscribe to shares: {}", e)
                 })),
-            ).into_response()
+            )
+                .into_response()
         }
     }
 }
@@ -683,47 +750,59 @@ pub async fn transfer_shares(
     // Parse and validate input
     let share_id = match parse_uuid(&request.share_id) {
         Ok(id) => id,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_share_id",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_share_id",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     let new_owner_id = match parse_uuid(&request.new_owner_id) {
         Ok(id) => id,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_new_owner_id",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_new_owner_id",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     let new_owner_type = match parse_owner_type(&request.new_owner_type) {
         Ok(ot) => ot,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_new_owner_type",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_new_owner_type",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     let quantity_to_transfer = if let Some(qty_str) = &request.quantity_to_transfer {
         match parse_decimal(qty_str) {
             Ok(qty) => Some(qty),
-            Err(msg) => return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "invalid_quantity_to_transfer",
-                    "message": msg
-                }))
-            ).into_response(),
+            Err(msg) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "invalid_quantity_to_transfer",
+                        "message": msg
+                    })),
+                )
+                    .into_response()
+            }
         }
     } else {
         None
@@ -732,13 +811,16 @@ pub async fn transfer_shares(
     let transferred_by = if let Some(transferred_by_str) = &request.transferred_by {
         match parse_uuid(transferred_by_str) {
             Ok(id) => Some(id),
-            Err(msg) => return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "invalid_transferred_by",
-                    "message": msg
-                }))
-            ).into_response(),
+            Err(msg) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "invalid_transferred_by",
+                        "message": msg
+                    })),
+                )
+                    .into_response()
+            }
         }
     } else {
         None
@@ -795,34 +877,37 @@ pub async fn update_shares(
     // Parse and validate input
     let share_id = match parse_uuid(&request.share_id) {
         Ok(id) => id,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_share_id",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_share_id",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     // For now, return a basic implementation. In a real scenario,
     // we'd need to implement a shares update service method
     match state.repositories.shares.find_by_id(share_id).await {
-        Ok(Some(share)) => {
-            Json(serde_json::json!({
-                "message": "Share update functionality not fully implemented",
-                "shareId": share.id.to_string(),
-                "currentQuantity": share.share_quantity.to_string(),
-                "currentValue": share.total_value.to_string(),
-                "status": "pending_implementation"
-            })).into_response()
-        },
+        Ok(Some(share)) => Json(serde_json::json!({
+            "message": "Share update functionality not fully implemented",
+            "shareId": share.id.to_string(),
+            "currentQuantity": share.share_quantity.to_string(),
+            "currentValue": share.total_value.to_string(),
+            "status": "pending_implementation"
+        }))
+        .into_response(),
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({
                 "error": "share_not_found",
                 "message": "Share not found"
             })),
-        ).into_response(),
+        )
+            .into_response(),
         Err(e) => {
             tracing::error!("Failed to find share: {}", e);
             (
@@ -831,7 +916,8 @@ pub async fn update_shares(
                     "error": "update_failed",
                     "message": "Failed to update share"
                 })),
-            ).into_response()
+            )
+                .into_response()
         }
     }
 }
@@ -844,26 +930,29 @@ pub async fn get_all_transactions(
     // Get all shares as transactions (our current model doesn't have separate transactions)
     match state.repositories.shares.find_all().await {
         Ok(shares) => {
-            let transactions: Vec<ShareTransactionCompat> = shares.into_iter().map(|share| {
-                ShareTransactionCompat {
-                    id: share.id.to_string(),
-                    shares_id: share.id.to_string(),
-                    owner_id: share.owner_id.to_string(),
-                    owner_type: format!("{:?}", share.owner_type).to_lowercase(),
-                    quantity: share.share_quantity.to_string(),
-                    total_value: share.total_value.to_string(),
-                    transaction_type: "purchase".to_string(), // Default to purchase
-                    created_at: format_datetime(share.created_at.into()),
-                    created_by: share.created_by.map(|id| id.to_string()),
-                }
-            }).collect();
+            let transactions: Vec<ShareTransactionCompat> = shares
+                .into_iter()
+                .map(|share| {
+                    ShareTransactionCompat {
+                        id: share.id.to_string(),
+                        shares_id: share.id.to_string(),
+                        owner_id: share.owner_id.to_string(),
+                        owner_type: format!("{:?}", share.owner_type).to_lowercase(),
+                        quantity: share.share_quantity.to_string(),
+                        total_value: share.total_value.to_string(),
+                        transaction_type: "purchase".to_string(), // Default to purchase
+                        created_at: format_datetime(share.created_at.into()),
+                        created_by: share.created_by.map(|id| id.to_string()),
+                    }
+                })
+                .collect();
 
             // Apply pagination
             let page = query.page.unwrap_or(0);
             let size = query.size.unwrap_or(100);
             let start = (page * size) as usize;
             let end = std::cmp::min(start + size as usize, transactions.len());
-            
+
             let paginated_transactions = if start < transactions.len() {
                 transactions[start..end].to_vec()
             } else {
@@ -878,17 +967,21 @@ pub async fn get_all_transactions(
                     total: transactions.len() as u64,
                 },
                 summary: TransactionSummary {
-                    total_shares: transactions.iter()
+                    total_shares: transactions
+                        .iter()
                         .map(|t| parse_decimal(&t.quantity).unwrap_or(Decimal::ZERO))
-                        .sum::<Decimal>().to_string(),
-                    total_value: transactions.iter()
+                        .sum::<Decimal>()
+                        .to_string(),
+                    total_value: transactions
+                        .iter()
                         .map(|t| parse_decimal(&t.total_value).unwrap_or(Decimal::ZERO))
-                        .sum::<Decimal>().to_string(),
+                        .sum::<Decimal>()
+                        .to_string(),
                 },
             };
 
             Json(response).into_response()
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get all transactions: {}", e);
             (
@@ -897,7 +990,8 @@ pub async fn get_all_transactions(
                     "error": "fetch_failed",
                     "message": "Failed to fetch transactions"
                 })),
-            ).into_response()
+            )
+                .into_response()
         }
     }
 }
@@ -910,20 +1004,29 @@ pub async fn get_user_transactions(
 ) -> impl IntoResponse {
     let user_id = match parse_uuid(&user_id_str) {
         Ok(id) => id,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_user_id",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_user_id",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     // Get shares for the user (both as member and potentially as group member)
-    match state.repositories.shares.find_by_owner(user_id, OwnerType::Member).await {
+    match state
+        .repositories
+        .shares
+        .find_by_owner(user_id, OwnerType::Member)
+        .await
+    {
         Ok(shares) => {
-            let transactions: Vec<ShareTransactionCompat> = shares.into_iter().map(|share| {
-                ShareTransactionCompat {
+            let transactions: Vec<ShareTransactionCompat> = shares
+                .into_iter()
+                .map(|share| ShareTransactionCompat {
                     id: share.id.to_string(),
                     shares_id: share.id.to_string(),
                     owner_id: share.owner_id.to_string(),
@@ -933,15 +1036,15 @@ pub async fn get_user_transactions(
                     transaction_type: "purchase".to_string(),
                     created_at: format_datetime(share.created_at.into()),
                     created_by: share.created_by.map(|id| id.to_string()),
-                }
-            }).collect();
+                })
+                .collect();
 
             // Apply pagination
             let page = query.page.unwrap_or(0);
             let size = query.size.unwrap_or(100);
             let start = (page * size) as usize;
             let end = std::cmp::min(start + size as usize, transactions.len());
-            
+
             let paginated_transactions = if start < transactions.len() {
                 transactions[start..end].to_vec()
             } else {
@@ -956,17 +1059,21 @@ pub async fn get_user_transactions(
                     total: transactions.len() as u64,
                 },
                 summary: TransactionSummary {
-                    total_shares: transactions.iter()
+                    total_shares: transactions
+                        .iter()
                         .map(|t| parse_decimal(&t.quantity).unwrap_or(Decimal::ZERO))
-                        .sum::<Decimal>().to_string(),
-                    total_value: transactions.iter()
+                        .sum::<Decimal>()
+                        .to_string(),
+                    total_value: transactions
+                        .iter()
                         .map(|t| parse_decimal(&t.total_value).unwrap_or(Decimal::ZERO))
-                        .sum::<Decimal>().to_string(),
+                        .sum::<Decimal>()
+                        .to_string(),
                 },
             };
 
             Json(response).into_response()
-        },
+        }
         Err(e) => {
             tracing::error!("Failed to get user transactions: {}", e);
             (
@@ -975,7 +1082,8 @@ pub async fn get_user_transactions(
                     "error": "fetch_failed",
                     "message": "Failed to fetch user transactions"
                 })),
-            ).into_response()
+            )
+                .into_response()
         }
     }
 }
@@ -987,13 +1095,16 @@ pub async fn find_transaction_by_shares_id(
 ) -> impl IntoResponse {
     let shares_id = match parse_uuid(&shares_id_str) {
         Ok(id) => id,
-        Err(msg) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_shares_id",
-                "message": msg
-            }))
-        ).into_response(),
+        Err(msg) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_shares_id",
+                    "message": msg
+                })),
+            )
+                .into_response()
+        }
     };
 
     match state.repositories.shares.find_by_id(shares_id).await {
@@ -1011,14 +1122,15 @@ pub async fn find_transaction_by_shares_id(
             };
 
             Json(transaction).into_response()
-        },
+        }
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({
                 "error": "transaction_not_found",
                 "message": "Transaction not found"
             })),
-        ).into_response(),
+        )
+            .into_response(),
         Err(e) => {
             tracing::error!("Failed to find transaction: {}", e);
             (
@@ -1027,7 +1139,8 @@ pub async fn find_transaction_by_shares_id(
                     "error": "fetch_failed",
                     "message": "Failed to find transaction"
                 })),
-            ).into_response()
+            )
+                .into_response()
         }
     }
 }
@@ -1040,16 +1153,14 @@ pub async fn secure_create_share_offer(
     Extension(user_context): Extension<UserContext>,
     Json(offer_request): Json<OfferSharesDto>,
 ) -> impl IntoResponse {
-
     // Set the created_by field to the authenticated user
     let mut secure_request = offer_request;
     secure_request.created_by = Some(user_context.user_id.to_string());
 
     // Call the original implementation with the modified request
-    create_share_offer(
-        State(state.clone()),
-        Json(secure_request),
-    ).await.into_response()
+    create_share_offer(State(state.clone()), Json(secure_request))
+        .await
+        .into_response()
 }
 
 /// GET /shares/offers - Get all share offers (Secure version with authentication)  
@@ -1057,11 +1168,10 @@ pub async fn secure_get_all_share_offers(
     State(state): State<UnifiedAppState>,
     Extension(_user_context): Extension<UserContext>,
 ) -> impl IntoResponse {
-
     // Call the original implementation
-    get_all_share_offers(
-        State(state.clone()),
-    ).await.into_response()
+    get_all_share_offers(State(state.clone()))
+        .await
+        .into_response()
 }
 
 /// POST /shares/subscribe - Subscribe to shares (Secure version with authentication)
@@ -1070,18 +1180,20 @@ pub async fn secure_subscribe_to_shares(
     Extension(user_context): Extension<UserContext>,
     Json(subscribe_request): Json<SubscribeSharesDto>,
 ) -> impl IntoResponse {
-
     // Validate that the user can only subscribe for themselves (if owner_type is member)
     if subscribe_request.owner_type.to_lowercase() == "member" {
         let owner_id = match Uuid::parse_str(&subscribe_request.owner_id) {
             Ok(id) => id,
-            Err(_) => return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "invalid_owner_id",
-                    "message": "Invalid owner ID format"
-                }))
-            ).into_response(),
+            Err(_) => {
+                return (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({
+                        "error": "invalid_owner_id",
+                        "message": "Invalid owner ID format"
+                    })),
+                )
+                    .into_response()
+            }
         };
 
         if owner_id != user_context.user_id {
@@ -1090,8 +1202,9 @@ pub async fn secure_subscribe_to_shares(
                 Json(serde_json::json!({
                     "error": "unauthorized",
                     "message": "Users can only subscribe to shares for themselves"
-                }))
-            ).into_response();
+                })),
+            )
+                .into_response();
         }
     }
 
@@ -1100,10 +1213,9 @@ pub async fn secure_subscribe_to_shares(
     secure_request.purchased_by = Some(user_context.user_id.to_string());
 
     // Call the original implementation
-    subscribe_to_shares(
-        State(state.clone()),
-        Json(secure_request),
-    ).await.into_response()
+    subscribe_to_shares(State(state.clone()), Json(secure_request))
+        .await
+        .into_response()
 }
 
 /// POST /shares/transfer - Transfer shares (Secure version with authentication)
@@ -1112,17 +1224,19 @@ pub async fn secure_transfer_shares(
     Extension(user_context): Extension<UserContext>,
     Json(transfer_request): Json<TransferSharesDto>,
 ) -> impl IntoResponse {
-
     // Validate ownership of the share being transferred
     let share_id = match Uuid::parse_str(&transfer_request.share_id) {
         Ok(id) => id,
-        Err(_) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_share_id",
-                "message": "Invalid share ID format"
-            }))
-        ).into_response(),
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_share_id",
+                    "message": "Invalid share ID format"
+                })),
+            )
+                .into_response()
+        }
     };
 
     // Check if the user owns the share they're trying to transfer
@@ -1134,24 +1248,31 @@ pub async fn secure_transfer_shares(
                     Json(serde_json::json!({
                         "error": "unauthorized",
                         "message": "You can only transfer shares you own"
-                    }))
-                ).into_response();
+                    })),
+                )
+                    .into_response();
             }
         }
-        Ok(None) => return (
-            StatusCode::NOT_FOUND,
-            Json(serde_json::json!({
-                "error": "share_not_found",
-                "message": "Share not found"
-            }))
-        ).into_response(),
-        Err(_) => return (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({
-                "error": "database_error",
-                "message": "Failed to verify share ownership"
-            }))
-        ).into_response(),
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({
+                    "error": "share_not_found",
+                    "message": "Share not found"
+                })),
+            )
+                .into_response()
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "error": "database_error",
+                    "message": "Failed to verify share ownership"
+                })),
+            )
+                .into_response()
+        }
     }
 
     // Set the transferred_by field to the authenticated user
@@ -1159,10 +1280,9 @@ pub async fn secure_transfer_shares(
     secure_request.transferred_by = Some(user_context.user_id.to_string());
 
     // Call the original implementation
-    transfer_shares(
-        State(state.clone()),
-        Json(secure_request),
-    ).await.into_response()
+    transfer_shares(State(state.clone()), Json(secure_request))
+        .await
+        .into_response()
 }
 
 // Placeholder implementations for remaining secure handlers
@@ -1171,11 +1291,9 @@ pub async fn secure_update_shares(
     Extension(_user_context): Extension<UserContext>,
     Json(update_request): Json<UpdateSharesDto>,
 ) -> impl IntoResponse {
-
-    update_shares(
-        State(state.clone()),
-        Json(update_request),
-    ).await.into_response()
+    update_shares(State(state.clone()), Json(update_request))
+        .await
+        .into_response()
 }
 
 pub async fn secure_get_all_transactions(
@@ -1183,21 +1301,20 @@ pub async fn secure_get_all_transactions(
     Extension(user_context): Extension<UserContext>,
     Query(query): Query<PaginationQuery>,
 ) -> impl IntoResponse {
-
     if !user_context.roles.contains(&"admin".to_string()) {
         return (
             StatusCode::FORBIDDEN,
             Json(serde_json::json!({
                 "error": "unauthorized",
                 "message": "Only administrators can view all transactions"
-            }))
-        ).into_response();
+            })),
+        )
+            .into_response();
     }
 
-    get_all_transactions(
-        State(state.clone()),
-        Query(query),
-    ).await.into_response()
+    get_all_transactions(State(state.clone()), Query(query))
+        .await
+        .into_response()
 }
 
 pub async fn secure_get_user_transactions(
@@ -1206,33 +1323,36 @@ pub async fn secure_get_user_transactions(
     Path(user_id_str): Path<String>,
     Query(query): Query<PaginationQuery>,
 ) -> impl IntoResponse {
-
     let requested_user_id = match Uuid::parse_str(&user_id_str) {
         Ok(id) => id,
-        Err(_) => return (
-            StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({
-                "error": "invalid_user_id",
-                "message": "Invalid user ID format"
-            }))
-        ).into_response(),
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "invalid_user_id",
+                    "message": "Invalid user ID format"
+                })),
+            )
+                .into_response()
+        }
     };
 
-    if requested_user_id != user_context.user_id && !user_context.roles.contains(&"admin".to_string()) {
+    if requested_user_id != user_context.user_id
+        && !user_context.roles.contains(&"admin".to_string())
+    {
         return (
             StatusCode::FORBIDDEN,
             Json(serde_json::json!({
                 "error": "unauthorized",
                 "message": "You can only view your own transactions"
-            }))
-        ).into_response();
+            })),
+        )
+            .into_response();
     }
 
-    get_user_transactions(
-        State(state.clone()),
-        Path(user_id_str),
-        Query(query),
-    ).await.into_response()
+    get_user_transactions(State(state.clone()), Path(user_id_str), Query(query))
+        .await
+        .into_response()
 }
 
 pub async fn secure_find_transaction_by_shares_id(
@@ -1240,9 +1360,7 @@ pub async fn secure_find_transaction_by_shares_id(
     Extension(_user_context): Extension<UserContext>,
     Path(shares_id_str): Path<String>,
 ) -> impl IntoResponse {
-
-    find_transaction_by_shares_id(
-        State(state.clone()),
-        Path(shares_id_str),
-    ).await.into_response()
+    find_transaction_by_shares_id(State(state.clone()), Path(shares_id_str))
+        .await
+        .into_response()
 }

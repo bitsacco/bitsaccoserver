@@ -31,6 +31,12 @@ pub struct RequireAuth {
     pub user_id: Uuid,
 }
 
+impl Default for RequireAuth {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RequireAuth {
     pub fn new() -> Self {
         Self {
@@ -135,7 +141,7 @@ pub async fn list_members(
 
     // Apply filters
     if let Some(ref status) = filters.status {
-        query = query.filter(members::Column::Status.eq(status.clone()));
+        query = query.filter(members::Column::Status.eq(*status));
     }
 
     if let Some(search) = &filters.search {
@@ -165,12 +171,12 @@ pub async fn list_members(
     let members = query
         .all(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
 
     // Get total count for pagination
     let mut count_query = Members::find();
     if let Some(ref status) = filters.status {
-        count_query = count_query.filter(members::Column::Status.eq(status.clone()));
+        count_query = count_query.filter(members::Column::Status.eq(*status));
     }
     if let Some(search) = &filters.search {
         let search_term = format!("%{}%", search);
@@ -191,7 +197,7 @@ pub async fn list_members(
     let total = count_query
         .count(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
     let total_pages = ((total as f64) / (limit as f64)).ceil() as u32;
 
     // Convert to response format with additional metadata
@@ -323,7 +329,7 @@ pub async fn get_member(
         .filter(::entity::shares::Column::OwnerType.eq(::entity::shares::OwnerType::Member))
         .all(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
 
     let shares_count = shares.len() as u64;
     let total_shares_value = shares
@@ -427,7 +433,7 @@ pub async fn update_member(
     let updated_member = active_model
         .update(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
 
     let response = MemberResponse {
         member: updated_member,
@@ -469,7 +475,7 @@ pub async fn delete_member(
         .filter(::entity::shares::Column::OwnerType.eq(::entity::shares::OwnerType::Member))
         .count(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
 
     if shares_count > 0 {
         return Err(ApiError::BadRequest(
@@ -544,14 +550,14 @@ pub async fn get_member_shares(
         .limit(limit as u64)
         .all(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
 
     let total = Shares::find()
         .filter(::entity::shares::Column::OwnerId.eq(id))
         .filter(::entity::shares::Column::OwnerType.eq(::entity::shares::OwnerType::Member))
         .count(&*repositories.database)
         .await
-        .map_err(|e| ApiError::Database(e))?;
+        .map_err(ApiError::Database)?;
 
     let total_pages = ((total as f64) / (limit as f64)).ceil() as u32;
 

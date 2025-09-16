@@ -2,8 +2,11 @@ use sea_orm::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use ::entity::{lnurl_transactions, sea_orm_active_enums::{LnurlTransactionStatus, LnurlTransactionType}};
 use super::{RepositoryError, RepositoryResult};
+use ::entity::{
+    lnurl_transactions,
+    sea_orm_active_enums::{LnurlTransactionStatus, LnurlTransactionType},
+};
 
 #[derive(Clone)]
 pub struct LnurlTransactionRepository {
@@ -16,19 +19,30 @@ impl LnurlTransactionRepository {
     }
 
     /// Create a new LNURL transaction
-    pub async fn create(&self, transaction: lnurl_transactions::ActiveModel) -> RepositoryResult<lnurl_transactions::Model> {
+    pub async fn create(
+        &self,
+        transaction: lnurl_transactions::ActiveModel,
+    ) -> RepositoryResult<lnurl_transactions::Model> {
         let result = transaction.insert(self.db.as_ref()).await?;
         Ok(result)
     }
 
     /// Find LNURL transaction by ID
-    pub async fn find_by_id(&self, id: Uuid) -> RepositoryResult<Option<lnurl_transactions::Model>> {
-        let transaction = lnurl_transactions::Entity::find_by_id(id).one(self.db.as_ref()).await?;
+    pub async fn find_by_id(
+        &self,
+        id: Uuid,
+    ) -> RepositoryResult<Option<lnurl_transactions::Model>> {
+        let transaction = lnurl_transactions::Entity::find_by_id(id)
+            .one(self.db.as_ref())
+            .await?;
         Ok(transaction)
     }
 
     /// Find LNURL transaction by k1 (LNURL-auth identifier)
-    pub async fn find_by_k1(&self, k1: &str) -> RepositoryResult<Option<lnurl_transactions::Model>> {
+    pub async fn find_by_k1(
+        &self,
+        k1: &str,
+    ) -> RepositoryResult<Option<lnurl_transactions::Model>> {
         let transaction = lnurl_transactions::Entity::find()
             .filter(lnurl_transactions::Column::K1.eq(k1))
             .one(self.db.as_ref())
@@ -37,7 +51,10 @@ impl LnurlTransactionRepository {
     }
 
     /// Find LNURL transaction by payment hash
-    pub async fn find_by_payment_hash(&self, payment_hash: &str) -> RepositoryResult<Option<lnurl_transactions::Model>> {
+    pub async fn find_by_payment_hash(
+        &self,
+        payment_hash: &str,
+    ) -> RepositoryResult<Option<lnurl_transactions::Model>> {
         let transaction = lnurl_transactions::Entity::find()
             .filter(lnurl_transactions::Column::PaymentHash.eq(payment_hash))
             .one(self.db.as_ref())
@@ -46,7 +63,10 @@ impl LnurlTransactionRepository {
     }
 
     /// Find LNURL transactions by lightning address
-    pub async fn find_by_lightning_address(&self, address_id: Uuid) -> RepositoryResult<Vec<lnurl_transactions::Model>> {
+    pub async fn find_by_lightning_address(
+        &self,
+        address_id: Uuid,
+    ) -> RepositoryResult<Vec<lnurl_transactions::Model>> {
         let transactions = lnurl_transactions::Entity::find()
             .filter(lnurl_transactions::Column::LightningAddressId.eq(address_id))
             .order_by_desc(lnurl_transactions::Column::CreatedAt)
@@ -56,7 +76,10 @@ impl LnurlTransactionRepository {
     }
 
     /// Find LNURL transactions by wallet transaction ID
-    pub async fn find_by_wallet_transaction(&self, wallet_transaction_id: Uuid) -> RepositoryResult<Option<lnurl_transactions::Model>> {
+    pub async fn find_by_wallet_transaction(
+        &self,
+        wallet_transaction_id: Uuid,
+    ) -> RepositoryResult<Option<lnurl_transactions::Model>> {
         let transaction = lnurl_transactions::Entity::find()
             .filter(lnurl_transactions::Column::WalletTransactionId.eq(wallet_transaction_id))
             .one(self.db.as_ref())
@@ -82,7 +105,7 @@ impl LnurlTransactionRepository {
     /// Find pending LNURL transactions that have expired
     pub async fn find_expired_pending(&self) -> RepositoryResult<Vec<lnurl_transactions::Model>> {
         let now = chrono::Utc::now();
-        
+
         let transactions = lnurl_transactions::Entity::find()
             .filter(lnurl_transactions::Column::Status.eq(LnurlTransactionStatus::Pending))
             .filter(lnurl_transactions::Column::ExpiresAt.lt(now))
@@ -106,14 +129,16 @@ impl LnurlTransactionRepository {
         let mut transaction: lnurl_transactions::ActiveModel = transaction.into();
         transaction.status = Set(status);
         transaction.updated_at = Set(chrono::Utc::now().into());
-        
+
         if let Some(error) = error_details {
             transaction.error_details = Set(Some(error));
         }
 
         // Set processed_at if status is completed or failed
         match status {
-            LnurlTransactionStatus::Completed | LnurlTransactionStatus::Failed | LnurlTransactionStatus::Expired => {
+            LnurlTransactionStatus::Completed
+            | LnurlTransactionStatus::Failed
+            | LnurlTransactionStatus::Expired => {
                 transaction.processed_at = Set(Some(chrono::Utc::now().into()));
             }
             _ => {}
@@ -138,7 +163,7 @@ impl LnurlTransactionRepository {
             .ok_or(RepositoryError::NotFound)?;
 
         let mut transaction: lnurl_transactions::ActiveModel = transaction.into();
-        
+
         if let Some(inv) = invoice {
             transaction.invoice = Set(Some(inv));
         }
@@ -151,7 +176,7 @@ impl LnurlTransactionRepository {
         if let Some(amount) = amount_msat {
             transaction.amount_msat = Set(Some(amount));
         }
-        
+
         transaction.updated_at = Set(chrono::Utc::now().into());
 
         let result = transaction.update(self.db.as_ref()).await?;
@@ -159,7 +184,10 @@ impl LnurlTransactionRepository {
     }
 
     /// Update LNURL transaction
-    pub async fn update(&self, transaction: lnurl_transactions::ActiveModel) -> RepositoryResult<lnurl_transactions::Model> {
+    pub async fn update(
+        &self,
+        transaction: lnurl_transactions::ActiveModel,
+    ) -> RepositoryResult<lnurl_transactions::Model> {
         let result = transaction.update(self.db.as_ref()).await?;
         Ok(result)
     }
@@ -197,7 +225,10 @@ impl LnurlTransactionRepository {
             .filter(lnurl_transactions::Column::Status.eq(LnurlTransactionStatus::Completed))
             .filter(lnurl_transactions::Column::TransactionType.eq(LnurlTransactionType::Pay))
             .select_only()
-            .column_as(lnurl_transactions::Column::AmountMsat.sum(), "total_received")
+            .column_as(
+                lnurl_transactions::Column::AmountMsat.sum(),
+                "total_received",
+            )
             .into_tuple()
             .one(self.db.as_ref())
             .await?;
@@ -212,7 +243,7 @@ impl LnurlTransactionRepository {
         since_minutes: i64,
     ) -> RepositoryResult<u64> {
         let cutoff = chrono::Utc::now() - chrono::Duration::minutes(since_minutes);
-        
+
         let count = lnurl_transactions::Entity::find()
             .filter(lnurl_transactions::Column::LightningAddressId.eq(address_id))
             .filter(lnurl_transactions::Column::CreatedAt.gte(cutoff))
@@ -231,7 +262,8 @@ impl LnurlTransactionRepository {
                 transaction.id,
                 LnurlTransactionStatus::Expired,
                 Some("Transaction expired".to_string()),
-            ).await?;
+            )
+            .await?;
             count += 1;
         }
 
@@ -241,7 +273,7 @@ impl LnurlTransactionRepository {
     /// Delete old transactions (for cleanup)
     pub async fn delete_old(&self, days_old: i64) -> RepositoryResult<u64> {
         let cutoff = chrono::Utc::now() - chrono::Duration::days(days_old);
-        
+
         let result = lnurl_transactions::Entity::delete_many()
             .filter(lnurl_transactions::Column::CreatedAt.lt(cutoff))
             .filter(lnurl_transactions::Column::Status.ne(LnurlTransactionStatus::Pending))

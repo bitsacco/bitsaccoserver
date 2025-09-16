@@ -13,10 +13,13 @@ services:
       KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
       ENVIRONMENT: ${ENVIRONMENT:-development}
       LOG_LEVEL: ${LOG_LEVEL:-debug}
-      SERVER_ADDR: 0.0.0.0:5000
+      SERVER_ADDR: 0.0.0.0:3030
+      # NestJS Backend Configuration
+      NESTJS_API_URL: ${NESTJS_API_URL:-http://localhost:4000}
+      API_BACKEND: ${API_BACKEND:-nestjs}
     ports:
-      - "5000:5000"
-      - "5001:5001"  # Hot reload port for development
+      - "3030:3030"
+      - "3031:3031"  # Hot reload port for development
     depends_on:
       postgres:
         condition: service_healthy
