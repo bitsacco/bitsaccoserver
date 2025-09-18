@@ -2,6 +2,10 @@
   "name": "bitsaccoserver",
   "version": "0.1.0",
   "private": true,
+  "scripts": {
+    "build-css": "tailwindcss -i ./app/src/style/tailwind.css -o ./public/styles.css --minify",
+    "build-css:watch": "tailwindcss -i ./app/src/style/tailwind.css -o ./public/styles.css --watch"
+  },
   "devDependencies": {
     "@playwright/test": "^1.55.0",
     "@tailwindcss/forms": "^0.5.7",

@@ -15,11 +15,11 @@ export NESTJS_API_URL := env_var_or_default("NESTJS_API_URL", "http://localhost:
 
 # Build Tailwind CSS styles
 build-css:
-    npx tailwindcss -i ./style/tailwind.css -o ./public/styles.css
+    npm run build-css
 
 # Watch and rebuild CSS on changes
 build-css-watch:
-    npx tailwindcss -i ./style/tailwind.css -o ./public/styles.css --watch
+    npm run build-css:watch
 
 # ============================================================================
 # Cargo Development Commands
