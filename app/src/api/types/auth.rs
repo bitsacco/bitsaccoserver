@@ -52,6 +52,12 @@ pub struct RevokeTokenRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LogoutRequest {
+    #[serde(rename = "refreshToken")]
+    pub refresh_token: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuthResponse {
     pub user: User,
     pub authenticated: bool,

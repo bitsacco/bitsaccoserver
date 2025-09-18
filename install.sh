@@ -146,8 +146,8 @@ fi
 
 # Set up git hooks
 echo "📦 Setting up git hooks..."
-if [ -f scripts/pre-commit.sh ]; then
-    cp scripts/pre-commit.sh .git/hooks/pre-commit 2>/dev/null || true
+if [ -f ./pre-commit.sh ]; then
+    cp ./pre-commit.sh .git/hooks/pre-commit 2>/dev/null || true
     chmod +x .git/hooks/pre-commit 2>/dev/null || true
     print_status "Git hooks installed"
 fi
