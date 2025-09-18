@@ -48,7 +48,7 @@ WORKDIR /app
 # Set development environment variables
 ENV LEPTOS_RELOAD_PORT=3001
 ENV RUST_LOG=debug
-ENV LEPTOS_SITE_ADDR="0.0.0.0:3000"
+ENV LEPTOS_SITE_ADDR="0.0.0.0:3030"
 
 EXPOSE 3000 3001
 
@@ -83,9 +83,9 @@ COPY --from=builder /app/target/release/app /app/
 COPY --from=builder /app/public /app/public/
 
 ENV LEPTOS_SITE_ROOT="/app/site"
-ENV LEPTOS_SITE_ADDR="0.0.0.0:3000"
+ENV LEPTOS_SITE_ADDR="0.0.0.0:3030"
 ENV RUST_LOG=info
 
-EXPOSE 3000
+EXPOSE 3030
 
 CMD ["./app"]

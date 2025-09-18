@@ -33,7 +33,7 @@ test.describe('Dashboard Navigation', () => {
     await page.goto('/members');
 
     // Wait for the specific page content to load - members page has h1 with "Members"
-    await expect(page.locator('h1').filter({ hasText: 'Members' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('main h1').filter({ hasText: 'Members' }).first()).toBeVisible({ timeout: 15000 });
 
     // Verify we're on the members page
     expect(page.url()).toContain('/members');
@@ -51,7 +51,7 @@ test.describe('Dashboard Navigation', () => {
     await page.goto('/groups');
 
     // Wait for the specific page content to load - groups page has h1 with "Groups"
-    await expect(page.locator('h1').filter({ hasText: 'Groups' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('main h1').filter({ hasText: 'Groups' }).first()).toBeVisible({ timeout: 15000 });
 
     // Verify we're on the groups page
     expect(page.url()).toContain('/groups');
@@ -69,7 +69,7 @@ test.describe('Dashboard Navigation', () => {
     await page.goto('/shares');
 
     // Wait for the specific page content to load - shares page has h1 with "Shares"
-    await expect(page.locator('h1').filter({ hasText: 'Shares' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('main h1').filter({ hasText: 'Shares' }).first()).toBeVisible({ timeout: 15000 });
 
     // Verify we're on the shares page
     expect(page.url()).toContain('/shares');
@@ -87,7 +87,7 @@ test.describe('Dashboard Navigation', () => {
     await page.goto('/settings');
 
     // Wait for the specific page content to load - settings page has h1 with "Settings"
-    await expect(page.locator('h1').filter({ hasText: 'Settings' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('main h1').filter({ hasText: 'Settings' }).first()).toBeVisible({ timeout: 15000 });
 
     // Verify we're on the settings page
     expect(page.url()).toContain('/settings');
@@ -107,22 +107,22 @@ test.describe('Dashboard Navigation', () => {
 
     // Navigate to members via sidebar
     await page.click('a[href="/members"]');
-    await expect(page.locator('h1').filter({ hasText: 'Members' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('main h1').filter({ hasText: 'Members' }).first()).toBeVisible({ timeout: 15000 });
     expect(page.url()).toContain('/members');
 
     // Navigate to groups via sidebar
     await page.click('a[href="/groups"]');
-    await expect(page.locator('h1').filter({ hasText: 'Groups' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('main h1').filter({ hasText: 'Groups' }).first()).toBeVisible({ timeout: 15000 });
     expect(page.url()).toContain('/groups');
 
     // Navigate to shares via sidebar
     await page.click('a[href="/shares"]');
-    await expect(page.locator('h1').filter({ hasText: 'Shares' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('main h1').filter({ hasText: 'Shares' }).first()).toBeVisible({ timeout: 15000 });
     expect(page.url()).toContain('/shares');
 
     // Navigate to settings via sidebar
     await page.click('a[href="/settings"]');
-    await expect(page.locator('h1').filter({ hasText: 'Settings' })).toBeVisible({ timeout: 15000 });
+    await expect(page.locator('main h1').filter({ hasText: 'Settings' }).first()).toBeVisible({ timeout: 15000 });
     expect(page.url()).toContain('/settings');
 
     // Navigate back to dashboard

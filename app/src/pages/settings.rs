@@ -6,8 +6,8 @@ pub fn Settings() -> impl IntoView {
         <div class="space-y-6">
             <div>
                 <h1 class="text-2xl font-bold text-gray-900">Settings</h1>
-                <p class="mt-1 text-sm text-gray-600">
-                    "Manage your account settings and preferences."
+                <p class="mt-1 text-sm text-gray-500">
+                    "Manage your account settings and preferences"
                 </p>
             </div>
 

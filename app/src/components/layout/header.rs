@@ -2,34 +2,19 @@ use leptos::prelude::*;
 use leptos_router::hooks::use_location;
 
 #[component]
-pub fn Header(#[prop(optional)] set_mobile_open: Option<WriteSignal<bool>>) -> impl IntoView {
-    let location = use_location();
-    let (search_query, set_search_query) = signal(String::new());
+pub fn Header(set_mobile_open: WriteSignal<bool>) -> impl IntoView {
+    let _location = use_location();
     let (notifications_open, set_notifications_open) = signal(false);
-    // Get current page title based on route
-    let page_title = Signal::derive(move || {
-        let path = location.pathname.get();
-        match path.as_str() {
-            "/dashboard" => "Dashboard",
-            "/members" => "Members",
-            "/groups" => "Groups",
-            "/shares" => "Shares",
-            "/settings" => "Settings",
-            _ => "Dashboard",
-        }
-    });
 
     view! {
         <div class="sticky top-0 z-10 flex-shrink-0 flex h-16 bg-white border-b border-gray-200 shadow-sm">
             // Mobile menu button with enhanced animations
             <button
                 type="button"
+                id="mobile-menu-button"
+                aria-label="Open sidebar"
                 class="group px-4 border-r border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 lg:hidden transition-all duration-200"
-                on:click=move |_| {
-                    if let Some(setter) = set_mobile_open {
-                        setter.set(true);
-                    }
-                }
+                on:click=move |_| set_mobile_open.set(true)
             >
                 <span class="sr-only">"Open sidebar"</span>
                 <div class="relative w-6 h-6">
@@ -42,36 +27,7 @@ pub fn Header(#[prop(optional)] set_mobile_open: Option<WriteSignal<bool>>) -> i
                 </div>
             </button>
 
-            <div class="flex-1 px-4 lg:px-6 flex justify-between items-center">
-                // Page title and breadcrumb
-                <div class="flex items-center space-x-4">
-                    <div class="hidden lg:block">
-                        <h1 class="text-2xl font-bold text-gray-900">
-                            {page_title}
-                        </h1>
-                    </div>
-
-                    // Search bar (responsive)
-                    <div class="flex-1 flex max-w-xs lg:max-w-md">
-                        <div class="relative w-full text-gray-400 focus-within:text-gray-600">
-                            <div class="absolute inset-y-0 left-0 flex items-center pointer-events-none pl-3">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                                </svg>
-                            </div>
-                            <input
-                                class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                                placeholder="Search members, groups, transactions..."
-                                type="search"
-                                prop:value=move || search_query.get()
-                                on:input=move |ev| {
-                                    set_search_query.set(event_target_value(&ev));
-                                }
-                            />
-                        </div>
-                    </div>
-                </div>
-
+            <div class="flex-1 px-4 lg:px-6 flex justify-end items-center">
                 // Right side - actions
                 <div class="flex items-center space-x-3">
                     // Notifications

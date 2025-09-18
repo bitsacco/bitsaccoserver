@@ -47,9 +47,7 @@ fedimint-ln-common = { workspace = true, optional = true }
 bitcoin = { workspace = true, optional = true }
 lightning-invoice = { workspace = true, optional = true }
 
-# Local dependencies
-entity = { path = "../entity", optional = true }
-migration = { path = "../migration", optional = true }
+# Local dependencies removed (entity and migration no longer needed)
 
 # Additional dependencies
 http = "1"
@@ -100,8 +98,6 @@ ssr = [
     "dep:keycloak",
     "dep:moka",
     "dep:hyper",
-    "dep:entity",
-    "dep:migration",
     "dep:fedimint-core",
     "dep:fedimint-client",
     "dep:fedimint-mint-client",
