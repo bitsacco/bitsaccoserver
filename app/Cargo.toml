@@ -33,25 +33,12 @@ dotenvy = { workspace = true, optional = true }
 config = { workspace = true, optional = true }
 reqwest = { workspace = true }
 async-trait = { workspace = true }
-sqlx = { workspace = true, optional = true }
-sea-orm = { workspace = true, optional = true }
 jsonwebtoken = { workspace = true, optional = true }
-keycloak = { workspace = true, optional = true }
-moka = { workspace = true, optional = true }
-fedimint-core = { workspace = true, optional = true }
-fedimint-client = { workspace = true, optional = true }
-fedimint-mint-client = { workspace = true, optional = true }
-fedimint-wallet-client = { workspace = true, optional = true }
-fedimint-ln-client = { workspace = true, optional = true }
-fedimint-ln-common = { workspace = true, optional = true }
-bitcoin = { workspace = true, optional = true }
-lightning-invoice = { workspace = true, optional = true }
 
 # Local dependencies removed (entity and migration no longer needed)
 
 # Additional dependencies
 http = "1"
-hyper = { version = "1", optional = true }
 gloo-timers = { version = "0.3", features = ["futures"] }
 gloo-net = { version = "0.6", features = ["http"] }
 web-sys = { version = "0.3", features = [
@@ -92,18 +79,5 @@ ssr = [
     "dep:tracing-subscriber",
     "dep:dotenvy",
     "dep:config",
-    "dep:sqlx",
-    "dep:sea-orm",
     "dep:jsonwebtoken",
-    "dep:keycloak",
-    "dep:moka",
-    "dep:hyper",
-    "dep:fedimint-core",
-    "dep:fedimint-client",
-    "dep:fedimint-mint-client",
-    "dep:fedimint-wallet-client",
-    "dep:fedimint-ln-client",
-    "dep:fedimint-ln-common",
-    "dep:bitcoin",
-    "dep:lightning-invoice",
 ]
