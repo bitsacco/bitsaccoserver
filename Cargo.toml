@@ -1,5 +1,5 @@
 [workspace]
-members = ["app", "entity", "migration"]
+members = ["app"]
 resolver = "2"
 
 [workspace.dependencies]

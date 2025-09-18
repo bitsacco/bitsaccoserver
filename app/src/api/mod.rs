@@ -1,19 +1,8 @@
 // Existing SSR API modules
-pub mod analytics;
-pub mod auth;
-// pub mod auth_compat; // TODO: Re-enable when dependencies are fixed
 pub mod client;
 pub mod dashboard_client;
-pub mod groups;
-pub mod lnurl;
-pub mod members;
-pub mod share_offers;
-pub mod shares;
-pub mod shares_compat;
-pub mod validation;
 
-// New API abstraction layer
-pub mod abstraction;
+// API modules
 pub mod backends;
 pub mod config;
 pub mod errors;
@@ -23,61 +12,28 @@ pub mod types;
 // Re-export commonly used items for SSR mode
 pub use client::{
     api, export_dashboard_data, get_custom_analytics, get_dashboard_metrics, get_export_status,
-    get_financial_analytics, get_groups, get_members, get_operational_metrics, get_shares,
-    get_user_analytics, ApiClient, ApiError, ApiResponse, PaginatedResponse, PaginationQuery,
-    SearchQuery,
+    get_financial_analytics, get_operational_metrics, get_user_analytics, ApiClient, ApiError,
+    ApiResponse, PaginatedResponse, PaginationQuery, SearchQuery,
 };
 
-// Re-export abstraction layer items
-pub use abstraction::AbstractedApiClient;
+// Re-export config and error items
 pub use config::{ApiConfig, Backend};
 pub use errors::{ApiError as AbstractedApiError, ApiResult};
-pub use traits::*;
-pub use types::*;
 
-use axum::{
-    response::{IntoResponse, Json},
-    routing::get,
-    Router,
+// Specific re-exports to avoid ambiguous glob imports
+pub use traits::{AuthApi, GroupsApi, UsersApi, WalletsApi};
+pub use types::{
+    auth::{AuthRequest, AuthResponse, LoginRequest, LogoutRequest, LogoutResponse},
+    common::{PaginationQuery as ApiPaginationQuery, SearchQuery as ApiSearchQuery},
+    user::{FindUserRequest, UpdateUserRequest, User},
 };
+
+use axum::response::{IntoResponse, Json};
 use serde_json::json;
 
-use crate::{repositories::Repositories, services::Services};
-
-pub fn create_api_router(repositories: Repositories, services: Services) -> Router {
-    Router::new()
-        .route("/health", get(health_check))
-        .route("/info", get(api_info))
-        .nest(
-            "/analytics",
-            analytics::router(repositories.clone(), services.clone()),
-        )
-        .nest(
-            "/auth",
-            auth::router(repositories.clone(), services.clone()),
-        )
-        .nest(
-            "/groups",
-            groups::router(repositories.clone(), services.clone()),
-        )
-        .nest(
-            "/lnurl",
-            lnurl::router(repositories.clone(), services.clone()),
-        )
-        .nest(
-            "/members",
-            members::router(repositories.clone(), services.clone()),
-        )
-        .nest(
-            "/share-offers",
-            share_offers::router(repositories.clone(), services.clone()),
-        )
-        .nest(
-            "/shares",
-            shares::router(repositories.clone(), services.clone()),
-        )
-        .nest("/validation", validation::router(repositories, services))
-}
+// Rust backend API router - removed to eliminate backend implementation
+// This router was responsible for backend database operations
+// All API calls should now go through the adapter pattern in abstraction.rs
 
 pub async fn health_check() -> impl IntoResponse {
     Json(json!({
@@ -89,20 +45,11 @@ pub async fn health_check() -> impl IntoResponse {
 
 pub async fn api_info() -> impl IntoResponse {
     Json(json!({
-        "name": "Bitsacco Server API",
+        "name": "Bitsacco Dashboard",
         "version": env!("CARGO_PKG_VERSION"),
-        "description": "REST API for SACCO management system",
-        "database": "connected",
-        "environment": "development",
-        "endpoints": {
-            "analytics": "/api/analytics",
-            "auth": "/api/auth",
-            "groups": "/api/groups",
-            "lnurl": "/api/lnurl",
-            "members": "/api/members",
-            "share_offers": "/api/share-offers",
-            "shares": "/api/shares",
-            "validation": "/api/validation"
-        }
+        "description": "Leptos dashboard for SACCO management system",
+        "mode": "frontend_only",
+        "backend": std::env::var("API_BACKEND").unwrap_or_else(|_| "nestjs".to_string()),
+        "api_endpoints": "Delegated to configured backend (NestJS or Rust adapter)"
     }))
 }

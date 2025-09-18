@@ -87,7 +87,7 @@ impl Default for MonetaryAmount {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TransactionCount {
     pub total: u64,
     pub successful: u64,
@@ -95,18 +95,7 @@ pub struct TransactionCount {
     pub pending: u64,
 }
 
-impl Default for TransactionCount {
-    fn default() -> Self {
-        Self {
-            total: 0,
-            successful: 0,
-            failed: 0,
-            pending: 0,
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct DashboardTrends {
     #[serde(rename = "memberGrowth")]
     pub member_growth: Vec<TrendDataPoint>,
@@ -116,17 +105,6 @@ pub struct DashboardTrends {
     pub transaction_trend: Vec<TrendDataPoint>,
     #[serde(rename = "chamaGrowth")]
     pub chama_growth: Vec<TrendDataPoint>,
-}
-
-impl Default for DashboardTrends {
-    fn default() -> Self {
-        Self {
-            member_growth: Vec::new(),
-            volume_trend: Vec::new(),
-            transaction_trend: Vec::new(),
-            chama_growth: Vec::new(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -809,7 +787,7 @@ impl DashboardApiClient {
 
     /// Get shared HTTP client instance
     fn get_http_client() -> &'static reqwest::Client {
-        HTTP_CLIENT.get_or_init(|| reqwest::Client::new())
+        HTTP_CLIENT.get_or_init(reqwest::Client::new)
     }
 
     /// Get dashboard overview metrics
