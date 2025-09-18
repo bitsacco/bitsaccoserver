@@ -15,11 +15,11 @@
   }
   
   .btn-primary {
-    @apply bg-primary-600 text-white hover:bg-primary-700 focus-visible:ring-primary-600;
+    @apply bg-primary-500 text-white hover:bg-primary-600 focus-visible:ring-primary-500;
   }
-  
+
   .btn-secondary {
-    @apply bg-secondary-200 text-secondary-900 hover:bg-secondary-300 focus-visible:ring-secondary-400;
+    @apply bg-neutral-100 text-neutral-900 hover:bg-neutral-200 focus-visible:ring-neutral-400;
   }
   
   .btn-sm {
@@ -35,10 +35,10 @@
   }
   
   .card {
-    @apply bg-white rounded-lg border border-secondary-200 shadow-sm;
+    @apply bg-white rounded-lg border border-neutral-200 shadow-sm;
   }
-  
+
   .input {
-    @apply block w-full rounded-md border-secondary-300 shadow-sm focus:border-primary-500 focus:ring-primary-500;
+    @apply block w-full rounded-md border-neutral-300 shadow-sm focus:border-primary-500 focus:ring-primary-500;
   }
 }
