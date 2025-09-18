@@ -6,10 +6,7 @@ on:
       - Cargo.toml
       - Leptos.toml
       - app/**
-      - entity/**
-      - migration/**
       - public/**
-      - style/**
       - .github/workflows/publish-bitsaccoserver.yml
 
 jobs:

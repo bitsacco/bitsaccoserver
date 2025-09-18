@@ -5,8 +5,9 @@
 default:
     @just --list
 
-# Environment variables
-export NESTJS_API_URL := "http://localhost:4000/v1"
+# Environment variables (for local development)
+# Docker environments will override this via compose.yml
+export NESTJS_API_URL := env_var_or_default("NESTJS_API_URL", "http://localhost:4000/v1")
 
 # ============================================================================
 # CSS & Frontend Build Commands
@@ -27,7 +28,7 @@ build-css-watch:
 # Development build with CSS compilation
 cargo-dev:
     just build-css
-    cargo watch -x 'run --bin app --features ssr' -w app/src -w entity/src -w migration/src
+    cargo watch -x 'run --bin app --features ssr' -w app/src
 
 # Release build with CSS compilation
 cargo-build:
@@ -69,13 +70,16 @@ admin:
 # Run admin dashboard in development mode with file watching
 admin-dev:
     just build-css
-    API_BACKEND=nestjs cargo watch -x 'run --bin app --features ssr' -w app/src -w entity/src -w migration/src
+    API_BACKEND=nestjs cargo watch -x 'run --bin app --features ssr' -w app/src
 
 # Show admin dashboard info
 admin-info:
     @echo "Admin dashboard will run on http://localhost:3030"
     @echo "Backend API: {{NESTJS_API_URL}}"
-    @echo "To run: just admin"
+    @echo "To run locally: just admin"
+    @echo "To run with Docker: just start"
+    @echo ""
+    @echo "Note: Docker mode uses http://nestapi:4000/v1 for container networking"
 
 # Run admin with debug logging
 admin-debug:
@@ -87,23 +91,23 @@ admin-debug:
 
 # Start development environment with Docker
 docker-start:
-    BUILD_TARGET=development docker compose up --build
+    BUILD_TARGET=development NESTJS_API_URL=http://nestapi:4000/v1 docker compose up --build
 
 # Build development Docker image
 docker-build:
-    BUILD_TARGET=development docker compose build app
+    BUILD_TARGET=development NESTJS_API_URL=http://nestapi:4000/v1 docker compose build app
 
 # Rebuild development Docker image (no cache)
 docker-rebuild:
-    BUILD_TARGET=development docker compose build --no-cache app
+    BUILD_TARGET=development NESTJS_API_URL=http://nestapi:4000/v1 docker compose build --no-cache app
 
 # Start production environment
 docker-prod:
-    BUILD_TARGET=production docker compose up -d
+    BUILD_TARGET=production NESTJS_API_URL=http://nestapi:4000/v1 docker compose up -d
 
 # Build production Docker image
 prod-build:
-    BUILD_TARGET=production docker compose build app
+    BUILD_TARGET=production NESTJS_API_URL=http://nestapi:4000/v1 docker compose build app
 
 # Stop all Docker containers
 stop:

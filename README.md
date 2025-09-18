@@ -110,12 +110,8 @@ just --list
 ```
 bsr/
 ├── app/              # Main application (Leptos + Axum)
-├── entity/           # Database entities (SeaORM)
-├── migration/        # Database migrations
-├── style/            # CSS and styling
 ├── public/           # Static assets
 ├── tests/            # Integration tests
-└── keycloak/         # Keycloak configuration
 ```
 
 ## Development Status
