@@ -3,16 +3,8 @@
 pub mod api;
 pub mod components;
 pub mod contexts;
-pub mod hooks;
-pub mod middleware;
 pub mod pages;
-pub mod repositories;
 pub mod server;
-pub mod services;
-pub mod utils;
-
-#[cfg(test)]
-pub mod tests;
 
 use components::auth::AuthGuard;
 use components::layout::{AppLayout, ThemeProvider};
@@ -21,7 +13,7 @@ use contexts::app_state::provide_app_state;
 use contexts::auth::SSRAuthProvider;
 use leptos::prelude::*;
 use leptos_router::{components::*, path};
-use pages::{DashboardContent, GroupsPage, LoginPage, MembersPage, Settings, SignupPage};
+use pages::{DashboardContent, GroupsPage, LoginPage, MembersPage, Settings};
 
 #[component]
 pub fn App() -> impl IntoView {
@@ -33,7 +25,6 @@ pub fn App() -> impl IntoView {
                 <Routes fallback=|| view! { <NotFoundPage/> }.into_any()>
                     <Route path=path!("/") view=LayoutedLogin/>
                     <Route path=path!("/login") view=LayoutedLogin/>
-                    <Route path=path!("/signup") view=LayoutedSignup/>
                     <Route path=path!("/dashboard") view=LayoutedDashboard/>
                     <Route path=path!("/settings") view=LayoutedSettings/>
                     <Route path=path!("/members") view=LayoutedMembers/>
@@ -211,31 +202,6 @@ fn LayoutedLogin() -> impl IntoView {
             <body>
                 <ThemeProvider>
                     <LoginPage />
-                </ThemeProvider>
-            </body>
-        </html>
-    }
-}
-
-#[component]
-fn LayoutedSignup() -> impl IntoView {
-    view! {
-        <html>
-            <head>
-                <title>"Sign Up - BitsaccoServer"</title>
-                <meta charset="utf-8"/>
-                <meta name="viewport" content="width=device-width, initial-scale=1"/>
-                <link rel="stylesheet" href="/assets/styles.css"/>
-                <style>
-                    r#"
-                    * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { font-family: 'Inter', system-ui, sans-serif; }
-                    "#
-                </style>
-            </head>
-            <body>
-                <ThemeProvider>
-                    <SignupPage />
                 </ThemeProvider>
             </body>
         </html>

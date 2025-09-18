@@ -8,7 +8,7 @@ pub enum LoadingSize {
 }
 
 impl LoadingSize {
-    fn to_class(&self) -> &'static str {
+    fn to_class(self) -> &'static str {
         match self {
             LoadingSize::Small => "h-4 w-4",
             LoadingSize::Medium => "h-8 w-8",
@@ -131,8 +131,6 @@ pub fn LoadingCard(
     #[prop(optional)] message: Option<String>,
     #[prop(optional)] show_spinner: bool,
 ) -> impl IntoView {
-    let show_spinner = show_spinner;
-
     view! {
         <div class="bg-white rounded-lg shadow-sm border p-6 text-center">
             {if show_spinner {
@@ -219,7 +217,6 @@ pub fn LoadingOverlay(
     #[prop(optional)] message: Option<String>,
     #[prop(optional)] show_backdrop: bool,
 ) -> impl IntoView {
-    let show_backdrop = show_backdrop;
     let message = message.unwrap_or_else(|| "Loading...".to_string());
 
     view! {
