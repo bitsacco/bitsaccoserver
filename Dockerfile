@@ -19,15 +19,11 @@ WORKDIR /app
 # Copy dependency files first
 COPY Cargo.toml Leptos.toml ./
 COPY app/Cargo.toml ./app/
-COPY entity/Cargo.toml ./entity/
-COPY migration/Cargo.toml ./migration/
 
 # Create dummy source files to cache dependencies
-RUN mkdir -p app/src entity/src migration/src && \
+RUN mkdir -p app/src && \
     echo "fn main() {}" > app/src/main.rs && \
-    echo "" > app/src/lib.rs && \
-    echo "" > entity/src/lib.rs && \
-    echo "" > migration/src/lib.rs
+    echo "" > app/src/lib.rs
 
 # Build dependencies (cached layer)
 RUN cargo build --release

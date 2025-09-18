@@ -8,33 +8,38 @@ pub fn Header(set_mobile_open: WriteSignal<bool>) -> impl IntoView {
 
     view! {
         <div class="sticky top-0 z-10 flex-shrink-0 flex h-16 bg-white border-b border-gray-200 shadow-sm">
-            // Mobile menu button with enhanced animations
-            <button
-                type="button"
-                id="mobile-menu-button"
-                aria-label="Open sidebar"
-                class="group px-4 border-r border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 lg:hidden transition-all duration-200"
-                on:click=move |_| set_mobile_open.set(true)
-            >
-                <span class="sr-only">"Open sidebar"</span>
-                <div class="relative w-6 h-6">
-                    // Animated hamburger menu
-                    <svg class="h-6 w-6 transform transition-transform duration-200 group-hover:scale-110" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path class="transform transition-transform duration-200 origin-center group-hover:translate-y-0.5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16"/>
-                        <path class="transition-opacity duration-200 group-hover:opacity-75" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16"/>
-                        <path class="transform transition-transform duration-200 origin-center group-hover:-translate-y-0.5" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 18h7"/>
-                    </svg>
+            // Mobile header - Logo left, hamburger right (matching web app)
+            <div class="lg:hidden flex-1 px-4 flex items-center justify-between">
+                // Logo on the left for mobile
+                <div class="flex items-center">
+                    <img src="/assets/logo.svg" alt="Bitsacco" class="h-8 w-8" />
+                    <span class="ml-2 text-lg font-bold font-title text-gray-900">"Bitsacco"</span>
                 </div>
-            </button>
 
-            <div class="flex-1 px-4 lg:px-6 flex justify-end items-center">
+                // Hamburger menu on the right (matching web app)
+                <button
+                    type="button"
+                    id="mobile-menu-button"
+                    aria-label="Open main menu"
+                    class="flex size-10 items-center justify-center rounded-lg transition-colors hover:bg-gray-100 focus-ring"
+                    on:click=move |_| set_mobile_open.set(true)
+                >
+                    <span class="sr-only">"Open main menu"</span>
+                    // Three horizontal lines (List icon style)
+                    <svg class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="hidden lg:flex flex-1 px-4 lg:px-6 justify-end items-center">
                 // Right side - actions
                 <div class="flex items-center space-x-3">
                     // Notifications
                     <div class="relative">
                         <button
                             type="button"
-                            class="relative p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 rounded-full transition-colors"
+                            class="relative p-2 text-gray-400 hover:text-gray-500 focus-ring rounded-lg transition-colors"
                             on:click=move |_| set_notifications_open.update(|open| *open = !*open)
                         >
                             <span class="sr-only">"View notifications"</span>
@@ -66,16 +71,16 @@ pub fn Header(set_mobile_open: WriteSignal<bool>) -> impl IntoView {
 #[component]
 fn NotificationDropdown(on_close: impl Fn() + 'static + Copy) -> impl IntoView {
     view! {
-        <div class="origin-top-right absolute right-0 mt-2 w-96 rounded-lg shadow-xl bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50 border border-gray-200">
+        <div class="origin-top-right absolute right-0 mt-2 w-96 rounded-xl shadow-xl bg-white ring-1 ring-black ring-opacity-5 focus:outline-none z-50 border border-gray-200 animate-fade-in animate-slide-in-down">
             <div class="p-0">
                 <div class="flex items-center justify-between p-4 border-b border-gray-100">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-900">"Notifications"</h3>
-                        <p class="text-sm text-gray-500">"3 unread messages"</p>
+                        <h3 class="text-lg font-semibold font-heading text-gray-900">"Notifications"</h3>
+                        <p class="text-sm font-body text-gray-500">"3 unread messages"</p>
                     </div>
                     <button
                         type="button"
-                        class="text-gray-400 hover:text-gray-500 p-1 rounded-md transition-colors"
+                        class="text-gray-400 hover:text-gray-500 p-1 rounded-lg transition-colors"
                         on:click=move |_| on_close()
                     >
                         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -84,7 +89,7 @@ fn NotificationDropdown(on_close: impl Fn() + 'static + Copy) -> impl IntoView {
                     </button>
                 </div>
 
-                <div class="max-h-96 overflow-y-auto">
+                <div class="max-h-96 overflow-y-auto scrollbar-thin">
                     <NotificationItem
                         title="New member registration"
                         message="John Doe has registered as a new member and is awaiting approval"
@@ -124,10 +129,10 @@ fn NotificationDropdown(on_close: impl Fn() + 'static + Copy) -> impl IntoView {
 
                 <div class="p-4 border-t border-gray-100 bg-gray-50">
                     <div class="flex justify-between items-center">
-                        <button class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        <button class="text-sm text-teal-600 hover:text-teal-700 font-medium px-3 py-1.5 rounded-lg hover:bg-teal-50 transition-colors">
                             "Mark all as read"
                         </button>
-                        <a href="/notifications" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                        <a href="/notifications" class="text-sm text-teal-600 hover:text-teal-700 font-medium px-3 py-1.5 rounded-lg hover:bg-teal-50 transition-colors">
                             "View all notifications"
                         </a>
                     </div>
@@ -147,9 +152,9 @@ fn NotificationItem(
 ) -> impl IntoView {
     let (icon_bg, icon_svg) = match icon_type {
         "user" => (
-            "bg-blue-100",
+            "bg-teal-100",
             view! {
-                <svg class="h-4 w-4 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="h-4 w-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
             },
@@ -198,7 +203,7 @@ fn NotificationItem(
 
     view! {
         <div class={format!("px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer border-l-4 {}",
-            if unread { "border-blue-400 bg-blue-50/30" } else { "border-transparent" }
+            if unread { "border-teal-400 bg-teal-50/30" } else { "border-transparent" }
         )}>
             <div class="flex items-start space-x-3">
                 <div class={format!("flex-shrink-0 h-8 w-8 rounded-full {} flex items-center justify-center", icon_bg)}>
@@ -206,7 +211,7 @@ fn NotificationItem(
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="flex items-center justify-between">
-                        <p class={format!("text-sm font-medium truncate {}",
+                        <p class={format!("text-sm font-medium font-body truncate {}",
                             if unread { "text-gray-900" } else { "text-gray-700" }
                         )}>
                             {title}
@@ -214,17 +219,17 @@ fn NotificationItem(
                         <div class="flex items-center space-x-2">
                             {if unread {
                                 view! {
-                                    <div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <div class="w-2 h-2 bg-teal-500 rounded-full"></div>
                                 }.into_any()
                             } else {
                                 view! { <div></div> }.into_any()
                             }}
-                            <p class="text-xs text-gray-500 whitespace-nowrap">
+                            <p class="text-xs font-body text-gray-500 whitespace-nowrap">
                                 {time}
                             </p>
                         </div>
                     </div>
-                    <p class="text-sm text-gray-600 mt-1 line-clamp-2">
+                    <p class="text-sm font-body text-gray-600 mt-1 line-clamp-2">
                         {message}
                     </p>
                 </div>

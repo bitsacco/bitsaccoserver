@@ -43,14 +43,18 @@ fn LayoutedDashboard() -> impl IntoView {
     view! {
         <html>
             <head>
-                <title>"Dashboard - BitsaccoServer"</title>
+                <title>"Dashboard - Bitsacco Admin"</title>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg"/>
+                <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"/>
+                <link rel="manifest" href="/assets/manifest.json"/>
+                <meta name="theme-color" content="#14b8a6"/>
                 <link rel="stylesheet" href="/assets/styles.css"/>
                 <style>
                     r#"
                     * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { font-family: 'Inter', system-ui, sans-serif; }
+                    body { font-family: 'Nunito', system-ui, sans-serif; }
                     "#
                 </style>
             </head>
@@ -72,14 +76,17 @@ fn LayoutedSettings() -> impl IntoView {
     view! {
         <html>
             <head>
-                <title>"Settings - BitsaccoServer"</title>
+                <title>"Settings - Bitsacco Admin"</title>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+                <link rel="apple-touch-icon" href="/apple-touch-icon.png"/>
+                <meta name="theme-color" content="#14b8a6"/>
                 <link rel="stylesheet" href="/assets/styles.css"/>
                 <style>
                     r#"
                     * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { font-family: 'Inter', system-ui, sans-serif; }
+                    body { font-family: 'Nunito', system-ui, sans-serif; }
                     "#
                 </style>
             </head>
@@ -101,14 +108,18 @@ fn LayoutedMembers() -> impl IntoView {
     view! {
         <html>
             <head>
-                <title>"Members - BitsaccoServer"</title>
+                <title>"Members - Bitsacco Admin"</title>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg"/>
+                <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"/>
+                <link rel="manifest" href="/assets/manifest.json"/>
+                <meta name="theme-color" content="#14b8a6"/>
                 <link rel="stylesheet" href="/assets/styles.css"/>
                 <style>
                     r#"
                     * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { font-family: 'Inter', system-ui, sans-serif; }
+                    body { font-family: 'Nunito', system-ui, sans-serif; }
                     "#
                 </style>
             </head>
@@ -130,14 +141,18 @@ fn LayoutedGroups() -> impl IntoView {
     view! {
         <html>
             <head>
-                <title>"Groups - BitsaccoServer"</title>
+                <title>"Groups - Bitsacco Admin"</title>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg"/>
+                <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"/>
+                <link rel="manifest" href="/assets/manifest.json"/>
+                <meta name="theme-color" content="#14b8a6"/>
                 <link rel="stylesheet" href="/assets/styles.css"/>
                 <style>
                     r#"
                     * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { font-family: 'Inter', system-ui, sans-serif; }
+                    body { font-family: 'Nunito', system-ui, sans-serif; }
                     "#
                 </style>
             </head>
@@ -159,14 +174,18 @@ fn LayoutedShares() -> impl IntoView {
     view! {
         <html>
             <head>
-                <title>"Shares - BitsaccoServer"</title>
+                <title>"Shares - Bitsacco Admin"</title>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg"/>
+                <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"/>
+                <link rel="manifest" href="/assets/manifest.json"/>
+                <meta name="theme-color" content="#14b8a6"/>
                 <link rel="stylesheet" href="/assets/styles.css"/>
                 <style>
                     r#"
                     * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { font-family: 'Inter', system-ui, sans-serif; }
+                    body { font-family: 'Nunito', system-ui, sans-serif; }
                     "#
                 </style>
             </head>
@@ -188,14 +207,18 @@ fn LayoutedLogin() -> impl IntoView {
     view! {
         <html>
             <head>
-                <title>"Sign In - BitsaccoServer"</title>
+                <title>"Sign In - Bitsacco Admin"</title>
                 <meta charset="utf-8"/>
                 <meta name="viewport" content="width=device-width, initial-scale=1"/>
+                <link rel="icon" type="image/svg+xml" href="/assets/favicon.svg"/>
+                <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png"/>
+                <link rel="manifest" href="/assets/manifest.json"/>
+                <meta name="theme-color" content="#14b8a6"/>
                 <link rel="stylesheet" href="/assets/styles.css"/>
                 <style>
                     r#"
                     * { box-sizing: border-box; margin: 0; padding: 0; }
-                    body { font-family: 'Inter', system-ui, sans-serif; }
+                    body { font-family: 'Nunito', system-ui, sans-serif; }
                     "#
                 </style>
             </head>

@@ -141,7 +141,7 @@ pub fn EnhancedLoginForm() -> impl IntoView {
                 <div>
                     <label
                         for="phone"
-                        class="block text-sm font-medium text-gray-700 mb-2"
+                        class="block text-sm font-medium font-body text-gray-700 mb-2"
                     >
                         "Phone Number"
                     </label>
@@ -150,7 +150,7 @@ pub fn EnhancedLoginForm() -> impl IntoView {
                         name="phone"
                         type="tel"
                         required=true
-                        class="block w-full px-3 py-3 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 font-body bg-gray-50/50 hover:bg-white"
                         placeholder="Enter your phone number"
                     />
                 </div>
@@ -159,7 +159,7 @@ pub fn EnhancedLoginForm() -> impl IntoView {
                 <div class="relative">
                     <label
                         for="pin"
-                        class="block text-sm font-medium text-gray-700 mb-2"
+                        class="block text-sm font-medium font-body text-gray-700 mb-2"
                     >
                         "PIN Code"
                     </label>
@@ -169,16 +169,16 @@ pub fn EnhancedLoginForm() -> impl IntoView {
                         type=move || if show_pin.get() { "text" } else { "password" }
                         required=true
                         maxlength="6"
-                        class="block w-full px-3 py-3 pr-10 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                        class="block w-full px-4 py-3 pr-12 border border-gray-300 rounded-xl shadow-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all duration-200 font-body bg-gray-50/50 hover:bg-white"
                         placeholder="Enter your 6-digit PIN"
                     />
                     // Toggle PIN visibility button
                     <button
                         type="button"
-                        class="absolute inset-y-0 right-0 pr-3 flex items-center top-8"
+                        class="absolute inset-y-0 right-0 pr-4 flex items-center top-8 hover:bg-gray-100 rounded-r-xl transition-colors"
                         on:click=move |_| set_show_pin.update(|show| *show = !*show)
                     >
-                        <svg class="h-5 w-5 text-gray-400 hover:text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg class="h-5 w-5 text-gray-400 hover:text-teal-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             {if show_pin.get() {
                                 view! {
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
@@ -205,7 +205,7 @@ pub fn EnhancedLoginForm() -> impl IntoView {
                             if nestjs_action.pending().get() {
                                 format!("{} text-white bg-gray-400 cursor-not-allowed", base_class)
                             } else {
-                                format!("{} text-white bg-blue-600 hover:bg-blue-700 focus:ring-blue-500", base_class)
+                                format!("{} text-white bg-teal-600 hover:bg-teal-700 focus:ring-teal-500", base_class)
                             }
                         }
                     >
