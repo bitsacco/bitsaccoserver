@@ -283,20 +283,11 @@ pub fn AuthProvider(children: Children) -> impl IntoView {
     let logout = Callback::new(move |_| {
         is_loading.set(true);
 
-        // API client removed during cleanup - functionality disabled
-        is_loading.set(false);
-        error.set(Some("Auth temporarily disabled during cleanup".to_string()));
-        return;
-        #[allow(unreachable_code)]
         spawn_local(async move {
-            // Early return to avoid compilation errors
-            /*
             // Logout from server if we have a refresh token
             if let Some(refresh_token_val) = refresh_token.get() {
-                let logout_request = crate::api::types::RevokeTokenRequest {
-                    refresh_token: refresh_token_val,
-                };
-                let _ = api_client_clone.logout(logout_request).await;
+                // Try to logout from server, but don't block on failure
+                let _ = logout_user(refresh_token_val).await;
             }
 
             // Clear local state
@@ -308,9 +299,11 @@ pub fn AuthProvider(children: Children) -> impl IntoView {
             clear_auth_state_secure().await;
 
             // Redirect to login
-            let _ = window().location().set_href("/login");
+            #[cfg(target_arch = "wasm32")]
+            {
+                let _ = web_sys::window().unwrap().location().set_href("/login");
+            }
             is_loading.set(false);
-            */
         });
     });
 
@@ -598,7 +591,6 @@ fn parse_cookie_value(cookie_string: &str, name: &str) -> Option<String> {
     })
 }
 
-#[cfg(not(target_arch = "wasm32"))]
 // Enhanced secure token storage with proper security measures
 async fn store_auth_tokens_secure(_access_token: &str, _refresh_token: &str) {
     #[cfg(target_arch = "wasm32")]
@@ -641,7 +633,6 @@ async fn store_auth_tokens_secure(_access_token: &str, _refresh_token: &str) {
 }
 
 // Enhanced secure state clearing
-#[allow(dead_code)]
 async fn clear_auth_state_secure() {
     #[cfg(target_arch = "wasm32")]
     {
@@ -903,24 +894,40 @@ pub fn SSRAuthProvider(children: Children) -> impl IntoView {
         is_loading.set(true);
 
         spawn_local(async move {
-            tracing::info!("🔥 SSRAuthProvider: Calling get_auth_user server function");
-            match get_auth_user().await {
-                Ok(Some(user_info)) => {
-                    tracing::info!("🔥 SSRAuthProvider: Successfully retrieved authenticated user: {} with roles: {:?}", user_info.id, user_info.roles);
-                    user.set(Some(user_info));
-                    error.set(None);
+            tracing::info!(
+                "🔥 SSRAuthProvider: Starting client-side auth restoration from cookies"
+            );
+
+            // Try to restore auth state from cookies (like the regular AuthProvider)
+            if let Some(stored_token) = get_auth_token_from_cookies() {
+                tracing::info!(
+                    "🔥 SSRAuthProvider: Found auth_token cookie, length: {}",
+                    stored_token.len()
+                );
+                token.set(Some(stored_token.clone()));
+
+                // Decode JWT token to extract user information
+                match decode_jwt_token(&stored_token) {
+                    Ok(user_info) => {
+                        tracing::info!("🔥 SSRAuthProvider: Successfully decoded JWT token for user: {} with roles: {:?}", user_info.id, user_info.roles);
+                        user.set(Some(user_info));
+                        error.set(None);
+                    }
+                    Err(e) => {
+                        tracing::error!("🔥 SSRAuthProvider: Failed to decode JWT token: {}", e);
+                        // Token is invalid, clear everything
+                        token.set(None);
+                        refresh_token.set(None);
+                        user.set(None);
+                        error.set(None);
+                    }
                 }
-                Ok(None) => {
-                    tracing::info!("🔥 SSRAuthProvider: No authenticated user found");
-                    user.set(None);
-                    error.set(None);
-                }
-                Err(e) => {
-                    tracing::error!("🔥 SSRAuthProvider: Error getting auth user: {}", e);
-                    user.set(None);
-                    error.set(Some(format!("Authentication error: {}", e)));
-                }
+            } else {
+                tracing::info!("🔥 SSRAuthProvider: No auth_token cookie found");
+                user.set(None);
+                error.set(None);
             }
+
             is_loading.set(false);
             tracing::info!("🔥 SSRAuthProvider: Auth state initialization complete");
         });
@@ -939,11 +946,22 @@ pub fn SSRAuthProvider(children: Children) -> impl IntoView {
             match login_user(creds).await {
                 Ok(auth_response) => {
                     // The login_user function already returns UserInfo in the user field
+                    tracing::info!(
+                        "🔥 SSRAuthProvider: Login successful, setting user: {:?}",
+                        auth_response.user.id
+                    );
                     user.set(Some(auth_response.user));
 
                     // Store tokens if available
                     if let Some(access_token) = auth_response.access_token {
-                        token.set(Some(access_token));
+                        token.set(Some(access_token.clone()));
+
+                        // Store auth tokens securely in cookies
+                        let refresh_token_val =
+                            auth_response.refresh_token.clone().unwrap_or_default();
+                        spawn_local(async move {
+                            store_auth_tokens_secure(&access_token, &refresh_token_val).await;
+                        });
                     }
                     if let Some(refresh_token_val) = auth_response.refresh_token {
                         refresh_token.set(Some(refresh_token_val));

@@ -86,19 +86,19 @@ admin-debug:
 # ============================================================================
 
 # Start development environment with Docker
-docker-dev:
+docker-start:
     BUILD_TARGET=development docker compose up --build
 
 # Build development Docker image
-dev-build:
+docker-build:
     BUILD_TARGET=development docker compose build app
 
 # Rebuild development Docker image (no cache)
-dev-rebuild:
+docker-rebuild:
     BUILD_TARGET=development docker compose build --no-cache app
 
 # Start production environment
-prod:
+docker-prod:
     BUILD_TARGET=production docker compose up -d
 
 # Build production Docker image
@@ -223,8 +223,7 @@ install-deps-ubuntu:
 # ============================================================================
 
 # Aliases matching npm script names for easy migration
-alias dev := docker-dev
+alias start := docker-start
 alias build := cargo-build
 alias test := test-all
-alias start := admin
 alias lint := cargo-lint

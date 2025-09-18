@@ -17,11 +17,6 @@ services:
     ports:
       - "3030:3030"
       - "3031:3031"  # Hot reload port for development
-    depends_on:
-      postgres:
-        condition: service_healthy
-      keycloak:
-        condition: service_started
     volumes:
       # Development volumes - these are ignored in production
       - ./app:/app/app:${VOLUME_MODE:-delegated}

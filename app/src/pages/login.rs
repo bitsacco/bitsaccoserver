@@ -34,11 +34,7 @@ pub fn LoginPage() -> impl IntoView {
                 <div class="mx-auto w-full max-w-sm lg:w-96">
                     // Logo
                     <div class="mb-8">
-                        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center shadow-lg">
-                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                            </svg>
-                        </div>
+                        <img src="/assets/logo.svg" alt="Bitsacco" class="h-12 w-12" />
                     </div>
 
                     // Header
@@ -52,39 +48,25 @@ pub fn LoginPage() -> impl IntoView {
                     // Enhanced Login Form
                     <EnhancedLoginForm/>
 
-                    // Sign up link
-                    <div class="mt-8 text-center">
-                        <p class="text-sm text-gray-600">
-                            "Don't have an account? "
-                            <a href="/signup" class="font-medium text-blue-600 hover:text-blue-500 transition-colors">
-                                "Create one here"
-                            </a>
-                        </p>
-                    </div>
                 </div>
             </div>
 
             // Right side - Branding section with modern design
-            <div class="hidden lg:block relative w-0 flex-1 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
+            <div class="hidden lg:block relative w-0 flex-1 bg-teal-600">
                 <div class="absolute inset-0 flex flex-col items-center justify-center p-12">
                     <div class="text-center">
                         // Modern logo design
                         <div class="mb-8">
-                            <div class="w-32 h-32 mx-auto rounded-3xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-2xl">
-                                <svg class="w-16 h-16 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                                </svg>
+                            <div class="w-40 h-40 mx-auto rounded-3xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-center justify-center shadow-2xl">
+                                <img src="/assets/logo.svg" alt="Bitsacco" class="w-24 h-24 filter brightness-0 invert" />
                             </div>
                         </div>
 
-                        <h1 class="text-5xl font-bold text-white mb-4 tracking-tight">
-                            "Bitsacco"
-                        </h1>
-                        <p class="text-xl text-blue-100 mb-8 font-medium">
+                        <p class="text-xl text-teal-100 mb-8 font-medium">
                             "Community Financial Management"
                         </p>
 
-                        <div class="space-y-4 text-blue-100/80">
+                        <div class="space-y-4 text-teal-100/80">
                             <div class="flex items-center justify-center space-x-3">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                                     <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd" />
