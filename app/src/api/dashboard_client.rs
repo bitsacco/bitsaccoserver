@@ -16,7 +16,7 @@ impl Default for DashboardApiConfig {
     fn default() -> Self {
         Self {
             base_url: std::env::var("NESTJS_API_URL")
-                .unwrap_or_else(|_| "http://localhost:4000".to_string()),
+                .unwrap_or_else(|_| "http://localhost:4000/v1".to_string()),
             timeout: Duration::from_secs(30),
             retry_attempts: 3,
             cache_duration: Duration::from_secs(300), // 5 minutes

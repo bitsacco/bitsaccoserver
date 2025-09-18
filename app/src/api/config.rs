@@ -38,7 +38,7 @@ impl ApiConfig {
 
         let base_url = match backend {
             Backend::NestJs => std::env::var("NESTJS_API_URL")
-                .unwrap_or_else(|_| "http://localhost:4000".to_string()),
+                .unwrap_or_else(|_| "http://localhost:4000/v1".to_string()),
             Backend::Rust => std::env::var("RUST_API_URL")
                 .unwrap_or_else(|_| "http://localhost:5000".to_string()),
         };

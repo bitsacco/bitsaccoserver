@@ -27,7 +27,7 @@ RUN mkdir -p app/src && \
 
 # Build dependencies (cached layer)
 RUN cargo build --release
-RUN rm -rf app/src entity/src migration/src
+RUN rm -rf app/src
 
 # Development stage
 FROM dependencies AS development
@@ -49,7 +49,7 @@ ENV LEPTOS_SITE_ADDR="0.0.0.0:3030"
 EXPOSE 3000 3001
 
 # Use cargo-watch for hot-reload development
-CMD ["cargo", "watch", "-x", "run --bin app --features ssr", "-w", "app/src", "-w", "entity/src", "-w", "migration/src"]
+CMD ["cargo", "watch", "-x", "run --bin app --features ssr", "-w", "app/src", "-w"]
 
 # Builder stage for production
 FROM dependencies AS builder
